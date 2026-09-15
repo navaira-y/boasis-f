@@ -18,7 +18,9 @@ function smooth() {
   if (reduce || typeof Lenis === 'undefined') return;
   lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, syncTouch: false, wheelMultiplier: 1, autoRaf: true });
   document.addEventListener('click', e => {
-    const a = e.target.closest('a[href^="#"]'); if (!a) return;
+    /* an opener is not an anchor: a hero door's title keeps href="#setup" for a browser with
+       no script, and with one it opens the dialog, so it must not also glide the page */
+    const a = e.target.closest('a[href^="#"]'); if (!a || a.hasAttribute('data-open')) return;
     const id = a.getAttribute('href'), el = id === '#top' ? 0 : (id.length > 1 ? document.querySelector(id) : null);
     if (el === null) return;
     e.preventDefault();
@@ -231,10 +233,6 @@ function waitlist() {
    The demo dialog is two steps, one send: the fields first, the calendar second. The
    calendar loads when its step is reached, not when the page is, so nobody who only
    reads the page pays for a Google round trip. */
-/* the pickers take the contact page's codes, in the contact page's order, and say what
-   each one is: the country by name, not just a dial code nobody matches to a flag */
-/* the picker shows the short form up front and the full name in the list; the value is the dial code */
-const COUNTRY_CODES = [['AE', 'United Arab Emirates', '+971'], ['SA', 'Saudi Arabia', '+966'], ['QA', 'Qatar', '+974'], ['BH', 'Bahrain', '+973'], ['KW', 'Kuwait', '+965'], ['OM', 'Oman', '+968'], ['EG', 'Egypt', '+20'], ['JO', 'Jordan', '+962'], ['LB', 'Lebanon', '+961'], ['IQ', 'Iraq', '+964'], ['IL', 'Israel', '+972'], ['PS', 'Palestine', '+970'], ['SY', 'Syria', '+963'], ['IR', 'Iran', '+98'], ['UZ', 'Uzbekistan', '+998'], ['AZ', 'Azerbaijan', '+994'], ['MA', 'Morocco', '+212'], ['TN', 'Tunisia', '+216'], ['DZ', 'Algeria', '+213'], ['GB', 'United Kingdom', '+44'], ['DE', 'Germany', '+49'], ['FR', 'France', '+33'], ['IT', 'Italy', '+39'], ['ES', 'Spain', '+34'], ['NL', 'Netherlands', '+31'], ['BE', 'Belgium', '+32'], ['GR', 'Greece', '+30'], ['CH', 'Switzerland', '+41'], ['AT', 'Austria', '+43'], ['DK', 'Denmark', '+45'], ['SE', 'Sweden', '+46'], ['NO', 'Norway', '+47'], ['PL', 'Poland', '+48'], ['PT', 'Portugal', '+351'], ['RU', 'Russia', '+7'], ['US', 'United States', '+1'], ['MX', 'Mexico', '+52'], ['AR', 'Argentina', '+54'], ['BR', 'Brazil', '+55'], ['CL', 'Chile', '+56'], ['CO', 'Colombia', '+57'], ['IN', 'India', '+91'], ['PK', 'Pakistan', '+92'], ['TW', 'Taiwan', '+886'], ['JP', 'Japan', '+81'], ['KR', 'South Korea', '+82'], ['CN', 'China', '+86'], ['SG', 'Singapore', '+65'], ['MY', 'Malaysia', '+60'], ['TH', 'Thailand', '+66'], ['PH', 'Philippines', '+63'], ['ID', 'Indonesia', '+62'], ['LK', 'Sri Lanka', '+94'], ['AU', 'Australia', '+61'], ['NZ', 'New Zealand', '+64'], ['ZA', 'South Africa', '+27'], ['NG', 'Nigeria', '+234'], ['KE', 'Kenya', '+254'], ['GH', 'Ghana', '+233']];
 /* the same rules as lib/validate.js on the server, so what the dialog accepts is exactly
    what the API accepts: no second, looser truth the visitor can learn by trial and error. */
 const DM_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -262,65 +260,14 @@ const DM_RULE = {
 function modals() {
   const dialogs = [...document.querySelectorAll('.modal')]; if (!dialogs.length) return;
 
-  /* the code pickers: alphabetical. The closed control says the short form and the code
-     (PK +92); the open list says the full name and the code. A hidden input carries the
-     code into the form, so what gets posted is exactly the code. */
+  /* the code pickers: one control, one list, one search box, shared with the contact page
+     (js/countries.js) so the three phone fields can never drift apart. The dialog only says
+     where they are, and keeps the reset a close needs: a shut dialog opens fresh, on the UAE,
+     with the search cleared. */
   const ccReset = new Map();
   dialogs.forEach(d => d.querySelectorAll('[data-cc]').forEach(cc => {
-    const btn = cc.querySelector('.cc-btn');
-    const cur = cc.querySelector('.cc-cur');
-    const codeEl = cc.querySelector('.cc-code');
-    const list = cc.querySelector('.cc-list');
-    const input = cc.querySelector('input[name="country_code"]');
-    const items = COUNTRY_CODES.slice().sort((a, b) => a[1].localeCompare(b[1]));
-    items.forEach(p => {
-      const li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.tabIndex = -1;
-      const n = document.createElement('span'); n.textContent = p[1];
-      const c = document.createElement('span'); c.className = 'cc-li-code'; c.textContent = p[2];
-      li.append(n, c);
-      list.appendChild(li);
-    });
-    const setCode = code => {
-      const it = items.find(p => p[2] === code);
-      if (!it) return;
-      input.value = code;
-      cur.textContent = it[0];
-      codeEl.textContent = it[2];
-      [...list.children].forEach((li, i) => li.setAttribute('aria-selected', String(items[i][2] === code)));
-    };
-    const open = () => { list.hidden = false; btn.setAttribute('aria-expanded', 'true'); };
-    const close = () => { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
-    const pick = li => { setCode(items[[...list.children].indexOf(li)][2]); close(); btn.focus(); };
-    btn.addEventListener('click', () => (list.hidden ? open() : close()));
-    btn.addEventListener('keydown', ev => {
-      if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
-      ev.preventDefault();
-      if (list.hidden) open();
-      const lis = [...list.children];
-      const i = lis.indexOf(document.activeElement);
-      const next = i === -1 ? (ev.key === 'ArrowDown' ? 0 : lis.length - 1) : Math.max(0, Math.min(lis.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
-      lis[next].focus();
-      lis[next].scrollIntoView({ block: 'nearest' });
-    });
-    list.addEventListener('click', ev => { const li = ev.target.closest('li[role="option"]'); if (li) pick(li); });
-    list.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' || ev.key === ' ') { const li = ev.target.closest('li[role="option"]'); if (li) { ev.preventDefault(); pick(li); } }
-      else if (ev.key === 'Escape') { close(); btn.focus(); }
-      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-        ev.preventDefault();
-        const lis = [...list.children];
-        const i = lis.indexOf(document.activeElement);
-        const next = i === -1 ? (ev.key === 'ArrowDown' ? 0 : lis.length - 1) : Math.max(0, Math.min(lis.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
-        lis[next].focus();
-        lis[next].scrollIntoView({ block: 'nearest' });
-      }
-    });
-    document.addEventListener('click', ev => { if (!list.hidden && !cc.contains(ev.target)) close(); });
-    document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !list.hidden) { close(); btn.focus(); } });
-    ccReset.set(cc, () => setCode('+971'));
-    setCode(input.value || '+971');
+    const picker = window.BoasisCountryPicker && window.BoasisCountryPicker.init(cc);
+    if (picker) ccReset.set(cc, picker.reset);
   }));
 
   const resets = new Map();

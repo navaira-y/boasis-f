@@ -44,6 +44,7 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   const submitForm = f => f.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   const click = el => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   const keydown = () => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  const key = (el, k) => el.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
   /* a standing fetch stub: records the POSTs and answers like the API would */
   const posts = [];
@@ -63,23 +64,79 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
     ok(lis && lis.length === 59, id + ' picker list has the 59 countries');
     ok(lis && lis[0].textContent.includes('Algeria') && lis[58].textContent.includes('Uzbekistan'), id + ' list runs Algeria to Uzbekistan, alphabetically');
     ok(cc && cc.querySelector('.cc-cur').textContent === 'AE' && cc.querySelector('.cc-code').textContent === '+971', id + ' closed control shows short form and code by default');
+    ok(cc && cc.querySelector('.cc-pop').hidden, id + ' panel starts closed');
+    ok(cc && cc.querySelector('.cc-search') && cc.querySelector('.cc-search').placeholder === 'Search country', id + ' panel carries the search box');
   }
   {
     const cc = document.querySelector('#modal-demo [data-cc]');
+    const pop = () => cc.querySelector('.cc-pop');
+    const rows = () => [...cc.querySelectorAll('.cc-list li')];
+    const find = cc.querySelector('.cc-search');
     click(cc.querySelector('.cc-btn'));
-    ok(!cc.querySelector('.cc-list').hidden, 'the list opens');
-    const pk = [...cc.querySelectorAll('.cc-list li')].find(li => li.textContent.startsWith('Pakistan'));
-    ok(pk && pk.textContent.includes('+92'), 'the open list says the full name plus the code');
+    ok(!pop().hidden, 'the panel opens');
+    const pk = rows().find(li => li.textContent.startsWith('Pakistan'));
+    ok(pk && pk.textContent.includes('+92'), 'the open panel says the full name plus the code');
     click(pk);
-    ok(cc.querySelector('.cc-list').hidden, 'the list closes on choice');
+    ok(pop().hidden, 'the panel closes on choice');
     ok(cc.querySelector('.cc-cur').textContent === 'PK' && cc.querySelector('.cc-code').textContent === '+92', 'selected, it shows the short form and the code');
     ok(cc.querySelector('input[name="country_code"]').value === '+92', 'the hidden input carries the code for the send');
+
+    /* the search: three letters instead of a scroll, and the dial code and the short name
+       people actually type find the row too */
     click(cc.querySelector('.cc-btn'));
-    click([...cc.querySelectorAll('.cc-list li')].find(li => li.textContent.startsWith('United Arab Emirates')));
+    input(find, 'paki');
+    ok(rows().length === 1 && rows()[0].textContent.startsWith('Pakistan'), 'typing "paki" leaves Pakistan alone');
+    input(find, '92');
+    ok(rows().length === 1 && rows()[0].textContent.startsWith('Pakistan'), 'and "+92" finds it');
+    input(find, 'uae');
+    ok(rows().length === 1 && rows()[0].textContent.startsWith('United Arab Emirates'), 'and "uae" finds the Emirates, which the name alone would not');
+    input(find, 'nowhere');
+    ok(rows().length === 0 && !cc.querySelector('.cc-none').hidden, 'a search with no answer says so, instead of showing an empty panel');
+    input(find, '');
+    ok(rows().length === 59 && rows()[0].textContent.startsWith('Algeria') && rows()[58].textContent.startsWith('Uzbekistan'), 'clearing the search brings the whole list back, in order');
+    input(find, 'leban');
+    click(rows()[0]);
+    ok(cc.querySelector('input[name="country_code"]').value === '+961' && cc.querySelector('.cc-cur').textContent === 'LB', 'a searched-for country is chosen like any other');
+    ok(find.value === '', 'and the search is emptied again');
+
+    click(cc.querySelector('.cc-btn'));
+    click(rows().find(li => li.textContent.startsWith('United Arab Emirates')));
     ok(cc.querySelector('input[name="country_code"]').value === '+971', 'and back to the default for the rest of the flow');
+
+    /* The keyboard path: a key opens the panel into the search box, which is the whole point
+       of the search; the arrows walk the rows; Enter picks; and Escape closes the picker
+       WITHOUT closing the dialog it lives in — a visitor who opened the list by mistake must
+       not lose the form behind it. */
+    const dlg = $('#modal-demo');
+    click($('a[data-open="demo"]'));
+    ok(!dlg.hidden, 'the demo dialog is open for the keyboard pass');
+    const kbtn = cc.querySelector('.cc-btn');
+    const kfind = cc.querySelector('.cc-search');
+    kbtn.focus();
+    key(kbtn, 'ArrowDown');
+    ok(!pop().hidden, 'ArrowDown on the closed control opens the panel');
+    ok(document.activeElement === kfind, 'and lands in the search box, ready to type');
+    key(kfind, 'ArrowDown');
+    ok(document.activeElement === rows()[0], 'ArrowDown from the search goes to the first row');
+    key(document.activeElement, 'ArrowDown');
+    ok(document.activeElement === rows()[1], 'and on to the next');
+    key(document.activeElement, 'ArrowUp');
+    ok(document.activeElement === rows()[0], 'ArrowUp comes back');
+    key(document.activeElement, 'Enter');
+    ok(pop().hidden && cc.querySelector('input[name="country_code"]').value === '+213', 'Enter picks the row under the focus (Algeria, +213)');
+    ok(document.activeElement === kbtn, 'and the focus is back on the closed control');
+
+    key(kbtn, 'ArrowDown');
+    ok(!pop().hidden, 'it opens again from the keyboard');
+    key(kfind, 'Escape');
+    ok(pop().hidden, 'escape closes the panel');
+    ok(!dlg.hidden, 'and the dialog stays open behind it');
+    key(document.activeElement, 'Escape');
+    ok(dlg.hidden, 'the next escape closes the dialog, as it always did');
+    ok(cc.querySelector('input[name="country_code"]').value === '+971' && cc.querySelector('.cc-cur').textContent === 'AE', 'and the shut dialog hands the picker back on the UAE');
   }
-  ok($$('a[data-open="demo"]').length === 3, 'three demo openers (two static, one built by the journey)');
-  ok($$('a[data-open="manage"]').length === 4, 'four manage openers (door, two plans, header button)');
+  ok($$('a[data-open="demo"]').length === 4, 'four demo openers (the Set up card and its button share one, the free-zone CTA, and the one the journey builds)');
+  ok($$('a[data-open="manage"]').length === 5, 'five manage openers (the Manage card and its button, two plans, header button)');
   ok(!$('.nav-contact'), 'no header contact button');
 
   /* ── the demo dialog, end to end ───────────────────────────────────────── */
@@ -132,6 +189,7 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   ok(!d.hidden, 'it reopened');
   ok(!ef('#demo-form').hidden && ef('.modal-done').hidden, 'it opened on the form, not the done step');
   ok(ef('input[name="name"]').value === '', 'the fields are empty again');
+  ok(d.querySelector('[data-cc] .cc-cur').textContent === 'AE' && d.querySelector('[data-cc] input[name="country_code"]').value === '+971', 'and the code picker is back on the UAE');
   keydown(window);
 
   /* ── a fault lands under its field, and nothing is sent ────────────────── */

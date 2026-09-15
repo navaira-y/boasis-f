@@ -6,7 +6,11 @@
    Every field answers as it is written, not only when the button is pressed: the email and
    the phone are checked on every keystroke, and the fault lands under the field that
    carries it. The phone is two controls, one number: the code the visitor picks on the
-   left, the number typed on the right, and the owner reads them as one string. */
+   left, the number typed on the right, and the owner reads them as one string.
+
+   The code picker is not this page's own: it is the dialogs' control, the same markup, the
+   same search box, the same keyboard, driven by js/countries.js. That is deliberate — the
+   two used to be different controls, and the owner asked for one. */
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduce) document.documentElement.classList.add('reduce');
@@ -32,13 +36,18 @@ function contactForm() {
   const form = document.getElementById('contact-form'); if (!form) return;
   const note = form.querySelector('.form-note');
   const stamp = form.querySelector('input[name="_t"]');
-  const code = () => { const s = form.querySelector('select[name="country_code"]'); return s && s.value ? s.value : '+971'; };
+  /* what the picker is on: the hidden input beside its button, which is also what the form
+     posts. js/countries.js is the only writer, so the code sent and the code shown are one. */
+  const code = () => { const i = form.querySelector('input[name="country_code"]'); return i && i.value ? i.value : '+971'; };
   const input = {
     name: form.querySelector('input[name="name"]'),
     email: form.querySelector('input[name="email"]'),
     phone: form.querySelector('input[name="phone"]'),
     message: form.querySelector('textarea[name="message"]'),
   };
+  /* the country code picker, the dialogs' own (js/countries.js) */
+  const cc = form.querySelector('[data-cc]');
+  const picker = cc && window.BoasisCountryPicker ? window.BoasisCountryPicker.init(cc) : null;
   const slot = n => form.querySelector(`[data-err="${n}"]`);
   const say = (n, msg) => {
     const p = slot(n);
@@ -124,6 +133,9 @@ function contactForm() {
       }
       form.reset(); opened = 0;
       if (stamp) stamp.value = '';
+      /* the picker is not a form control: a reset empties the box but leaves the button
+         saying the country the visitor picked, so it is put back deliberately */
+      if (picker) picker.reset();
       for (const n of ['name', 'email', 'phone', 'message']) say(n, '');
       note.textContent = 'Thank you. Your enquiry has been sent, and a confirmation is on its way to your inbox.';
       note.className = 'form-note ok';

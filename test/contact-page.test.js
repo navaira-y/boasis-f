@@ -63,6 +63,15 @@ test('the main page points set-up at the demo dialog and manage at the list dial
   assert.ok(!/id="waitlist"/.test(home), 'the waiting list section is gone from the page');
   assert.match(home, /<div class="door" data-open="demo">/, 'the whole Set up door opens the demo dialog');
   assert.match(home, /<div class="door" data-open="manage">/, 'and the whole Manage door opens the list dialog');
+  /* 15 September: the owner asked for the two hero cards to be linked to the same dialog
+     their button opens. The title's link carries the data-open (its ::after already covers
+     the card, so the card IS the control), and the href stays real for a browser with no
+     script. js/site.js skips the glide for an opener, so the card cannot both scroll and
+     open. */
+  assert.match(home, /<a class="t" href="#setup" data-open="demo">Set up<\/a>/, 'the Set up card opens the demo dialog, not only its button');
+  assert.match(home, /<a class="t" href="#manage" data-open="manage">Manage<\/a>/, 'and the Manage card opens the early access dialog, with its href kept');
+  const js = await (await get('/js/site.js')).text();
+  assert.match(js, /if \(!a \|\| a\.hasAttribute\('data-open'\)\) return;/, 'an opener is not an in-page anchor: no glide behind the dialog');
   assert.match(home, /<div class="foot-ask">\s*<h2>Any questions\?<\/h2>\s*<a class="btn btn-light" href="\/contact\.html">Contact us/, 'the footer question is the last Contact us');
   const buttons = [...home.matchAll(/class="btn[^"]*" href="([^"]+)">Contact us/g)].map(m => m[1]);
   assert.deepEqual(buttons, ['/contact.html'], 'only the footer keeps the Contact us label, saw ' + JSON.stringify(buttons));
@@ -99,7 +108,43 @@ test('the form asks name, email, phone and message, and nothing it does not answ
   assert.ok(!/name="about"/.test(html), 'the Set up / Manage question is gone: the form no longer asks it');
   assert.ok(!/What are you contacting us about/.test(html), 'and its heading went with it');
   assert.match(html, /name="country_code"/, 'the phone carries a country code selector');
-  assert.match(html, /<option value="\+971" selected>/, 'and the UAE is the default, since that is the market');
+  assert.match(html, /<input type="hidden" name="country_code" value="\+971">/, 'and the UAE is the default, since that is the market');
+});
+
+/* 15 September: the owner asked for the three phone fields to be one control, searchable,
+   and for the contact page's native <select> — which said "+966" and nothing else — to
+   become the dialogs' own picker. One script drives all three (js/countries.js), so the
+   markup is asserted byte for byte: if a country is added to one picker it is added to all
+   three, and the search box can never appear in one place and go missing in another. */
+test('the three phone fields carry one country picker, with one search box', async () => {
+  const home = await (await get('/')).text();
+  const contact = await (await get('/contact.html')).text();
+
+  const PICKER = /<span class="sr">Country code<\/span>[\s\S]*?<input type="hidden" name="country_code" value="\+971">/g;
+  const norm = s => s.replace(/\s+/g, ' ').trim();
+  const onHome = home.match(PICKER) || [];
+  const onContact = contact.match(PICKER) || [];
+  assert.equal(onHome.length, 2, 'the two dialogs each carry a picker, saw ' + onHome.length);
+  assert.equal(onContact.length, 1, 'and the contact form carries one, saw ' + onContact.length);
+  assert.equal(new Set(onHome.map(norm)).size, 1, 'the two dialogs must carry the identical picker');
+  assert.equal(norm(onHome[0]), norm(onContact[0]), 'the contact picker must be that same control, not a second one');
+
+  for (const block of [...onHome, ...onContact]) {
+    assert.match(block, /class="cc-btn"[^>]*aria-haspopup="listbox"/, 'the closed control opens a listbox');
+    assert.match(block, /<div class="cc-pop" hidden>/, 'the panel starts closed');
+    assert.match(block, /class="cc-search"[^>]*placeholder="Search country"/, 'and it carries the search box');
+    assert.match(block, /class="cc-list" role="listbox"/, 'with the list of countries');
+    assert.match(block, /class="cc-none" hidden/, 'and the line it says when a search finds nothing');
+  }
+  assert.ok(!/<select name="country_code"/.test(contact), 'the native select on the contact page must not come back');
+  assert.ok(!/<option value="\+971"/.test(contact), 'nor any of its sixty options');
+
+  for (const [page, html] of [['/', home], ['/contact.html', contact]]) {
+    const script = /<script src="\/js\/countries\.js"><\/script>/.exec(html);
+    assert.ok(script, page + ' must load the one picker script');
+    assert.ok(html.indexOf('/js/countries.js') < html.indexOf('/js/site.js') || html.indexOf('/js/countries.js') < html.indexOf('/js/contact.js'),
+      page + ' must load the picker before the script that asks it for one');
+  }
 });
 
 test('/contact and /contact.html both serve the same page, nothing else opens', async () => {

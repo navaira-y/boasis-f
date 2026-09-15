@@ -37,17 +37,20 @@
 <section class="intro" id="intro" data-intro>
   <div class="intro-stage">
 
-    <!-- the first screen · who we are and the two ways in. Still, instant, the same on every visit. -->
+    <!-- the first screen · who we are and the two ways in. Still, instant, the same on every visit.
+         Each card IS its dialog: the title's own link carries the data-open, and its ::after covers
+         the card, so a click anywhere on Set up opens the demo dialog and a click anywhere on
+         Manage opens the early access one. The hrefs stay real for a browser with no script. -->
     <div class="hello beat on" id="hello">
       <h1><span class="l">The Most Advanced AI</span> <span class="l">For Company Setup<br class="ph"> and Management</span> <span class="l">in The UAE.</span></h1>
       <div class="doors">
         <div class="door" data-open="demo">
-          <a class="t" href="#setup">Set up</a>
+          <a class="t" href="#setup" data-open="demo">Set up</a>
           <p class="d">For free zones, authorities and setup companies.</p>
           <a class="act" href="/contact.html" data-open="demo">Book a demo</a>
         </div>
         <div class="door" data-open="manage">
-          <a class="t" href="#manage">Manage</a>
+          <a class="t" href="#manage" data-open="manage">Manage</a>
           <p class="d">For everyone who runs a company in the UAE.</p>
           <a class="act" href="#manage" data-open="manage">Join early access</a>
         </div>
@@ -327,7 +330,11 @@
           <div class="mf-code" data-cc>
             <span class="sr">Country code</span>
             <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
-            <ul class="cc-list" role="listbox" aria-label="Country code" hidden></ul>
+            <div class="cc-pop" hidden>
+              <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
+              <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
+              <p class="cc-none" hidden>No country found.</p>
+            </div>
             <input type="hidden" name="country_code" value="+971">
           </div>
           <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
@@ -396,7 +403,11 @@
           <div class="mf-code" data-cc>
             <span class="sr">Country code</span>
             <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
-            <ul class="cc-list" role="listbox" aria-label="Country code" hidden></ul>
+            <div class="cc-pop" hidden>
+              <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
+              <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
+              <p class="cc-none" hidden>No country found.</p>
+            </div>
             <input type="hidden" name="country_code" value="+971">
           </div>
           <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
@@ -449,6 +460,7 @@
 <script src="/js/lenis.js"></script>
 <script src="/js/yara-orb.js"></script>
 <script src="/js/news.js"></script>
+<script src="/js/countries.js"></script>
 <script src="/js/site.js"></script>
 </body>
 </html>

@@ -302,28 +302,44 @@ body.modal-open{overflow:hidden}
 /* the opened list is a native surface some browsers paint white; a white-on-white option
    is unreadable, so it takes the card's own ground and ink, like everything else here */
 .mf-pill select option{background:#0F1523;color:#fff}
-.mf-pill.bad input,.mf-pill.bad select{background:rgba(242,153,74,.12)}
+.mf-pill.bad > label input,.mf-pill.bad select{background:rgba(242,153,74,.12)}
 /* the phone: one pill, two controls, the code picked on the left, the number typed on the
    right, one hairline between them: the contact page's own rule, restated here */
 .mf-phone{grid-template-columns:auto 1fr}
 .mf-phone .mf-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
 .mf-phone .mf-code:focus-within{background:rgba(255,255,255,.07)}
-/* the code picker: the closed control says the short form and the code (PK +92); the
-   open list says the full name and the code, on the card's own ground. The hidden input
-   is what the form posts, so a no-script visitor loses nothing. */
+/* the code picker: the closed control says the short form and the code (PK +92); the open
+   panel carries a search box and the list, each row the full name and the code, on the
+   card's own ground. js/countries.js draws and drives it, and the contact page borrows it
+   as it is — css/contact.css only restates where it sits in that page's phone pill. */
 .cc-btn{display:flex;align-items:center;gap:8px;width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;font:inherit;font-size:16px;padding:0;cursor:pointer;white-space:nowrap}
 .cc-btn:focus-visible{outline:2px solid var(--bo-teal);outline-offset:3px}
 .cc-btn .cc-code{color:rgba(255,255,255,.55)}
-.cc-list{position:absolute;top:calc(100% + 8px);left:0;width:230px;margin:0;padding:6px;list-style:none;border-radius:14px;background:#0F1523;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 64px -28px rgba(0,0,0,.85);max-height:264px;overflow-y:auto;z-index:5}
-.cc-list[hidden]{display:none}
+/* the panel: the search first, then the rows. Sixty countries is a scroll, and a scroll is
+   not a search, so the box is always there, one keystroke away from the closed control. */
+.cc-pop{position:absolute;top:calc(100% + 8px);left:0;width:252px;padding:6px;border-radius:14px;background:#0F1523;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 64px -28px rgba(0,0,0,.85);z-index:5}
+.cc-pop[hidden]{display:none}
+.cc-find{display:block;padding:2px 2px 6px}
+/* Scoped to the panel on purpose: the contact page's own pill styles every input inside
+   .ct-fields, and the search box is not one of those fields — it keeps the picker's own well,
+   height and focus ring. Two classes beat their one, and three beat their two, so it holds
+   without this page having to restate anything. */
+.cc-pop .cc-search{display:block;width:100%;height:38px;border:0;border-radius:10px;background:rgba(255,255,255,.07);color:#fff;padding:0 12px;font:inherit;font-size:15px}
+.cc-pop .cc-search::placeholder{color:rgba(255,255,255,.45)}
+.cc-pop .cc-search:focus{outline:none;background:rgba(255,255,255,.1)}
+.cc-pop .cc-search:focus-visible{outline:2px solid var(--bo-teal);outline-offset:2px}
+.cc-list{margin:0;padding:0;list-style:none;max-height:230px;overflow-y:auto;overscroll-behavior:contain}
 .cc-list li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 12px;border-radius:9px;color:#fff;font-size:15px;cursor:pointer}
 .cc-list li .cc-li-code{color:rgba(255,255,255,.55)}
 .cc-list li:hover,.cc-list li:focus{background:rgba(255,255,255,.08);outline:none}
 .cc-list li[aria-selected="true"]{color:var(--bo-teal)}
 .cc-list li[aria-selected="true"] .cc-li-code{color:var(--bo-teal)}
+/* a search that found nothing says so, rather than showing an empty panel */
+.cc-none{margin:0;padding:10px 12px;color:rgba(255,255,255,.55);font-size:14.5px}
+.cc-none[hidden]{display:none}
 .mf-phone .mf-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
 .mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
-.mf-phone input{border-left:1px solid rgba(255,255,255,.14)}
+.mf-phone > label input{border-left:1px solid rgba(255,255,255,.14)}
 /* the fault lands under its own field, the note's err colour */
 .mf-err{margin:0;font-size:14px;line-height:1.45;color:#F2994A}
 .mf-foot{display:grid;justify-items:center;gap:12px;margin-top:8px}

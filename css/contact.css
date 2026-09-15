@@ -5,7 +5,9 @@
      .ct-pick .plan-pick                (css/site.css)   the Standard/Enterprise picker
      .ct-wish .cursor                   (css/site.css)   the teal typing cursor after the wish
    Restating them, instead of importing the classes, is deliberate: the home page cannot be
-   touched, so a shared rule is not available. If either ever drifts, this page looks wrong. */
+   touched, so a shared rule is not available. If either ever drifts, this page looks wrong.
+   The country code picker is the one thing that IS shared outright: the dialogs' own control,
+   markup and all, driven by js/countries.js, so the two pages cannot drift apart on it. */
 
 .page-contact main{padding-top:100px}
 
@@ -45,19 +47,22 @@
 .ct-fields input:focus,.ct-fields textarea:focus{outline:none;background:rgba(255,255,255,.07)}
 .ct-fields-stack{grid-template-columns:1fr;border-radius:22px;padding:0;overflow:hidden;background:transparent;border:0}
 .ct-fields-stack textarea{height:auto;min-height:130px;padding:18px 22px;resize:vertical;line-height:1.6;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
-.ct-fields.bad input,.ct-fields.bad textarea{background:rgba(242,153,74,.12)}
+.ct-fields.bad > label input,.ct-fields.bad textarea{background:rgba(242,153,74,.12)}
 
 /* the phone: one pill, two controls. The code is picked on the left, the number is typed on
-   the right, and the owner reads them as one. The hairline between them is the pill's own. */
+   the right, and the owner reads them as one. The hairline between them is the pill's own.
+   The code cell is the dialogs' own picker, unchanged: js/countries.js drives it and
+   css/site.css draws the button, the search box and the list. Only the chevron and where the
+   cell sits in this pill are restated here — the home page cannot be touched for one rule. */
 .ct-phone{grid-template-columns:auto 1fr}
 .ct-phone .ct-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
 .ct-phone .ct-code:focus-within{background:rgba(255,255,255,.07)}
-.ct-phone select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#fff;font:inherit;font-size:16px;height:50px;padding:0;cursor:pointer}
-.ct-phone select:focus{outline:none}
 /* focus is the site's own teal, the way the input's ring is: the arrow of the picker lights */
 .ct-phone .ct-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
 .ct-phone .ct-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
-.ct-phone input{border-left:1px solid rgba(255,255,255,.14)}
+/* the number, and only the number: the search box inside the picker's panel is not a field
+   of this pill, so it takes neither the hairline nor the faulty-field tint */
+.ct-phone > label input{border-left:1px solid rgba(255,255,255,.14)}
 
 /* the fault lands under its own field: the note's err colour, the field's width, tight
    under the pill that carries it */

@@ -63,69 +63,20 @@
       </div>
       <p class="ct-err" data-err="email" aria-live="polite" hidden></p>
       <div class="ct-fields ct-phone">
-        <label class="ct-code"><span class="sr">Country code</span>
-          <select name="country_code" aria-label="Country code">
-            <option value="+971" selected>+971</option>
-            <option value="+966">+966</option>
-            <option value="+974">+974</option>
-            <option value="+973">+973</option>
-            <option value="+965">+965</option>
-            <option value="+968">+968</option>
-            <option value="+20">+20</option>
-            <option value="+962">+962</option>
-            <option value="+961">+961</option>
-            <option value="+964">+964</option>
-            <option value="+972">+972</option>
-            <option value="+970">+970</option>
-            <option value="+963">+963</option>
-            <option value="+98">+98</option>
-            <option value="+998">+998</option>
-            <option value="+994">+994</option>
-            <option value="+212">+212</option>
-            <option value="+216">+216</option>
-            <option value="+213">+213</option>
-            <option value="+44">+44</option>
-            <option value="+49">+49</option>
-            <option value="+33">+33</option>
-            <option value="+39">+39</option>
-            <option value="+34">+34</option>
-            <option value="+31">+31</option>
-            <option value="+32">+32</option>
-            <option value="+30">+30</option>
-            <option value="+41">+41</option>
-            <option value="+43">+43</option>
-            <option value="+45">+45</option>
-            <option value="+46">+46</option>
-            <option value="+47">+47</option>
-            <option value="+48">+48</option>
-            <option value="+351">+351</option>
-            <option value="+7">+7</option>
-            <option value="+1">+1</option>
-            <option value="+52">+52</option>
-            <option value="+54">+54</option>
-            <option value="+55">+55</option>
-            <option value="+56">+56</option>
-            <option value="+57">+57</option>
-            <option value="+91">+91</option>
-            <option value="+92">+92</option>
-            <option value="+886">+886</option>
-            <option value="+81">+81</option>
-            <option value="+82">+82</option>
-            <option value="+86">+86</option>
-            <option value="+65">+65</option>
-            <option value="+60">+60</option>
-            <option value="+66">+66</option>
-            <option value="+63">+63</option>
-            <option value="+62">+62</option>
-            <option value="+94">+94</option>
-            <option value="+61">+61</option>
-            <option value="+64">+64</option>
-            <option value="+27">+27</option>
-            <option value="+234">+234</option>
-            <option value="+254">+254</option>
-            <option value="+233">+233</option>
-          </select>
-        </label>
+        <!-- the same country code picker as the two dialogs (js/countries.js): the closed
+             control says the short form and the code, the open panel says the full name and
+             the code, and it opens with a search box. The hidden input is what the form
+             posts, so the payload is still exactly the dial code the visitor picked. -->
+        <div class="ct-code" data-cc>
+          <span class="sr">Country code</span>
+          <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
+          <div class="cc-pop" hidden>
+            <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
+            <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
+            <p class="cc-none" hidden>No country found.</p>
+          </div>
+          <input type="hidden" name="country_code" value="+971">
+        </div>
         <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
       </div>
       <p class="ct-err" data-err="phone" aria-live="polite" hidden></p>
@@ -178,6 +129,7 @@
   </div>
 </footer>
 
+<script src="/js/countries.js"></script>
 <script src="/js/contact.js"></script>
 </body>
 </html>
