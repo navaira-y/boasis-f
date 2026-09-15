@@ -21,6 +21,7 @@ test('visitor input cannot inject HTML into the mail we send ourselves', () => {
     [T.demoToOwner({ ...evil, who: 'company', entity: '<b>bold</b>' }), false],
     [T.demoToUser(evil), false],
     [T.manageToOwner({ ...evil, have: 'yes', count: '1-3', authority: '<svg onload=alert(5)>' }), false],
+    [T.manageToOwner({ ...evil, have: 'no', plans: '<b>bold</b>' }), false],
     [T.manageToUser(evil), false],
   ];
   for (const [m, businessShown] of cases) {
@@ -65,7 +66,8 @@ test('every mail carries the site logo, and the ground is a light grey', () => {
   const s = { name: 'Amina Al Mazroui', email: 'a@b.co', intent: 'enterprise', at: Date.now(), ip: 'h' };
   const mails = [T.waitlistToOwner(s), T.waitlistToUser(s), T.contactToOwner({ ...s, message: 'Hi' }), T.contactToUser(s),
     T.demoToOwner({ ...s, who: 'company', entity: 'SPARK' }), T.demoToUser(s),
-    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }), T.manageToUser(s)];
+    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }),
+    T.manageToOwner({ ...s, have: 'no', plans: 'A small trading company' }), T.manageToUser(s)];
   for (const m of mails) {
     assert.ok(m.html.includes('https://boasis.ae/assets/logo/orb-160.png'), 'the orb from the site, not a circle drawn in the mail client');
     assert.ok(new RegExp('<body[^>]*background:' + T.BRAND.mist).test(m.html), 'the body itself sits on the light grey, not the old navy');
@@ -77,7 +79,8 @@ test('every mail has what a client needs to deliver it', () => {
   const s = { name: 'Amina Al Mazroui', email: 'a@b.co', intent: 'enterprise', business: 'Skincare', at: Date.now(), ip: 'h' };
   const mails = [T.waitlistToOwner(s), T.waitlistToUser(s), T.contactToOwner({ ...s, organisation: 'SPARK', message: 'Hi' }), T.contactToUser(s),
     T.demoToOwner({ ...s, who: 'company', entity: 'SPARK' }), T.demoToUser(s),
-    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }), T.manageToUser(s)];
+    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }),
+    T.manageToOwner({ ...s, have: 'no', plans: 'A small trading company' }), T.manageToUser(s)];
   for (const m of mails) {
     assert.ok(typeof m.subject === 'string' && m.subject.length > 3 && m.subject.length < 150, 'subject present and safe');
     assert.ok(m.html.startsWith('<!doctype html>'), 'a full document');

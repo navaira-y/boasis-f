@@ -233,7 +233,8 @@ function waitlist() {
    reads the page pays for a Google round trip. */
 /* the pickers take the contact page's codes, in the contact page's order, and say what
    each one is: the country by name, not just a dial code nobody matches to a flag */
-const COUNTRY_CODES = [['United Arab Emirates','+971'], ['Saudi Arabia','+966'], ['Qatar','+974'], ['Bahrain','+973'], ['Kuwait','+965'], ['Oman','+968'], ['Egypt','+20'], ['Jordan','+962'], ['Lebanon','+961'], ['Iraq','+964'], ['Israel','+972'], ['Palestine','+970'], ['Syria','+963'], ['Iran','+98'], ['Uzbekistan','+998'], ['Azerbaijan','+994'], ['Morocco','+212'], ['Tunisia','+216'], ['Algeria','+213'], ['United Kingdom','+44'], ['Germany','+49'], ['France','+33'], ['Italy','+39'], ['Spain','+34'], ['Netherlands','+31'], ['Belgium','+32'], ['Greece','+30'], ['Switzerland','+41'], ['Austria','+43'], ['Denmark','+45'], ['Sweden','+46'], ['Norway','+47'], ['Poland','+48'], ['Portugal','+351'], ['Russia','+7'], ['United States','+1'], ['Mexico','+52'], ['Argentina','+54'], ['Brazil','+55'], ['Chile','+56'], ['Colombia','+57'], ['India','+91'], ['Pakistan','+92'], ['Taiwan','+886'], ['Japan','+81'], ['South Korea','+82'], ['China','+86'], ['Singapore','+65'], ['Malaysia','+60'], ['Thailand','+66'], ['Philippines','+63'], ['Indonesia','+62'], ['Sri Lanka','+94'], ['Australia','+61'], ['New Zealand','+64'], ['South Africa','+27'], ['Nigeria','+234'], ['Kenya','+254'], ['Ghana','+233']];
+/* the picker shows the short form up front and the full name in the list; the value is the dial code */
+const COUNTRY_CODES = [['AE', 'United Arab Emirates', '+971'], ['SA', 'Saudi Arabia', '+966'], ['QA', 'Qatar', '+974'], ['BH', 'Bahrain', '+973'], ['KW', 'Kuwait', '+965'], ['OM', 'Oman', '+968'], ['EG', 'Egypt', '+20'], ['JO', 'Jordan', '+962'], ['LB', 'Lebanon', '+961'], ['IQ', 'Iraq', '+964'], ['IL', 'Israel', '+972'], ['PS', 'Palestine', '+970'], ['SY', 'Syria', '+963'], ['IR', 'Iran', '+98'], ['UZ', 'Uzbekistan', '+998'], ['AZ', 'Azerbaijan', '+994'], ['MA', 'Morocco', '+212'], ['TN', 'Tunisia', '+216'], ['DZ', 'Algeria', '+213'], ['GB', 'United Kingdom', '+44'], ['DE', 'Germany', '+49'], ['FR', 'France', '+33'], ['IT', 'Italy', '+39'], ['ES', 'Spain', '+34'], ['NL', 'Netherlands', '+31'], ['BE', 'Belgium', '+32'], ['GR', 'Greece', '+30'], ['CH', 'Switzerland', '+41'], ['AT', 'Austria', '+43'], ['DK', 'Denmark', '+45'], ['SE', 'Sweden', '+46'], ['NO', 'Norway', '+47'], ['PL', 'Poland', '+48'], ['PT', 'Portugal', '+351'], ['RU', 'Russia', '+7'], ['US', 'United States', '+1'], ['MX', 'Mexico', '+52'], ['AR', 'Argentina', '+54'], ['BR', 'Brazil', '+55'], ['CL', 'Chile', '+56'], ['CO', 'Colombia', '+57'], ['IN', 'India', '+91'], ['PK', 'Pakistan', '+92'], ['TW', 'Taiwan', '+886'], ['JP', 'Japan', '+81'], ['KR', 'South Korea', '+82'], ['CN', 'China', '+86'], ['SG', 'Singapore', '+65'], ['MY', 'Malaysia', '+60'], ['TH', 'Thailand', '+66'], ['PH', 'Philippines', '+63'], ['ID', 'Indonesia', '+62'], ['LK', 'Sri Lanka', '+94'], ['AU', 'Australia', '+61'], ['NZ', 'New Zealand', '+64'], ['ZA', 'South Africa', '+27'], ['NG', 'Nigeria', '+234'], ['KE', 'Kenya', '+254'], ['GH', 'Ghana', '+233']];
 /* the same rules as lib/validate.js on the server, so what the dialog accepts is exactly
    what the API accepts: no second, looser truth the visitor can learn by trial and error. */
 const DM_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -256,13 +257,14 @@ const DM_RULE = {
   have: v => (v ? '' : 'Please answer: do you have a company?'),
   count: v => (v ? '' : 'Please choose how many.'),
   authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
+  plans: v => (String(v || '').trim() ? '' : 'Describe it in a sentence — it helps us answer properly.'),
 };
 function modals() {
   const dialogs = [...document.querySelectorAll('.modal')]; if (!dialogs.length) return;
 
   /* the code pickers take the contact page's list, in the contact page's order */
   dialogs.forEach(d => d.querySelectorAll('select[name="country_code"]').forEach(sel => {
-    COUNTRY_CODES.forEach(p => { const o = document.createElement('option'); o.value = p[1]; o.textContent = p[0] + ' · ' + p[1]; if (p[1] === '+971') o.selected = true; sel.appendChild(o); });
+    COUNTRY_CODES.slice().sort((a, b) => a[1].localeCompare(b[1])).forEach(p => { const o = document.createElement('option'); o.value = p[2]; o.textContent = p[0] + ' · ' + p[1]; if (p[2] === '+971') o.selected = true; sel.appendChild(o); });
   }));
 
   const resets = new Map();
@@ -321,8 +323,14 @@ function modals() {
       const f = fields[n]; if (f) { const pill = f.closest('.mf-pill'); if (pill) pill.classList.toggle('bad', !!msg); }
     };
     /* a field can be off the form entirely: the entity field exists only once the visitor
-       has said who they are */
-    const fieldOff = n => n === 'entity' && !!fields.who && !fields.who.value;
+       has said who they are; in the list dialog the company fields exist only when they
+       have a company, and the sentence only when they don't */
+    const fieldOff = n => {
+      if (n === 'entity') return !!fields.who && !fields.who.value;
+      if (n === 'count' || n === 'authority') return !fields.have || fields.have.value !== 'yes';
+      if (n === 'plans') return !fields.have || fields.have.value !== 'no';
+      return false;
+    };
 
     /* when they started: the server compares this with its own clock. The listeners are
        armed one session at a time, so a dialog that is closed and reopened stamps its
@@ -351,6 +359,7 @@ function modals() {
     if (fields.name) fields.name.addEventListener('input', () => { if (!DM_RULE.name(fields.name.value)) say('name', ''); });
     if (fields.entity) fields.entity.addEventListener('input', () => { if (!DM_RULE.entity(fields.entity.value)) say('entity', ''); });
     if (fields.authority) fields.authority.addEventListener('input', () => { if (!DM_RULE.authority(fields.authority.value)) say('authority', ''); });
+    if (fields.plans) fields.plans.addEventListener('input', () => { if (!DM_RULE.plans(fields.plans.value)) say('plans', ''); });
 
     /* the demo dialog: the entity field appears once the visitor has said who they are,
        and it says the right thing for the answer */
@@ -369,6 +378,18 @@ function modals() {
           fields.entity.required = false;
           say('entity', '');
         }
+      });
+    }
+
+    /* the list dialog: "yes" counts the companies and names the one; "no" trades both
+       fields for a single sentence about the company being thought of */
+    if (fields.have) {
+      const show = (sel, on) => { const w = d.querySelector(sel); if (w) w.hidden = !on; };
+      fields.have.addEventListener('change', () => {
+        const v = fields.have.value;
+        show('.mf-count', v === 'yes');
+        show('.mf-auth', v === 'yes');
+        show('.mf-plans', v === 'no');
       });
     }
 
@@ -402,7 +423,7 @@ function modals() {
         const r = await fetch(form.dataset.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || j.ok === false) {
-          const names = { name: 'your name', email: 'your email address', phone: 'your phone number', who: 'who you are', entity: 'the name field', have: 'that answer', count: 'that answer', authority: 'the authority' };
+          const names = { name: 'your name', email: 'your email address', phone: 'your phone number', who: 'who you are', entity: 'the name field', have: 'that answer', count: 'that answer', authority: 'the authority', plans: 'that sentence' };
           const e = (j.errors || []).filter(x => names[x]);
           e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
           const cal = d.querySelector('.modal-cal');

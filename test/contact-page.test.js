@@ -50,7 +50,7 @@ test('the header has no Contact us button, on any page', async () => {
   for (const p of ['/', '/contact.html', '/blog.html', '/privacy.html', '/terms.html']) {
     const html = await (await get(p)).text();
     assert.ok(!/nav-contact/.test(html), p + ' still carries the header button');
-    assert.match(html, /class="nav-wait"[^>]*data-open="manage"/, p + ' header list button opens the list dialog');
+    assert.match(html, /class="nav-wait"[^>]*data-open="manage"[^>]*>Join Early Access</, p + ' header button is Join Early Access and opens the dialog');
   }
 });
 
@@ -81,8 +81,10 @@ test('the two dialogs are on the page, with their endpoints and the calendar', a
   assert.match(home, /name="who"/, 'the demo asks who they are');
   assert.match(home, /name="entity"/, 'and, once answered, the name of the company or authority');
   assert.match(home, /name="have"/, 'the list asks about the company');
-  assert.match(home, /name="count"/, 'and how many');
+  assert.match(home, /name="count"/, 'and, for a company that exists, how many');
   assert.match(home, /name="authority"/, 'and the authority it is registered in');
+  assert.match(home, /name="plans"/, 'and, for a company that does not, a sentence about the thought');
+  assert.ok(!/value="opening"/.test(home), '"thinking of opening" is not an answer to "how many companies"');
   assert.match(home, /<option value="" selected disabled>Who are you\?/);
   assert.match(home, /<option value="" selected disabled>Do you have a company\?/);
   assert.match(home, /<option value="" selected disabled>How many companies\?/);

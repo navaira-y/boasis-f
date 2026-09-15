@@ -162,7 +162,7 @@ app.post('/api/manage', limitForms, formGate, async (req, res) => {
 
   const record = {
     name: in_.name, email: in_.email, phone: in_.phone,
-    have: in_.have, count: in_.count, authority: in_.authority, at: new Date().toISOString(),
+    have: in_.have, count: in_.count, authority: in_.authority, plans: in_.plans, at: new Date().toISOString(),
   };
   const list = readJson(manageFile, []);
   list.push(record);

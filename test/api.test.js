@@ -133,6 +133,23 @@ test('an early access request from the dialog is stored, and both mails are prep
   assert.match(manageToUser(c).text, /one email when your access is ready/i, 'the receipt keeps the one promise');
 });
 
+test('an early access request without a company describes the thought instead', async () => {
+  const r = await post('/api/manage', { name: 'Omar Haddad', email: 'omar@example.com', phone: '+971 56 000 1111', have: 'no', plans: 'A small import business, still deciding the authority.', ...HUMAN() });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.ok, true);
+  assert.equal(j.confirmed, true);
+  const recs = read('manage.json');
+  const c = recs[recs.length - 1];
+  assert.equal(c.have, 'no');
+  assert.equal(c.plans, 'A small import business, still deciding the authority.');
+  const { manageToOwner } = require('../lib/mail-templates');
+  const mail = manageToOwner(c);
+  assert.ok(mail.text.includes('Plans:'), 'the owner mail carries the sentence');
+  assert.ok(!/How many/.test(mail.text) && !/Authority/.test(mail.text), 'the company questions are not asked of someone without one');
+  assert.ok(!/<tr>|<td/.test(mail.text), 'the plain text part is text, not markup');
+});
+
 test('a dialog posting a junk answer is a 400 naming the field, never a 500', async () => {
   const r = await post('/api/demo', { name: 'Fatim', email: 'f@spark.ae', phone: '+971 50 999 8888', who: 'something else', entity: 'SPARK', ...HUMAN() });
   assert.equal(r.status, 400);

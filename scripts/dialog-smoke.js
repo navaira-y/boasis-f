@@ -61,6 +61,9 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
     const sel = document.querySelector(`#${id} select[name="country_code"]`);
     ok(sel && sel.options.length === 59, id + ' country picker has the 59 codes');
     ok(sel && sel.value === '+971', id + ' defaults to +971');
+    const texts = [...sel.options].map(o => o.textContent);
+    ok(texts[0] === 'DZ · Algeria' && texts[58] === 'UZ · Uzbekistan', id + ' picker runs Algeria to Uzbekistan, alphabetically');
+    ok(texts.includes('PK · Pakistan') && texts.includes('US · United States'), id + ' picker shows the short form up front, the full name in the list');
   }
   ok($$('a[data-open="demo"]').length === 3, 'three demo openers (two static, one built by the journey)');
   ok($$('a[data-open="manage"]').length === 4, 'four manage openers (door, two plans, header button)');
@@ -140,7 +143,14 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   input(mf('input[name="name"]'), 'Lena Karim');
   input(mf('input[name="email"]'), 'lena@corp.com');
   input(mf('input[name="phone"]'), '0551112222');
-  mf('select[name="have"]').value = 'yes';
+  const haveSel = mf('select[name="have"]');
+  const change = el => el.dispatchEvent(new window.Event('change', { bubbles: true }));
+  haveSel.value = 'yes'; change(haveSel);
+  ok(!mf('.mf-count').hidden && !mf('.mf-auth').hidden && mf('.mf-plans').hidden, '"yes" reveals the company fields and hides the sentence');
+  haveSel.value = 'no'; change(haveSel);
+  ok(mf('.mf-count').hidden && mf('.mf-auth').hidden && !mf('.mf-plans').hidden, '"no" reveals the sentence and hides the company fields');
+  input(mf('input[name="plans"]'), 'A small import business, still deciding the authority.');
+  haveSel.value = 'yes'; change(haveSel);
   mf('select[name="count"]').value = '1-3';
   input(mf('input[name="authority"]'), 'SPARK Free Zone');
   submitForm(mf('#manage-form'));

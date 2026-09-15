@@ -94,12 +94,20 @@ test('the manage dialog: the three answers are a closed set, each spelled for a 
   assert.equal(r.have, 'yes');
   assert.equal(r.count, '3plus');
 });
-test('the manage dialog: junk answers and missing fields are refused', () => {
+test('the manage dialog: junk answers are refused, and the branch follows the answer', () => {
   const r = manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'maybe', count: 'a lot', authority: '  ' });
-  assert.ok(r.errors.includes('have') && r.errors.includes('count') && r.errors.includes('authority'), JSON.stringify(r.errors));
+  assert.deepEqual(r.errors, ['have'], 'a junk answer is just "have"; the branch is not judged until the answer is real');
   assert.equal(r.have, '');
   assert.equal(r.count, '');
   assert.equal(r.authority, '');
+});
+test('the manage dialog: yes counts and names the company; no describes the thought', () => {
+  const yesOk = manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'yes', count: '3plus', authority: 'SPARK' });
+  assert.equal(yesOk.ok, true, JSON.stringify(yesOk.errors));
+  assert.deepEqual(manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'yes' }).errors, ['count', 'authority']);
+  const noOk = manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'no', plans: 'A small trading company, two of us.' });
+  assert.equal(noOk.ok, true, JSON.stringify(noOk.errors));
+  assert.deepEqual(manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'no' }).errors, ['plans']);
 });
 
 /* ── the bot traps ─────────────────────────────────────────────────────────── */
