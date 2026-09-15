@@ -289,11 +289,12 @@ test('the form submits end to end: stored, and both mails queued', async () => {
      topic for the record's shape, and older links that send it keep working */
   assert.equal(rec.about, 'setup', 'the topic defaults, it is not invented per visitor');
   assert.ok(!/Not given|undefined/.test(JSON.stringify(rec)), 'no placeholder may be stored');
-  // the receipt offers both next steps, plainly, because the form can no longer tell which one
+  // the receipt is deliberately short: a thank-you, confirmation of receipt, and the
+  // follow-up promise — nothing more
   const { contactToUser } = require('../lib/mail-templates');
   const receipt = contactToUser({ name: 'Amina' }).text;
-  assert.match(receipt, /demo of Mira/, 'setting a company up is offered the demo');
-  assert.match(receipt, /review of its licences/, 'running a company is offered the review');
+  assert.match(receipt, /Thank you, Amina\. We have your message\./, 'it thanks them by first name');
+  assert.match(receipt, /has reached BOASIS\. We will be in touch with you soon\./, 'and promises the follow-up');
   assert.ok(!/\s[-—–]\s/.test(receipt), 'no dash punctuation in a customer email');
 });
 
