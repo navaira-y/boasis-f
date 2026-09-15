@@ -262,9 +262,65 @@ const DM_RULE = {
 function modals() {
   const dialogs = [...document.querySelectorAll('.modal')]; if (!dialogs.length) return;
 
-  /* the code pickers take the contact page's list, in the contact page's order */
-  dialogs.forEach(d => d.querySelectorAll('select[name="country_code"]').forEach(sel => {
-    COUNTRY_CODES.slice().sort((a, b) => a[1].localeCompare(b[1])).forEach(p => { const o = document.createElement('option'); o.value = p[2]; o.textContent = p[0] + ' · ' + p[1]; if (p[2] === '+971') o.selected = true; sel.appendChild(o); });
+  /* the code pickers: alphabetical. The closed control says the short form and the code
+     (PK +92); the open list says the full name and the code. A hidden input carries the
+     code into the form, so what gets posted is exactly the code. */
+  const ccReset = new Map();
+  dialogs.forEach(d => d.querySelectorAll('[data-cc]').forEach(cc => {
+    const btn = cc.querySelector('.cc-btn');
+    const cur = cc.querySelector('.cc-cur');
+    const codeEl = cc.querySelector('.cc-code');
+    const list = cc.querySelector('.cc-list');
+    const input = cc.querySelector('input[name="country_code"]');
+    const items = COUNTRY_CODES.slice().sort((a, b) => a[1].localeCompare(b[1]));
+    items.forEach(p => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.tabIndex = -1;
+      const n = document.createElement('span'); n.textContent = p[1];
+      const c = document.createElement('span'); c.className = 'cc-li-code'; c.textContent = p[2];
+      li.append(n, c);
+      list.appendChild(li);
+    });
+    const setCode = code => {
+      const it = items.find(p => p[2] === code);
+      if (!it) return;
+      input.value = code;
+      cur.textContent = it[0];
+      codeEl.textContent = it[2];
+      [...list.children].forEach((li, i) => li.setAttribute('aria-selected', String(items[i][2] === code)));
+    };
+    const open = () => { list.hidden = false; btn.setAttribute('aria-expanded', 'true'); };
+    const close = () => { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    const pick = li => { setCode(items[[...list.children].indexOf(li)][2]); close(); btn.focus(); };
+    btn.addEventListener('click', () => (list.hidden ? open() : close()));
+    btn.addEventListener('keydown', ev => {
+      if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+      ev.preventDefault();
+      if (list.hidden) open();
+      const lis = [...list.children];
+      const i = lis.indexOf(document.activeElement);
+      const next = i === -1 ? (ev.key === 'ArrowDown' ? 0 : lis.length - 1) : Math.max(0, Math.min(lis.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
+      lis[next].focus();
+      lis[next].scrollIntoView({ block: 'nearest' });
+    });
+    list.addEventListener('click', ev => { const li = ev.target.closest('li[role="option"]'); if (li) pick(li); });
+    list.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ') { const li = ev.target.closest('li[role="option"]'); if (li) { ev.preventDefault(); pick(li); } }
+      else if (ev.key === 'Escape') { close(); btn.focus(); }
+      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        const lis = [...list.children];
+        const i = lis.indexOf(document.activeElement);
+        const next = i === -1 ? (ev.key === 'ArrowDown' ? 0 : lis.length - 1) : Math.max(0, Math.min(lis.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
+        lis[next].focus();
+        lis[next].scrollIntoView({ block: 'nearest' });
+      }
+    });
+    document.addEventListener('click', ev => { if (!list.hidden && !cc.contains(ev.target)) close(); });
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !list.hidden) { close(); btn.focus(); } });
+    ccReset.set(cc, () => setCode('+971'));
+    setCode(input.value || '+971');
   }));
 
   const resets = new Map();
@@ -311,7 +367,7 @@ function modals() {
     const form = d.querySelector('.modal-form'); if (!form) return;
     const note = form.querySelector('.form-note');
     const stamp = form.querySelector('input[name="_t"]');
-    const codeSel = form.querySelector('select[name="country_code"]');
+    const codeSel = form.querySelector('input[name="country_code"]');
     const fields = {};
     form.querySelectorAll('input[name], select[name]').forEach(el => {
       if (el.name === 'hp' || el.name === '_t' || el.name === 'country_code') return;
@@ -481,7 +537,7 @@ function modals() {
       const cal = d.querySelector('.modal-cal'); if (cal) cal.hidden = true;
       const done = d.querySelector('.modal-done'); if (done) done.hidden = true;
       form.querySelectorAll('input, select').forEach(el => {
-        if (el.name === 'country_code') { el.selectedIndex = 0; return; }
+        if (el.name === 'country_code') { const cc = el.closest('[data-cc]'); if (cc && ccReset.get(cc)) ccReset.get(cc)(); return; }
         if (el.name === 'hp' || el.name === '_t') { el.value = ''; return; }
         if (el.tagName === 'SELECT') el.selectedIndex = 0;
         else el.value = '';

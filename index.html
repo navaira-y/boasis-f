@@ -325,7 +325,12 @@
       </div>
       <div class="mf-field">
         <div class="mf-pill mf-phone">
-          <label class="mf-code"><span class="sr">Country code</span><select name="country_code" aria-label="Country code"></select></label>
+          <div class="mf-code" data-cc>
+            <span class="sr">Country code</span>
+            <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
+            <ul class="cc-list" role="listbox" aria-label="Country code" hidden></ul>
+            <input type="hidden" name="country_code" value="+971">
+          </div>
           <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
         </div>
         <p class="mf-err" data-err="phone" aria-live="polite" hidden></p>
@@ -389,7 +394,12 @@
       </div>
       <div class="mf-field">
         <div class="mf-pill mf-phone">
-          <label class="mf-code"><span class="sr">Country code</span><select name="country_code" aria-label="Country code"></select></label>
+          <div class="mf-code" data-cc>
+            <span class="sr">Country code</span>
+            <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
+            <ul class="cc-list" role="listbox" aria-label="Country code" hidden></ul>
+            <input type="hidden" name="country_code" value="+971">
+          </div>
           <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
         </div>
         <p class="mf-err" data-err="phone" aria-live="polite" hidden></p>

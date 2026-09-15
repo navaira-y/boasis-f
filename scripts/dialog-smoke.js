@@ -58,12 +58,25 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   ok($$('#modal-demo, #modal-manage').length === 2, 'both dialogs are on the page');
   ok($$('#modal-demo [hidden]').some(e => e.id === 'demo-form') === false, 'demo form is visible');
   for (const id of ['modal-demo', 'modal-manage']) {
-    const sel = document.querySelector(`#${id} select[name="country_code"]`);
-    ok(sel && sel.options.length === 59, id + ' country picker has the 59 codes');
-    ok(sel && sel.value === '+971', id + ' defaults to +971');
-    const texts = [...sel.options].map(o => o.textContent);
-    ok(texts[0] === 'DZ · Algeria' && texts[58] === 'UZ · Uzbekistan', id + ' picker runs Algeria to Uzbekistan, alphabetically');
-    ok(texts.includes('PK · Pakistan') && texts.includes('US · United States'), id + ' picker shows the short form up front, the full name in the list');
+    const cc = document.querySelector(`#${id} [data-cc]`);
+    const lis = cc && [...cc.querySelectorAll('.cc-list li')];
+    ok(lis && lis.length === 59, id + ' picker list has the 59 countries');
+    ok(lis && lis[0].textContent.includes('Algeria') && lis[58].textContent.includes('Uzbekistan'), id + ' list runs Algeria to Uzbekistan, alphabetically');
+    ok(cc && cc.querySelector('.cc-cur').textContent === 'AE' && cc.querySelector('.cc-code').textContent === '+971', id + ' closed control shows short form and code by default');
+  }
+  {
+    const cc = document.querySelector('#modal-demo [data-cc]');
+    click(cc.querySelector('.cc-btn'));
+    ok(!cc.querySelector('.cc-list').hidden, 'the list opens');
+    const pk = [...cc.querySelectorAll('.cc-list li')].find(li => li.textContent.startsWith('Pakistan'));
+    ok(pk && pk.textContent.includes('+92'), 'the open list says the full name plus the code');
+    click(pk);
+    ok(cc.querySelector('.cc-list').hidden, 'the list closes on choice');
+    ok(cc.querySelector('.cc-cur').textContent === 'PK' && cc.querySelector('.cc-code').textContent === '+92', 'selected, it shows the short form and the code');
+    ok(cc.querySelector('input[name="country_code"]').value === '+92', 'the hidden input carries the code for the send');
+    click(cc.querySelector('.cc-btn'));
+    click([...cc.querySelectorAll('.cc-list li')].find(li => li.textContent.startsWith('United Arab Emirates')));
+    ok(cc.querySelector('input[name="country_code"]').value === '+971', 'and back to the default for the rest of the flow');
   }
   ok($$('a[data-open="demo"]').length === 3, 'three demo openers (two static, one built by the journey)');
   ok($$('a[data-open="manage"]').length === 4, 'four manage openers (door, two plans, header button)');

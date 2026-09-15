@@ -308,7 +308,19 @@ body.modal-open{overflow:hidden}
 .mf-phone{grid-template-columns:auto 1fr}
 .mf-phone .mf-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
 .mf-phone .mf-code:focus-within{background:rgba(255,255,255,.07)}
-.mf-phone .mf-code select{width:auto;padding:0}
+/* the code picker: the closed control says the short form and the code (PK +92); the
+   open list says the full name and the code, on the card's own ground. The hidden input
+   is what the form posts, so a no-script visitor loses nothing. */
+.cc-btn{display:flex;align-items:center;gap:8px;width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;font:inherit;font-size:16px;padding:0;cursor:pointer;white-space:nowrap}
+.cc-btn:focus-visible{outline:2px solid var(--bo-teal);outline-offset:3px}
+.cc-btn .cc-code{color:rgba(255,255,255,.55)}
+.cc-list{position:absolute;top:calc(100% + 8px);left:0;width:230px;margin:0;padding:6px;list-style:none;border-radius:14px;background:#0F1523;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 64px -28px rgba(0,0,0,.85);max-height:264px;overflow-y:auto;z-index:5}
+.cc-list[hidden]{display:none}
+.cc-list li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 12px;border-radius:9px;color:#fff;font-size:15px;cursor:pointer}
+.cc-list li .cc-li-code{color:rgba(255,255,255,.55)}
+.cc-list li:hover,.cc-list li:focus{background:rgba(255,255,255,.08);outline:none}
+.cc-list li[aria-selected="true"]{color:var(--bo-teal)}
+.cc-list li[aria-selected="true"] .cc-li-code{color:var(--bo-teal)}
 .mf-phone .mf-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
 .mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
 .mf-phone input{border-left:1px solid rgba(255,255,255,.14)}
