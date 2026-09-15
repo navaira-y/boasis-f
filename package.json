@@ -1,0 +1,26 @@
+{
+  "name": "boasis-web",
+  "version": "1.1.0",
+  "private": true,
+  "description": "BOASIS public site, served by Express for Hostinger Node.js hosting",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check config/env.js && node --check lib/mailer.js && node --check lib/validate.js && node --check lib/mail-templates.js",
+    "test": "node --test \"test/*.test.js\"",
+    "mail:check": "node scripts/mail-check.js",
+    "audit": "npm audit --omit=dev",
+    "test:watch": "node --test --watch \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemailer": "^10.0.9"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
+  }
+}

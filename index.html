@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOASIS · The most advanced AI for company setup in the UAE</title>
+<meta name="description" content="The most advanced AI for company setup in the UAE. Set up, for government entities and the companies that offer setup. Manage, for everyone who runs a company.">
+<meta property="og:title" content="BOASIS">
+<meta property="og:description" content="The most advanced AI for company setup in the UAE.">
+<meta property="og:image" content="/assets/icons/link-preview-1200x630.png">
+<meta name="theme-color" content="#0B0D12">
+<link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<!-- the sky · one drifting light behind the whole page; it moves its light as you go from the intro to Set up, Manage and the end -->
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- header · one floating bar, the same on every section: logo · Set up · Manage · Contact us (a button, now a page) -->
+<header class="nav">
+  <div class="nav-bar">
+    <a class="brand" href="#top" aria-label="BOASIS, to the top">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
+    <nav class="tabs" aria-label="Sections"><a href="#setup">Set up</a><a href="#manage">Manage</a><i class="tab-dot" aria-hidden="true"></i></nav>
+    <a class="nav-wait" href="#waitlist">Join the waiting list</a>
+    <a class="btn nav-contact" href="/contact.html">Contact us</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- 01 · the intro · one screen at a time: the wish · Mira beside the orb, reading it · what she does, in her voice · submitted · Yes · Introducing · two ways in -->
+<section class="intro" id="intro" data-intro>
+  <div class="intro-stage">
+
+    <!-- the first screen · who we are and the two ways in. Still, instant, the same on every visit. -->
+    <div class="hello beat on" id="hello">
+      <h1><span class="l">The Most Advanced AI</span> <span class="l">For Company Setup<br class="ph"> and Management</span> <span class="l">in The UAE.</span></h1>
+      <div class="doors">
+        <div class="door">
+          <a class="t" href="#setup">Set up</a>
+          <p class="d">For free zones, authorities and setup companies.</p>
+          <a class="act" href="/contact.html?i=setup">Contact us</a>
+        </div>
+        <div class="door">
+          <a class="t" href="#manage">Manage</a>
+          <p class="d">For everyone who runs a company in the UAE.</p>
+          <a class="act" href="#waitlist">Join the waiting list</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- the person · typed the way people talk · [brackets] are what Mira reads out of it -->
+    <p class="wish beat" id="wish" data-text="I want to [set up a business] in the UAE, and I need [two visas]."></p>
+
+    <!-- Mira · the orb beside her words · the status line under them, the way the portal writes -->
+    <div class="mira beat" id="mira">
+      <div class="mira-orb">
+        <div class="orb-scale"><div class="orb-host" id="orb" aria-hidden="true"></div></div>
+        <p class="status" id="status" aria-live="polite"><span class="who">Mira</span><span class="now"><i></i><span id="status-text"></span></span></p>
+      </div>
+      <p class="say" id="mira-line"></p>
+    </div>
+    <script type="application/json" id="mira-lines">[
+      ["No more browsing through thousands of business activities. I find the ones that match your business requirements.", "Matching activities"],
+      ["Some activities need approval before the licence. Let me check that for you, and guide you.", "Regulatory check"],
+      ["Shareholders, visas, premises. I guide you through it all.", "Shaping the company"]
+    ]</script>
+
+    <!-- the turn -->
+    <p class="scroll-cue" id="scroll-cue" aria-hidden="true">Scroll</p>
+
+    <div class="turn beat" id="turn">
+      <h2><span class="w">Yes.</span> <span class="w">That's</span> <span class="w hi">Possible</span> <span class="w">Now.</span></h2>
+    </div>
+
+  </div>
+</section>
+
+<!-- 02 · Set up · the intro's Night carries on: the real product rises into its own light, then who can have it next -->
+<section class="setup" id="setup">
+  <header class="setup-head wrap">
+    <h2>From a description to a <em>finished application.</em></h2>
+    <p class="setup-line">Mira takes a founder all the way, using the authority's own activities, rules and prices.</p>
+  </header>
+
+  <!-- the journey, one step at a time as you scroll: what happens on the left, the real screen from the SPARK Brain on the right (stills from the recording; Mira's KEY INFO grows on each) -->
+  <div class="journey" id="journey">
+    <div class="journey-stage">
+      <ol class="journey-bar" aria-label="The steps">
+        <li class="on"><button type="button" data-step="0" aria-current="step">Describe</button></li><li><button type="button" data-step="1">Activities</button></li><li><button type="button" data-step="2">What it means</button></li><li><button type="button" data-step="3">Package</button></li><li><button type="button" data-step="4">Estimate</button></li><li><button type="button" data-step="5">Application</button></li>
+      </ol>
+      <div class="journey-body">
+        <div class="journey-text">
+          <article class="j-step on"><h3>Describe your business in your own words.</h3><p>Mira reads your description and works out which parts of your business need an activity. Nothing is matched until you confirm.</p></article>
+          <article class="j-step"><h3>The activities that fit, found for you.</h3><p>Grouped by the parts of your business, each in the authority's official wording.</p></article>
+          <article class="j-step"><h3>What each activity needs, before you pay.</h3><p>Which ones need an approval, and whether it comes before or after the licence.</p></article>
+          <article class="j-step"><h3>Only what changes the price.</h3><p>Shareholders, visas and premises, one question at a time.</p></article>
+          <article class="j-step"><h3>One estimate, from the authority's own prices.</h3><p>Every line shown. The authority's team confirms the final invoice.</p></article>
+          <article class="j-step"><h3>A complete application, submitted.</h3><p>People, company and documents, handed to the authority's team.</p></article>
+        </div>
+        <figure class="journey-screen">
+          <img class="on" src="/assets/img/journey-1.jpg" alt="Describe your business: the founder writes what the business does, in their own words">
+          <img src="/assets/img/journey-2.jpg" alt="The matching activities, grouped by the parts of the business" loading="lazy">
+          <img src="/assets/img/journey-3.jpg" alt="The regulated check: which activities need an approval" loading="lazy">
+          <img src="/assets/img/journey-4.jpg" alt="Visas: how many, and where the people are" loading="lazy">
+          <img src="/assets/img/journey-5.jpg" alt="The recommendation and the price, line by line" loading="lazy">
+          <img src="/assets/img/journey-6.jpg" alt="Submitted: the packet is with the SPARK team" loading="lazy">
+        </figure>
+      </div>
+    </div>
+  </div>
+
+  <!-- talk to Mira: her orb comes back; you ask, out loud, and she answers (the words appear as she says them) -->
+  <div class="talk" id="talk">
+    <div class="talk-stage">
+      <div class="talk-orb" aria-hidden="true"><div class="talk-orb-scale"><div class="orb-host" id="talk-orb"></div></div></div>
+      <h2 class="talk-h">And you can talk to Mira.</h2>
+      <p class="talk-line">Ask her anything, at any step. She answers you.</p>
+      <div class="talk-chat">
+        <p class="talk-row you"><span class="who">You<i class="wave" aria-hidden="true"><b></b><b></b><b></b><b></b></i></span><span class="said">Do I need an office for this?</span></p>
+        <p class="talk-row her"><span class="who">Mira</span><span class="said">Not for your activities. The flexi-desk is included.</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- who can have it next: SPARK lit, the next ones light up along one line -->
+  <div class="setup-next">
+    <div class="wrap">
+      <h2 class="reveal"><span class="q">Application:</span> SPARK was the first.</h2>
+      <p class="line reveal spark-line">One AI engine, tailored to any free zone.<br> Only the data changes. The intelligence stays the same.</p>
+
+      <ol class="zones" id="zones" aria-label="Who it can work for">
+        <li class="zone first lit"><b>SPARK</b><span>Free zone · Sharjah</span></li>
+        <li class="zone"><b>Your free zone</b><span>Next</span></li>
+        <li class="zone"><b>Your setup company</b><span>Next</span></li>
+      </ol>
+
+      <div class="how">
+        <div class="how-step reveal"><p class="label light">You bring</p><p>Your activity list, your rules, your prices.</p></div>
+        <div class="how-step reveal"><p class="label light">Mira does</p><p>Guides every applicant from a description to a finished application.</p></div>
+        <div class="how-step reveal"><p class="label light">You receive</p><p>Complete applications, under your name, ready to verify.</p></div>
+      </div>
+
+      <div class="next-cta reveal">
+        <a class="btn btn-light" href="/contact.html?i=setup">Contact us</a>
+        <p class="setup-after">We'll give you a full demo, with Mira working on your own activity list.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- 03 · Manage · Night, lit teal: the real portal, what it does, Standard or Enterprise, and the waiting list -->
+<section class="manage" id="manage">
+  <header class="manage-head wrap">
+    <h2><span class="q">Manage</span> <em>all your companies.</em></h2>
+    <p class="manage-line">Every licence, visa, tax and bank date for every company you run, and the right person reminded before it is due.</p>
+  </header>
+
+  <!-- five problems an owner lives with, each solved on a real portal screen (the approved concept, light mode, example companies).
+       Click a tab; the light on the screen marks the part that solves it. -->
+  <div class="solve wrap" id="solve">
+    <div class="solve-tabs" role="tablist" aria-label="Problems the portal solves"><button role="tab" id="so-t-calendar" aria-controls="so-p-calendar" aria-selected="true">Every date</button><button role="tab" id="so-t-owner" aria-controls="so-p-owner" aria-selected="false" tabindex="-1">Who is on it</button><button role="tab" id="so-t-visas" aria-controls="so-p-visas" aria-selected="false" tabindex="-1">Staff visas</button><button role="tab" id="so-t-decide" aria-controls="so-p-decide" aria-selected="false" tabindex="-1">Renew or not</button><button role="tab" id="so-t-start" aria-controls="so-p-start" aria-selected="false" tabindex="-1">Getting started</button><i class="solve-pill" aria-hidden="true"></i></div>
+    <div class="solve-stage">
+      <article class="solve-panel on" role="tabpanel" id="so-p-calendar" aria-labelledby="so-t-calendar">
+        <div class="solve-text">
+          <p class="solve-pain">“I can’t see what is due across my companies.”</p>
+          <h3 class="solve-h"><span class="q">Every company has its own dates.</span> See the whole year in one view.</h3>
+          <p class="solve-line">Licence, visa, tax and bank dates for every company, in one place, and in the calendar you already use.</p>
+          <button type="button" class="solve-next" data-next="so-t-owner">Next: Who is on it</button>
+        </div>
+        <figure class="solve-shot"><span class="sheet pop"><img src="/assets/proof/manage/dial.webp" alt="The year on one dial: every company's dates around the ring, each company in its own colour"><img class="pop-open" src="/assets/proof/manage/dial-sheet.webp" alt="One date opened from the dial: VAT return and payment for Marasi Commodities DMCC, 28 Nov 2026, with how the date is worked out" loading="lazy"><button type="button" class="spot spot-mark" style="--x:0.2308;--y:0.1303;--w:0.06;--h:0.0688" aria-label="Open this date"><span class="spot-hint" aria-hidden="true"><span class="h-click">Click</span><span class="h-tap">Tap</span></span></button></span></figure>
+      </article>
+      <article class="solve-panel" role="tabpanel" id="so-p-owner" aria-labelledby="so-t-owner" hidden>
+        <div class="solve-text">
+          <p class="solve-pain">“A date was missed because nobody owned it.”</p>
+          <h3 class="solve-h"><span class="q">Everyone thought someone else had it.</span> Every requirement has a name on it.</h3>
+          <p class="solve-line">That person is reminded before the date, with the steps still to do. You see how far it has got.</p>
+          <button type="button" class="solve-next" data-next="so-t-visas">Next: Staff visas</button>
+        </div>
+        <figure class="solve-shot"><span class="sheet"><img src="/assets/proof/manage/responsible.webp" alt="A residence visa renewal with the responsible person, who gets the reminders, and the steps already done" loading="lazy"><i class="spot" style="--x:0.0442;--y:0.3598;--w:0.5793;--h:0.1417" aria-hidden="true"></i></span></figure>
+      </article>
+      <article class="solve-panel" role="tabpanel" id="so-p-visas" aria-labelledby="so-t-visas" hidden>
+        <div class="solve-text">
+          <p class="solve-pain">“A visa ran out and we found out too late.”</p>
+          <h3 class="solve-h"><span class="q">Every visa runs on its own clock.</span> See where each one stands, and what comes next.</h3>
+          <p class="solve-line">Every step of each person’s visa, with its date, and the next one marked with the day it must be done by.</p>
+          <button type="button" class="solve-next" data-next="so-t-decide">Next: Renew or not</button>
+        </div>
+        <figure class="solve-shot"><span class="sheet"><img src="/assets/proof/manage/staff-visas.webp" alt="One employee’s visa, the steps done with their dates, and the next step due" loading="lazy"><i class="spot" style="--x:0.0381;--y:0.7566;--w:0.9238;--h:0.0968" aria-hidden="true"></i></span></figure>
+      </article>
+      <article class="solve-panel" role="tabpanel" id="so-p-decide" aria-labelledby="so-t-decide" hidden>
+        <div class="solve-text">
+          <p class="solve-pain">“I paid another year for a licence I didn’t need.”</p>
+          <h3 class="solve-h"><span class="q">Renewal comes before you’ve decided.</span> Decide in time: renew, cancel or make it smaller.</h3>
+          <p class="solve-line">Each answer opens its own steps. If nobody answers, every owner is reminded.</p>
+          <button type="button" class="solve-next" data-next="so-t-start">Next: Getting started</button>
+        </div>
+        <figure class="solve-shot"><span class="sheet"><img src="/assets/proof/manage/decision.webp" alt="The licence renewal question with three answers, and what happens if nobody answers" loading="lazy"><i class="spot" style="--x:0.0503;--y:0.2756;--w:0.8994;--h:0.4131" aria-hidden="true"></i></span></figure>
+      </article>
+      <article class="solve-panel" role="tabpanel" id="so-p-start" aria-labelledby="so-t-start" hidden>
+        <div class="solve-text">
+          <p class="solve-pain">“Setting this up will be another admin job.”</p>
+          <h3 class="solve-h"><span class="q">Your company lives in PDFs and inboxes.</span> Upload the licence. It reads it, you check it.</h3>
+          <p class="solve-line">Nothing is saved until you confirm each value. Tick what is already done, and only what is still open stays.</p>
+          <a class="solve-next" href="#plans">See the plans</a>
+        </div>
+        <figure class="solve-shot"><span class="sheet"><img src="/assets/proof/manage/reader.webp" alt="The values read from an uploaded licence, each one confirmed" loading="lazy"><i class="spot" style="--x:0.0359;--y:0.1751;--w:0.9282;--h:0.6409" aria-hidden="true"></i></span></figure>
+      </article>
+    </div>
+  </div>
+
+  <!-- the doubts an owner still has before joining, one short answer each -->
+  <div class="doubts wrap">
+    <h3 class="doubts-h reveal">Before you join.</h3>
+    <dl class="doubts-list">
+      <div class="reveal"><dt>How is everyone reminded?</dt><dd>By email and app notification. WhatsApp once it is approved.</dd></div>
+      <div class="reveal"><dt>Do my staff need logins?</dt><dd>No. They only get a notice when something is theirs to do.</dd></div>
+      <div class="reveal"><dt>Who sees what?</dt><dd>You choose who sees which company, and which part of it.</dd></div>
+      <div class="reveal"><dt>Which licences can I add?</dt><dd>Any UAE licence, free zone or mainland.</dd></div>
+      <div class="reveal"><dt>Can I take my data with me?</dt><dd>Every company can be exported at any time.</dd></div>
+    </dl>
+  </div>
+
+  <!-- the plans · Standard lists everything it covers; Enterprise explains what is built around a group. Prices come at launch. -->
+  <div class="plans wrap" id="plans">
+    <h2 class="reveal"><span class="q">Standard</span> <em>or Enterprise.</em></h2>
+    <div class="plan-grid">
+      <article class="plan reveal">
+        <div class="plan-top">
+          <p class="plan-name">Standard</p>
+          <p class="plan-for">For owners and small teams running a few companies.</p>
+        </div>
+        <div class="plan-body"><p class="plan-lead">Everything you need, including:</p><ul class="plan-list"><li>Three companies included</li><li>You and one more person</li><li>Company file from your licence</li><li>Every requirement, step by step</li><li>One calendar for all companies</li><li>Staff visas, step by step</li><li>Reminders to the right person</li><li>Documents and bank packs</li></ul></div>
+        <a class="btn btn-light" href="#waitlist" data-plan="standard">Join the waiting list</a>
+      </article>
+      <article class="plan plan-ent reveal">
+        <div class="plan-top">
+          <p class="plan-name">Enterprise</p>
+          <p class="plan-for">For groups with many companies, departments and people on visas.</p>
+        </div>
+        <div class="plan-body"><p class="plan-lead">Everything in Standard, plus:</p><ul class="plan-list"><li>Unlimited companies and staff</li><li>Grouped by entity and region</li><li>Your own internal policies</li><li>Reminder rules per department</li><li>Access by department</li><li>Group views and budgets</li><li>Integrations on request</li></ul></div>
+        <a class="btn btn-light" href="/contact.html?i=manage">Contact us</a>
+      </article>
+    </div>
+  </div>
+
+  <div class="waitlist-block" id="waitlist">
+    <div class="wrap narrow">
+      <h2 class="reveal">Join the waiting list.</h2>
+      <p class="line reveal">One email when your access is ready.</p>
+      <form class="waitlist-form reveal" id="waitlist-form" data-endpoint="/api/waitlist" novalidate>
+        <!-- anti-spam: a field no human ever sees. Filled = a bot. The server checks it. -->
+        <label class="sr" for="wl-company-website" aria-hidden="true">Company website<input id="wl-company-website" type="text" name="company_website" tabindex="-1" autocomplete="off"></label>
+        <input type="hidden" name="_t" value="">
+        <div class="plan-pick" role="radiogroup" aria-label="Plan">
+          <label><input type="radio" name="intent" value="standard" checked><span>Standard</span></label>
+          <label><input type="radio" name="intent" value="enterprise"><span>Enterprise</span></label>
+        </div>
+        <div class="wl-fields">
+          <label><span class="sr">Name</span><input name="name" type="text" autocomplete="name" placeholder="Your name" required></label>
+          <label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" placeholder="Your email" required></label>
+          <button class="btn btn-light" type="submit">Join</button>
+        </div>
+        <p class="form-note" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- 04 · news -->
+<section class="news" id="news">
+  <div class="wrap">
+    <h2 class="reveal">News about us.</h2>
+    <div class="news-grid" id="news-grid"></div>
+  </div>
+</section>
+
+</main>
+
+<!-- 05 · footer · the question, then the brand, the links, the address and the socials, then the fine print.
+     Social links: put each real address in href and remove data-soon. -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-ask">
+      <h2>Any questions?</h2>
+      <a class="btn btn-light" href="/contact.html">Contact us</a>
+    </div>
+
+    <div class="foot-main">
+      <div class="foot-id">
+        <a class="foot-brand" href="#top" aria-label="BOASIS, to the top">B<img src="/assets/logo/orb-160.png" srcset="/assets/logo/orb-160.png 160w, /assets/logo/orb-512.png 512w" sizes="32px" alt="">ASIS</a>
+        <p class="foot-line">The most advanced AI for company setup in the UAE.</p>
+        <ul class="socials" aria-label="BOASIS on social media"><li><a data-soon aria-label="BOASIS on LinkedIn, link coming soon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05C20.6 8.65 21 11.1 21 14.3V21h-4v-5.9c0-1.4-.03-3.2-1.95-3.2-1.96 0-2.26 1.53-2.26 3.1V21H9z"/></svg></a></li><li><a data-soon aria-label="BOASIS on Instagram, link coming soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg></a></li><li><a data-soon aria-label="BOASIS on X, link coming soon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.77zm-1.08 16.2h1.7L7.42 4.73H5.6z"/></svg></a></li></ul>
+      </div>
+      <nav class="foot-col" aria-label="Explore">
+        <p class="foot-h">Explore</p>
+        <a href="#setup">Set up</a>
+        <a href="#manage">Manage</a>
+        <a href="/blog.html">Blog</a>
+      </nav>
+      <nav class="foot-col" aria-label="Legal">
+        <p class="foot-h">Legal</p>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms and conditions</a>
+      </nav>
+      <div class="foot-col">
+        <p class="foot-h">Reach us</p>
+        <a href="mailto:support@boasis.ae">support@boasis.ae</a>
+        <address>Boasis - FZC<br>United Arab Emirates</address>
+      </div>
+    </div>
+
+    <div class="foot-base">
+      <p>© <span id="year">2026</span> Boasis - FZC. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/lenis.js"></script>
+<script src="/js/yara-orb.js"></script>
+<script src="/js/news.js"></script>
+<script src="/js/site.js"></script>
+</body>
+</html>

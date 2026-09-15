@@ -1,0 +1,13 @@
+node_modules/
+data/
+.DS_Store
+
+# secrets and local config — never in git, ever
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+
+# large videos are added by hand on the server, not committed (keep the repo light)
+assets/video/*.mp4

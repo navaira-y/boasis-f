@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact · BOASIS</title>
+<meta name="description" content="Write to BOASIS about company setup or company management. One form, read by a person, answered by email.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="Contact · BOASIS">
+<meta property="og:description" content="Tell us what you need and a person will get back to you.">
+<meta property="og:image" content="/assets/icons/link-preview-1200x630.png">
+<meta name="theme-color" content="#0B0D12">
+<link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500&family=Plus+Jakarta+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/contact.css">
+</head>
+<body class="page-contact">
+
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- header · the same bar as the site. the brand is the way back; there is no other page to reach from here. -->
+<header class="nav">
+  <div class="nav-bar">
+    <a class="brand" href="/" aria-label="BOASIS, back to the site">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
+    <nav class="tabs" aria-label="Sections of the site">
+      <a href="/#setup">Set up</a>
+      <a href="/#manage">Manage</a>
+    </nav>
+    <a class="nav-wait" href="/#waitlist">Join the waiting list</a>
+    <a class="btn nav-contact" href="/contact.html" aria-current="page">Contact us</a>
+  </div>
+</header>
+
+<main>
+
+<!-- One heading that types itself, then the form. Every control below is the waiting list's
+     own system: the same pills, the same hairlines, the same picker, the same focus ring.
+     Nothing here is a new shape. -->
+<section class="contact-block" id="contact">
+  <div class="wrap narrow">
+
+    <p class="label light">Contact</p>
+    <h1 id="ct-wish" data-text="Write to us.">Write to us.</h1>
+    <p class="line">We will get back to you.</p>
+
+    <form class="contact-form" id="contact-form" data-endpoint="/api/contact" novalidate>
+
+      <!-- anti-spam: a field no human ever sees, and no browser autofills. Filled = a bot. -->
+      <label class="sr" for="ct-hp" aria-hidden="true">Website<input id="ct-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></label>
+      <input type="hidden" name="_t" value="">
+
+      <div class="ct-fields">
+        <label><span class="sr">Full name</span><input name="name" type="text" autocomplete="name" placeholder="Enter your full name" required></label>
+      </div>
+      <div class="ct-fields">
+        <label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" inputmode="email" placeholder="Enter your email" required></label>
+      </div>
+      <div class="ct-fields">
+        <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
+      </div>
+
+      <p class="ct-ask">What are you contacting us about?</p>
+      <div class="ct-pick">
+        <div class="plan-pick" role="radiogroup" aria-label="What are you contacting us about?">
+          <label><input type="radio" name="about" value="setup" checked><span>Set up</span></label>
+          <label><input type="radio" name="about" value="manage"><span>Manage</span></label>
+        </div>
+      </div>
+
+      <div class="ct-fields ct-fields-stack">
+        <label><span class="sr">Message</span><textarea name="message" rows="5" aria-label="Message" placeholder="Tell us how we can help you." required></textarea></label>
+      </div>
+
+      <div class="ct-foot">
+        <button class="btn btn-light" type="submit">Send</button>
+        <p class="form-note" aria-live="polite"></p>
+      </div>
+    </form>
+
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-main">
+      <div class="foot-id">
+        <a class="foot-brand" href="/" aria-label="BOASIS, to the top">B<img src="/assets/logo/orb-160.png" srcset="/assets/logo/orb-160.png 160w, /assets/logo/orb-512.png 512w" sizes="32px" alt="">ASIS</a>
+        <p class="foot-line">The most advanced AI for company setup in the UAE.</p>
+        <ul class="socials" aria-label="BOASIS on social media"><li><a data-soon aria-label="BOASIS on LinkedIn, link coming soon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05C20.6 8.65 21 11.1 21 14.3V21h-4v-5.9c0-1.4-.03-3.2-1.95-3.2-1.96 0-2.26 1.53-2.26 3.1V21H9z"/></svg></a></li><li><a data-soon aria-label="BOASIS on Instagram, link coming soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg></a></li><li><a data-soon aria-label="BOASIS on X, link coming soon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.77zm-1.08 16.2h1.7L7.42 4.73H5.6z"/></svg></a></li></ul>
+      </div>
+      <nav class="foot-col" aria-label="Explore">
+        <p class="foot-h">Explore</p>
+        <a href="/#setup">Set up</a>
+        <a href="/#manage">Manage</a>
+        <a href="/blog.html">Blog</a>
+      </nav>
+      <nav class="foot-col" aria-label="Legal">
+        <p class="foot-h">Legal</p>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms and conditions</a>
+      </nav>
+      <div class="foot-col">
+        <p class="foot-h">Reach us</p>
+        <a href="mailto:support@boasis.ae">support@boasis.ae</a>
+        <address>Boasis - FZC<br>United Arab Emirates</address>
+      </div>
+    </div>
+
+    <div class="foot-base">
+      <p>© <span id="year">2026</span> Boasis - FZC. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/contact.js"></script>
+</body>
+</html>
