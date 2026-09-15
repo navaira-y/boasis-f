@@ -13,7 +13,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const config = require('./config/env');
-const { waitlistInput, contactInput, spamCheck, plainObject } = require('./lib/validate');
+const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject } = require('./lib/validate');
 const { guard, securityHeaders, formGateLimit } = require('./lib/protect');
 const mail = require('./lib/mailer');
 
@@ -43,6 +43,8 @@ function writeJson(f, v) {
 const visitorsFile = path.join(DATA, 'visitors.json');
 const waitlistFile = path.join(DATA, 'waitlist.json');
 const contactFile = path.join(DATA, 'contact.json');
+const demoFile = path.join(DATA, 'demo.json');
+const manageFile = path.join(DATA, 'manage.json');
 
 app.set('trust proxy', true);                  // Hostinger sits behind a proxy; req.ip is then the real client
 app.disable('x-powered-by');                   // do not advertise the stack
@@ -132,6 +134,41 @@ app.post('/api/contact', limitForms, formGate, async (req, res) => {
   writeJson(contactFile, list);
 
   const r = await mail.notifyContact(record);
+  res.json({ ok: true, confirmed: r.sent > 0 });
+});
+
+/* the two dialogs on the home page: Book a demo (setup) and Join early access (manage).
+   Same door as the contact form: right shape, then the bot traps, then the fields. The
+   records keep the answers as the dialog asked them; the mailer turns them into words. */
+app.post('/api/demo', limitForms, formGate, async (req, res) => {
+  const in_ = demoInput(req.body);
+  if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+
+  const record = {
+    name: in_.name, email: in_.email, phone: in_.phone,
+    who: in_.who, entity: in_.entity, at: new Date().toISOString(),
+  };
+  const list = readJson(demoFile, []);
+  list.push(record);
+  writeJson(demoFile, list);
+
+  const r = await mail.notifyDemo(record);
+  res.json({ ok: true, confirmed: r.sent > 0 });
+});
+
+app.post('/api/manage', limitForms, formGate, async (req, res) => {
+  const in_ = manageInput(req.body);
+  if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+
+  const record = {
+    name: in_.name, email: in_.email, phone: in_.phone,
+    have: in_.have, count: in_.count, authority: in_.authority, at: new Date().toISOString(),
+  };
+  const list = readJson(manageFile, []);
+  list.push(record);
+  writeJson(manageFile, list);
+
+  const r = await mail.notifyManage(record);
   res.json({ ok: true, confirmed: r.sent > 0 });
 });
 

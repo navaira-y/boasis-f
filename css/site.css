@@ -38,7 +38,7 @@ h2{font-size:clamp(30px,3.6vw,48px);line-height:1.06}
 
 /* header · one floating bar of Night, the same over every section */
 .nav{position:fixed;left:0;right:0;top:0;z-index:50;display:flex;justify-content:center;padding:14px 28px 0;pointer-events:none}
-/* as wide as the page's content, so the logo and Contact us line up with the headings and cards under them; the tabs sit on the true centre */
+/* as wide as the page's content, so the logo and the waiting list line up with the headings and cards under them; the tabs sit on the true centre */
 .nav-bar{position:relative;pointer-events:auto;display:flex;align-items:center;gap:clamp(10px,1.2vw,14px);width:min(100%,1124px);height:60px;padding:0 9px 0 26px;border-radius:999px;background:rgba(11,13,18,.97);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 44px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.2)}
 .brand{font-family:var(--font-display);font-weight:500;font-size:22px;letter-spacing:.08em;color:var(--heading);display:inline-flex;align-items:center}
 .brand img{width:1.06em;height:1.06em;margin:0 .02em;transform:translateY(-.02em)}
@@ -145,7 +145,7 @@ body[data-zone="end"] .sky i:nth-child(3){translate:-4vw -24vh;opacity:.55}
 .hello h1 .ph{display:none}
 /* the doors, smaller: the same two cards, lighter in size so the heading leads */
 .doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:820px;margin:clamp(28px,4.4svh,44px) auto 0;text-align:left}
-.door{position:relative;display:flex;flex-direction:column;align-items:flex-start;padding:16px 20px 15px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(255,255,255,.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .3s,border-color .3s,transform .3s}
+.door{position:relative;display:flex;flex-direction:column;align-items:flex-start;padding:16px 20px 15px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(255,255,255,.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .3s,border-color .3s,transform .3s;cursor:pointer}
 .door:hover{background:rgba(255,255,255,.08);border-color:rgba(95,211,232,.5);transform:translateY(-2px)}
 .door .t{display:flex;align-items:center;width:100%;font-family:var(--font-display);font-weight:500;font-size:22px;line-height:1.1;color:#fff}
 .door .t::after{content:"";position:absolute;inset:0;border-radius:inherit}
@@ -266,6 +266,67 @@ body[data-zone="end"] .sky i:nth-child(3){translate:-4vw -24vh;opacity:.55}
 .form-note{min-height:1.4em;margin:0;font-size:15px;color:rgba(255,255,255,.7)}
 .form-note.ok{color:var(--bo-teal)}
 .form-note.err{color:#F2994A}
+
+/* the dialogs · Book a demo and Join early access. The site is already Night, so the
+   dialog is a night card on a darker veil: the same card surface as the news cards, the
+   same pills as the waiting list, the same orange for a fault. Nothing new is invented. */
+.modal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+/* display is set on these by name, which outranks the [hidden] attribute, so each step
+   names its own off switch: a hidden step must stay hidden */
+.modal[hidden],.modal-form[hidden],.modal-cal[hidden],.modal-done[hidden],.mf-field[hidden]{display:none}
+body.modal-open{overflow:hidden}
+.modal-back{position:absolute;inset:0;background:rgba(11,13,18,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.modal-card{position:relative;width:min(680px,100%);max-height:min(94svh,860px);overflow-y:auto;border-radius:22px;background:#0F1523;border:1px solid rgba(255,255,255,.1);box-shadow:0 40px 90px -40px rgba(0,0,0,.8);padding:clamp(26px,4vw,44px);animation:modal-in .18s ease-out}
+@keyframes modal-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.reduce .modal-card{animation:none}
+.modal-x{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);font-size:18px;line-height:1;cursor:pointer;transition:color .2s,border-color .2s}
+.modal-x:hover{color:var(--bo-teal);border-color:var(--bo-teal)}
+.modal-kicker{margin:0 0 10px}
+.modal-h{font-family:var(--font-display);font-weight:500;font-size:clamp(24px,2.6vw,34px);line-height:1.15;letter-spacing:-.02em;color:#fff;margin:0;text-wrap:balance}
+.modal-line{color:rgba(255,255,255,.72);font-size:15.5px;line-height:1.6;margin:12px 0 0;max-width:52ch}
+.modal-form{display:grid;gap:18px;margin-top:26px}
+.mf-field{display:grid;gap:8px;width:100%}
+/* = .wl-fields, the waiting list's pill */
+.mf-pill{display:grid;padding:7px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+.mf-pill label{display:block;min-width:0}
+.mf-pill input{width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;padding:0 20px;font:inherit;font-size:16px}
+.mf-pill input::placeholder{color:rgba(255,255,255,.45)}
+.mf-pill input:focus{outline:none;background:rgba(255,255,255,.07)}
+/* the pickers: the site's own selects, no native chrome, the arrow drawn */
+.mf-pill label:has(> select){position:relative}
+.mf-pill label:has(> select)::after{content:"";position:absolute;right:20px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.mf-pill label:has(> select):focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
+.mf-pill select{appearance:none;-webkit-appearance:none;width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;padding:0 20px;font:inherit;font-size:16px;cursor:pointer}
+.mf-pill select:focus{outline:none;background:rgba(255,255,255,.07)}
+.mf-pill select:required:invalid{color:rgba(255,255,255,.45)}
+/* the opened list is a native surface some browsers paint white; a white-on-white option
+   is unreadable, so it takes the card's own ground and ink, like everything else here */
+.mf-pill select option{background:#0F1523;color:#fff}
+.mf-pill.bad input,.mf-pill.bad select{background:rgba(242,153,74,.12)}
+/* the phone: one pill, two controls, the code picked on the left, the number typed on the
+   right, one hairline between them: the contact page's own rule, restated here */
+.mf-phone{grid-template-columns:auto 1fr}
+.mf-phone .mf-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
+.mf-phone .mf-code:focus-within{background:rgba(255,255,255,.07)}
+.mf-phone .mf-code select{width:auto;padding:0}
+.mf-phone .mf-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
+.mf-phone input{border-left:1px solid rgba(255,255,255,.14)}
+/* the fault lands under its own field, the note's err colour */
+.mf-err{margin:0;font-size:14px;line-height:1.45;color:#F2994A}
+.mf-foot{display:grid;justify-items:center;gap:12px;margin-top:8px}
+.mf-foot .btn{padding:15px 34px;font-size:16px}
+/* step two: the calendar. Google's page is light, so it sits in a light frame with the
+   site's own hairline and radius, the way the journey screens sit */
+.modal-cal{margin-top:4px}
+.modal-cal .modal-line{margin-bottom:18px}
+.cal-frame{border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:#fff}
+.cal-frame iframe{display:block;width:100%;height:480px;border:0}
+.cal-alt{margin:12px 0 0;font-size:13px;color:rgba(255,255,255,.5);text-align:center}
+.cal-alt a{color:var(--bo-teal)}
+@media (max-width:640px){
+  .cal-frame iframe{height:420px}
+}
 
 /* 04 · news · Night, three cards */
 .news{position:relative;color:#fff;padding:clamp(40px,5vw,80px) 0 clamp(20px,3vw,40px)}
@@ -557,6 +618,7 @@ body[data-zone="end"] .sky i:nth-child(3){translate:-4vw -24vh;opacity:.55}
 .j-next{align-self:flex-start;margin-top:6px;padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:none;color:#fff;font:inherit;font-size:14.5px;font-weight:500;cursor:pointer;transition:border-color .25s,background .25s,color .25s}
 .j-next::after{content:" →"}
 .j-next:hover{border-color:var(--bo-teal);background:rgba(95,211,232,.08);color:var(--bo-teal)}
+a.j-next{text-decoration:none}
 .j-step:not(.on) .j-next{pointer-events:none}
 .j-step.on{pointer-events:auto}
 .setup-next .spark-line{max-width:none}

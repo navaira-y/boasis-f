@@ -7,8 +7,8 @@ const os = require('os');
 
 /* The contact page is HTML + CSS + a small script, so it is tested as a served thing:
    does it load, does everything it points at exist, and does it reach the API.
-   It also pins the ONE thing that does not work yet, so nobody has to rediscover it:
-   /api/contact still requires an `organisation`, which this form does not ask for. */
+   The form asks four things only: name, email, phone (code picked, number typed) and message;
+   every one of those is required, and every fault lands under its own field. */
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-contact-'));
@@ -34,34 +34,70 @@ const get = p => fetch(base + p);
 const HUMAN = () => ({ _t: Date.now() - 12000 });
 /* exactly the body the browser sends: FormData of the form, JSON.stringify'd */
 /* FormData picks up every named control, hidden ones included, so the real body carries
-   hp, _t and the organisation scaffolding. A fixture that leaves them out tests a request
-   no browser ever sends. */
+   hp and _t, and the phone arrives as ONE string: the code the visitor picked, the number
+   typed. js/contact.js does the joining; this fixture is what that joining produces. */
 const formPayload = extra => ({ hp: '', ...HUMAN(),
   name: 'Amina Al Mazroui', email: 'amina@example.com',
-  phone: '+971 50 123 4567', about: 'setup', message: 'We sell skincare online, need two visas.', ...extra });
+  country_code: '+971', phone: '+971 50 123 4567',
+  message: 'We sell skincare online, need two visas.', ...extra });
 
-/* The two 'Contact us' buttons were mailto: until today. These tests are what stops that
-   quietly regressing: the main page must point at this page, and this page must answer. */
-test('the main page links to the contact page', async () => {
-  const home = await (await get('/')).text();
-  assert.match(home, /class="btn nav-contact" href="\/contact\.html"/, 'the nav button must open the page');
-  assert.match(home, /class="btn btn-light" href="\/contact\.html\?i=setup"/, 'the free-zone CTA must open it with Set up chosen');
-  const buttons = [...home.matchAll(/class="btn[^"]*" href="([^"]+)">Contact us/g)].map(m => m[1]);
-  assert.match(home, /<div class="foot-ask">\s*<h2>Any questions\?<\/h2>\s*<a class="btn btn-light" href="\/contact\.html">Contact us/, 'the footer question must open the page');
-  assert.match(home, /class="btn btn-light" href="\/contact\.html\?i=manage">Contact us/, 'the Enterprise plan must open it with Manage chosen (Enterprise is a conversation, not the waiting list)');
-  assert.equal(buttons.length, 4, 'expected exactly four Contact us buttons (header, free-zone CTA, Enterprise plan, footer), saw ' + buttons.length);
-  for (const href of buttons) {
-    const r = await get(href.replace(/^\/contact\.html/, '/contact.html'));
-    assert.equal(r.status, 200, href + ' does not resolve');
+/* The 'Contact us' buttons were mailto: until 13 September; two were relabelled on 15
+   September, and the header's button was removed on 16 September, on every page, because
+   the header is the same on each of them. What is left must point at the dialogs: set-up
+   visitors get "Book a demo", manage visitors get "Join early access". These tests are
+   what stops any of that quietly regressing. */
+test('the header has no Contact us button, on any page', async () => {
+  for (const p of ['/', '/contact.html', '/blog.html', '/privacy.html', '/terms.html']) {
+    const html = await (await get(p)).text();
+    assert.ok(!/nav-contact/.test(html), p + ' still carries the header button');
+    assert.match(html, /class="nav-wait"[^>]*data-open="manage"/, p + ' header list button opens the list dialog');
   }
+});
+
+test('the main page points set-up at the demo dialog and manage at the list dialog', async () => {
+  const home = await (await get('/')).text();
+  const demos = [...home.matchAll(/class="(?:act|btn btn-light)" href="\/contact\.html"[^>]*data-open="demo"[^>]*>Book a demo/g)];
+  assert.equal(demos.length, 2, 'the Set up door and the free-zone CTA open the demo dialog, saw ' + demos.length);
+  const joins = [...home.matchAll(/href="#manage"[^>]*data-open="manage"[^>]*>Join early access/g)];
+  assert.equal(joins.length, 3, 'the Manage door and both plans open the list dialog, saw ' + joins.length);
+  assert.ok(!/id="waitlist"/.test(home), 'the waiting list section is gone from the page');
+  assert.match(home, /<div class="door" data-open="demo">/, 'the whole Set up door opens the demo dialog');
+  assert.match(home, /<div class="door" data-open="manage">/, 'and the whole Manage door opens the list dialog');
+  assert.match(home, /<div class="foot-ask">\s*<h2>Any questions\?<\/h2>\s*<a class="btn btn-light" href="\/contact\.html">Contact us/, 'the footer question is the last Contact us');
+  const buttons = [...home.matchAll(/class="btn[^"]*" href="([^"]+)">Contact us/g)].map(m => m[1]);
+  assert.deepEqual(buttons, ['/contact.html'], 'only the footer keeps the Contact us label, saw ' + JSON.stringify(buttons));
+  assert.equal((await get(buttons[0])).status, 200, buttons[0] + ' does not resolve');
   assert.ok(!/class="btn[^"]*" href="mailto:/.test(home), 'no button may open an email draft any more');
   assert.match(home, /href="mailto:/, 'but the footer address stays a mailto, on purpose');
 });
 
-test('the CTA arriving with ?i=setup has something to preselect', async () => {
+test('the two dialogs are on the page, with their endpoints and the calendar', async () => {
+  const home = await (await get('/')).text();
+  assert.match(home, /<div class="modal" id="modal-demo"/, 'the demo dialog');
+  assert.match(home, /<div class="modal" id="modal-manage"/, 'the early access dialog');
+  assert.match(home, /id="demo-form" data-endpoint="\/api\/demo"/, 'it posts to its own endpoint');
+  assert.match(home, /id="manage-form" data-endpoint="\/api\/manage"/, 'and so does the list');
+  assert.match(home, /<iframe data-src="https:\/\/calendar\.app\.google\/53BYnSPnwgk92XRv8"/, 'the demo step two carries the calendar, lazy-loaded');
+  assert.match(home, /name="who"/, 'the demo asks who they are');
+  assert.match(home, /name="entity"/, 'and, once answered, the name of the company or authority');
+  assert.match(home, /name="have"/, 'the list asks about the company');
+  assert.match(home, /name="count"/, 'and how many');
+  assert.match(home, /name="authority"/, 'and the authority it is registered in');
+  assert.match(home, /<option value="" selected disabled>Who are you\?/);
+  assert.match(home, /<option value="" selected disabled>Do you have a company\?/);
+  assert.match(home, /<option value="" selected disabled>How many companies\?/);
+  for (const f of ['/api/demo', '/api/manage']) {
+    const r = await fetch(base + f, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    assert.notEqual(r.status, 404, f + ' does not exist');
+  }
+});
+
+test('the form asks name, email, phone and message, and nothing it does not answer', async () => {
   const html = await (await get('/contact.html')).text();
-  assert.match(html, /name="about" value="setup" checked/, 'Set up is the default, and the link cannot 404 on it');
-  assert.match(html, /name="about" value="manage"/, 'Manage must exist for the picker to switch to');
+  assert.ok(!/name="about"/.test(html), 'the Set up / Manage question is gone: the form no longer asks it');
+  assert.ok(!/What are you contacting us about/.test(html), 'and its heading went with it');
+  assert.match(html, /name="country_code"/, 'the phone carries a country code selector');
+  assert.match(html, /<option value="\+971" selected>/, 'and the UAE is the default, since that is the market');
 });
 
 test('/contact and /contact.html both serve the same page, nothing else opens', async () => {
@@ -88,21 +124,16 @@ test('the fields the client asked for are the fields on the page', async () => {
   for (const label of ['Full name', 'Email', 'Phone', 'Message']) {
     assert.ok(html.includes(label), 'missing label: ' + label);
   }
-  // name + email are required, phone is optional, the picker must default to one of the two
   assert.match(html, /name="name"[^>]*required/);
   assert.match(html, /name="email"[^>]*required/);
   /* This asserted the opposite until 13 September 2026, when the owner asked for every field
      to be required. Both sides are pinned now: the page asks, and validate.js refuses without
      a number, so neither can drift back to optional by accident. */
   assert.match(html, /name="phone"[^>]*required/, 'phone is required, on the owner instruction');
-  assert.equal((html.match(/name="about"/g) || []).length, 2);
-  assert.match(html, /name="about" value="setup" checked/);
   assert.match(html, /name="message"[^>]*required/, 'an enquiry with no message is not worth mailing');
-  // the question the client asked for, in a sentence, not as a bare label
-  assert.match(html, /What are you contacting us about\?/);
   assert.ok(!/Set up is a new company/.test(html), 'the explanation line was removed on request');
   assert.ok(!/ct-sub/.test(html) && !/ct-sub/.test(cssOf), 'and its CSS went with it');
-  // one field per pill, full width, all three required, as asked
+  // one field per pill, full width, all four required, as asked
   const pills = (html.match(/class="ct-fields[ "]/g) || []).length;   // includes ct-fields-stack
   assert.equal(pills, 4, 'name, email, phone and message are four separate full width rows, saw ' + pills);
   for (const f of ['name', 'email', 'phone', 'message'])
@@ -113,14 +144,15 @@ test('the fields the client asked for are the fields on the page', async () => {
   assert.equal((html.match(/class="sr"/g) || []).length >= 4, true, 'every control keeps a hidden label');
   assert.ok(!/name="organisation"/.test(html), 'the "Not given" scaffolding must be gone now the API does not require it');
   assert.ok(!/Not given/.test(html), 'and no invented value may reach the owner mail');
+  // the fault lands under its own field, not in a line below the button
+  for (const f of ['name', 'email', 'phone', 'message'])
+    assert.match(html, new RegExp(`data-err="${f}"`), 'the ' + f + ' fault has a place to land');
 });
 
-test('the contact picker must not reuse the waitlist field name', async () => {
+test('the waiting list is gone from the main page, and contact borrows no field from it', async () => {
   const contact = await (await get('/contact.html')).text();
-  const home = await (await get('/')).text();
-  assert.ok(/name="intent"/.test(home), 'the waitlist owns `intent` = Standard / Enterprise');
-  assert.ok(!/name="intent"/.test(contact), 'contact must not steal it for Set up / Manage');
-  assert.ok(/name="about"/.test(contact), 'contact uses `about` instead');
+  assert.ok(!/name="intent"/.test(contact), 'contact must not steal `intent` for anything else');
+  assert.ok(!/name="about"/.test(contact), 'and the old Set up / Manage field is gone for good');
 });
 
 /* The site has a voice, and it is narrow enough to check mechanically. Read from index.html:
@@ -129,15 +161,14 @@ test('the contact picker must not reuse the waitlist field name', async () => {
 test('the copy keeps the site voice: no first person, no invented sections', async () => {
   const html = await (await get('/contact.html')).text();
   const visible = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<!--[\s\S]*?-->/g, '');
-  /* The owner moved THIS page into a first person voice on 13 September 2026 ("Write to us.",
-     and the question they dictated for the picker). The home page rule still stands, so the
-     exception is a closed list of exact approved lines: a new "us" is a decision to make here,
-     never something that arrives with a reworded paragraph. */
+  /* The owner moved THIS page into a first person voice on 13 September 2026 ("Write to us.").
+     The home page rule still stands, so the exception is a closed list of exact approved
+     lines: a new "us" is a decision to make here, never something that arrives with a
+     reworded paragraph. */
   const APPROVED = [
     'Write to us.',
     'We will get back to you.',
     'Tell us how we can help you.',
-    'What are you contacting us about?',
     'Contact us',
   ];
   const allowed = l => APPROVED.some(p => l.includes(p));
@@ -196,10 +227,7 @@ test('it borrows the brand instead of inventing colours', async () => {
   assert.ok(css.includes('var(--bo-teal)'), 'uses the brand token');
   assert.ok(css.includes('rgba(255,255,255,.06)'), 'the waiting list pill surface, copied exactly');
   assert.ok(css.includes('border-radius:999px'), 'the same pills, not a card of my own');
-  assert.ok(css.includes('.ct-pick .plan-pick'), 'reuses the Standard/Enterprise picker');
   assert.ok(!css.includes('#0F1523'), 'the invented card surface is gone');
-  const site = await (await get('/css/site.css')).text();
-  assert.ok(css.includes('.ct-pick .plan-pick input:checked + span'), 'the picker copies the plan picker pattern');
 });
 
 test('the page script parses', async () => {
@@ -236,11 +264,9 @@ test('bots get the same fake success here as they do on the list', async () => {
   assert.deepEqual(await list.json(), { ok: true }, 'no error to learn from');
 });
 
-/* The page must SUBMIT, not just render. This is the test that would have caught the
-   `organisation` requirement on its own - a form that paints correctly and 400s on Send is
+/* The page must SUBMIT, not just render. A form that paints correctly and 400s on Send is
    not a form. It sends what the browser sends, and requires the lead to land and the mail to
-   be queued. The two 'still needs the API' assertions below are the scaffolding's expiry date:
-   delete them, and the hidden field in contact.html, when contactInput stops requiring it. */
+   be queued. */
 test('the form submits end to end: stored, and both mails queued', async () => {
   const body = formPayload();                       // exactly what js/contact.js posts
   const r = await fetch(base + '/api/contact', {
@@ -256,14 +282,16 @@ test('the form submits end to end: stored, and both mails queued', async () => {
   assert.ok(rec, 'the lead must be stored');
   assert.equal(rec.name, 'Amina Al Mazroui');
   assert.equal(rec.message, 'We sell skincare online, need two visas.');
-  assert.equal(rec.phone, '+971 50 123 4567', 'the phone the visitor typed must reach the record');
-  assert.equal(rec.about, 'setup', 'and so must the half of BOASIS they picked');
+  assert.equal(rec.phone, '+971 50 123 4567', 'the phone the visitor typed must reach the record, code first');
+  /* the form no longer asks which half of BOASIS it is about, so the API still defaults the
+     topic for the record's shape, and older links that send it keep working */
+  assert.equal(rec.about, 'setup', 'the topic defaults, it is not invented per visitor');
   assert.ok(!/Not given|undefined/.test(JSON.stringify(rec)), 'no placeholder may be stored');
-  // the receipt a customer gets must follow that choice, not be one generic thank you
+  // the receipt offers both next steps, plainly, because the form can no longer tell which one
   const { contactToUser } = require('../lib/mail-templates');
-  const T = require('../lib/mail-templates');
-  assert.match(T.contactToUser({ name: 'Amina', about: 'setup' }).text, /company setup/);
-  assert.match(T.contactToUser({ name: 'Amina', about: 'manage' }).text, /company management/);
-  assert.ok(!/\s[-—–]\s/.test(contactToUser({ name: 'Amina', about: 'setup' }).text), 'no dash punctuation in a customer email');
+  const receipt = contactToUser({ name: 'Amina' }).text;
+  assert.match(receipt, /demo of Mira/, 'setting a company up is offered the demo');
+  assert.match(receipt, /review of its licences/, 'running a company is offered the review');
+  assert.ok(!/\s[-—–]\s/.test(receipt), 'no dash punctuation in a customer email');
 });
 

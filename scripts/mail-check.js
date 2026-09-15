@@ -39,9 +39,12 @@ console.log('\n── templates render ─────────────�
 const built = [
   ['waitlist → us', T.waitlistToOwner(sample)],
   ['waitlist → visitor', T.waitlistToUser(sample)],
-  ['contact → us', T.contactToOwner({ name: 'Amina Al Mazroui', email: 'amina@example.com', phone: '+971 50 123 4567', organisation: 'Sharjah RB', about: 'setup', message: 'We would like a demo for our free zone.', at: new Date().toISOString() })],
-  ['contact → visitor (setup)', T.contactToUser({ name: 'Amina Al Mazroui', about: 'setup' })],
-  ['contact → visitor (manage)', T.contactToUser({ name: 'Amina Al Mazroui', about: 'manage' })],
+  ['contact → us', T.contactToOwner({ name: 'Amina Al Mazroui', email: 'amina@example.com', phone: '+971 50 123 4567', organisation: 'Sharjah RB', message: 'We would like a demo for our free zone.', at: new Date().toISOString() })],
+  ['contact → visitor', T.contactToUser({ name: 'Amina Al Mazroui' })],
+  ['demo → us', T.demoToOwner({ name: 'Amina Al Mazroui', email: 'amina@example.com', phone: '+971 50 123 4567', who: 'gov', entity: 'SPARK Free Zone', at: new Date().toISOString() })],
+  ['demo → visitor', T.demoToUser({ name: 'Amina Al Mazroui' })],
+  ['manage → us', T.manageToOwner({ name: 'Amina Al Mazroui', email: 'amina@example.com', phone: '+971 50 123 4567', have: 'yes', count: '1-3', authority: 'SPARK Free Zone', at: new Date().toISOString() })],
+  ['manage → visitor', T.manageToUser({ name: 'Amina Al Mazroui' })],
 ];
 for (const [label, m] of built) {
   const htmlOK = typeof m.html === 'string' && m.html.length > 800;

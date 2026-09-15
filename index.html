@@ -22,13 +22,12 @@
 <!-- the sky · one drifting light behind the whole page; it moves its light as you go from the intro to Set up, Manage and the end -->
 <div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
 
-<!-- header · one floating bar, the same on every section: logo · Set up · Manage · Contact us (a button, now a page) -->
+<!-- header · one floating bar, the same on every section: logo · Set up · Manage · the waiting list -->
 <header class="nav">
   <div class="nav-bar">
     <a class="brand" href="#top" aria-label="BOASIS, to the top">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
     <nav class="tabs" aria-label="Sections"><a href="#setup">Set up</a><a href="#manage">Manage</a><i class="tab-dot" aria-hidden="true"></i></nav>
-    <a class="nav-wait" href="#waitlist">Join the waiting list</a>
-    <a class="btn nav-contact" href="/contact.html">Contact us</a>
+    <a class="nav-wait" href="/#manage" data-open="manage">Join the waiting list</a>
   </div>
 </header>
 
@@ -42,15 +41,15 @@
     <div class="hello beat on" id="hello">
       <h1><span class="l">The Most Advanced AI</span> <span class="l">For Company Setup<br class="ph"> and Management</span> <span class="l">in The UAE.</span></h1>
       <div class="doors">
-        <div class="door">
+        <div class="door" data-open="demo">
           <a class="t" href="#setup">Set up</a>
           <p class="d">For free zones, authorities and setup companies.</p>
-          <a class="act" href="/contact.html?i=setup">Contact us</a>
+          <a class="act" href="/contact.html" data-open="demo">Book a demo</a>
         </div>
-        <div class="door">
+        <div class="door" data-open="manage">
           <a class="t" href="#manage">Manage</a>
           <p class="d">For everyone who runs a company in the UAE.</p>
-          <a class="act" href="#waitlist">Join the waiting list</a>
+          <a class="act" href="#manage" data-open="manage">Join early access</a>
         </div>
       </div>
     </div>
@@ -148,7 +147,7 @@
       </div>
 
       <div class="next-cta reveal">
-        <a class="btn btn-light" href="/contact.html?i=setup">Contact us</a>
+        <a class="btn btn-light" href="/contact.html" data-open="demo">Book a demo</a>
         <p class="setup-after">We'll give you a full demo, with Mira working on your own activity list.</p>
       </div>
     </div>
@@ -238,7 +237,7 @@
           <p class="plan-for">For owners and small teams running a few companies.</p>
         </div>
         <div class="plan-body"><p class="plan-lead">Everything you need, including:</p><ul class="plan-list"><li>Three companies included</li><li>You and one more person</li><li>Company file from your licence</li><li>Every requirement, step by step</li><li>One calendar for all companies</li><li>Staff visas, step by step</li><li>Reminders to the right person</li><li>Documents and bank packs</li></ul></div>
-        <a class="btn btn-light" href="#waitlist" data-plan="standard">Join the waiting list</a>
+        <a class="btn btn-light" href="#manage" data-open="manage">Join early access</a>
       </article>
       <article class="plan plan-ent reveal">
         <div class="plan-top">
@@ -246,32 +245,11 @@
           <p class="plan-for">For groups with many companies, departments and people on visas.</p>
         </div>
         <div class="plan-body"><p class="plan-lead">Everything in Standard, plus:</p><ul class="plan-list"><li>Unlimited companies and staff</li><li>Grouped by entity and region</li><li>Your own internal policies</li><li>Reminder rules per department</li><li>Access by department</li><li>Group views and budgets</li><li>Integrations on request</li></ul></div>
-        <a class="btn btn-light" href="/contact.html?i=manage">Contact us</a>
+        <a class="btn btn-light" href="#manage" data-open="manage">Join early access</a>
       </article>
     </div>
   </div>
 
-  <div class="waitlist-block" id="waitlist">
-    <div class="wrap narrow">
-      <h2 class="reveal">Join the waiting list.</h2>
-      <p class="line reveal">One email when your access is ready.</p>
-      <form class="waitlist-form reveal" id="waitlist-form" data-endpoint="/api/waitlist" novalidate>
-        <!-- anti-spam: a field no human ever sees. Filled = a bot. The server checks it. -->
-        <label class="sr" for="wl-company-website" aria-hidden="true">Company website<input id="wl-company-website" type="text" name="company_website" tabindex="-1" autocomplete="off"></label>
-        <input type="hidden" name="_t" value="">
-        <div class="plan-pick" role="radiogroup" aria-label="Plan">
-          <label><input type="radio" name="intent" value="standard" checked><span>Standard</span></label>
-          <label><input type="radio" name="intent" value="enterprise"><span>Enterprise</span></label>
-        </div>
-        <div class="wl-fields">
-          <label><span class="sr">Name</span><input name="name" type="text" autocomplete="name" placeholder="Your name" required></label>
-          <label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" placeholder="Your email" required></label>
-          <button class="btn btn-light" type="submit">Join</button>
-        </div>
-        <p class="form-note" aria-live="polite"></p>
-      </form>
-    </div>
-  </div>
 </section>
 
 <!-- 04 · news -->
@@ -322,6 +300,139 @@
     </div>
   </div>
 </footer>
+
+<!-- the dialogs · Book a demo and Join early access. The buttons that open them keep real
+     hrefs on purpose: with no script they still go somewhere honest (the contact page, the
+     waiting list); with a script they become the dialog instead. The fields are the site's
+     own: the same pills, the same hairlines, the same focus, the same stamp and honeypot. -->
+<div class="modal" id="modal-demo" hidden>
+  <div class="modal-back" data-modal-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-demo-title">
+    <button class="modal-x" type="button" data-modal-close aria-label="Close">×</button>
+    <p class="label light modal-kicker">Book a demo</p>
+    <h2 class="modal-h" id="modal-demo-title">See Mira on your own activity list.</h2>
+
+    <form class="modal-form" id="demo-form" data-endpoint="/api/demo" novalidate>
+      <label class="sr" for="demo-hp" aria-hidden="true">Website<input id="demo-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></label>
+      <input type="hidden" name="_t" value="">
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Full name</span><input name="name" type="text" autocomplete="name" placeholder="Enter your full name" required></label></div>
+        <p class="mf-err" data-err="name" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" inputmode="email" placeholder="Enter your email" required></label></div>
+        <p class="mf-err" data-err="email" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill mf-phone">
+          <label class="mf-code"><span class="sr">Country code</span><select name="country_code" aria-label="Country code"></select></label>
+          <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
+        </div>
+        <p class="mf-err" data-err="phone" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Who are you</span>
+          <select name="who" aria-label="Who are you" required>
+            <option value="" selected disabled>Who are you?</option>
+            <option value="gov">Government authority</option>
+            <option value="company">Company</option>
+          </select>
+        </label></div>
+        <p class="mf-err" data-err="who" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field mf-ent" hidden>
+        <div class="mf-pill"><label><span class="sr">Name of your company</span><input name="entity" type="text" autocomplete="organization" placeholder="Name of your company"></label></div>
+        <p class="mf-err" data-err="entity" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-foot">
+        <button class="btn btn-light" type="submit">Next</button>
+        <p class="form-note" aria-live="polite"></p>
+      </div>
+    </form>
+
+    <div class="modal-cal" hidden>
+      <h2 class="modal-h">Choose a time.</h2>
+      <p class="modal-line">Pick a slot below. The calendar confirms it through Google, and a person at BOASIS confirms it with you by email.</p>
+      <div class="cal-frame"><iframe data-src="https://calendar.app.google/53BYnSPnwgk92XRv8" title="BOASIS demo calendar" loading="lazy" allow="clipboard-write"></iframe></div>
+      <p class="cal-alt"><a href="https://calendar.app.google/53BYnSPnwgk92XRv8" target="_blank" rel="noopener">Open the calendar</a> if it does not appear.</p>
+      <div class="mf-foot">
+        <button class="btn btn-light" type="button" data-final>Submit</button>
+        <p class="form-note" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="modal-done" hidden>
+      <h2 class="modal-h">Done.</h2>
+      <p class="modal-line">We have your request. A person at BOASIS will confirm your time by email, and the calendar sends its own confirmation through Google.</p>
+      <div class="mf-foot"><button class="btn btn-light" type="button" data-modal-close>Close</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal-manage" hidden>
+  <div class="modal-back" data-modal-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-manage-title">
+    <button class="modal-x" type="button" data-modal-close aria-label="Close">×</button>
+    <p class="label light modal-kicker">Join early access</p>
+    <h2 class="modal-h" id="modal-manage-title">Be first when Manage opens.</h2>
+
+    <form class="modal-form" id="manage-form" data-endpoint="/api/manage" novalidate>
+      <label class="sr" for="manage-hp" aria-hidden="true">Website<input id="manage-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></label>
+      <input type="hidden" name="_t" value="">
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Full name</span><input name="name" type="text" autocomplete="name" placeholder="Enter your full name" required></label></div>
+        <p class="mf-err" data-err="name" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" inputmode="email" placeholder="Enter your email" required></label></div>
+        <p class="mf-err" data-err="email" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill mf-phone">
+          <label class="mf-code"><span class="sr">Country code</span><select name="country_code" aria-label="Country code"></select></label>
+          <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
+        </div>
+        <p class="mf-err" data-err="phone" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Do you have a company</span>
+          <select name="have" aria-label="Do you have a company?" required>
+            <option value="" selected disabled>Do you have a company?</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label></div>
+        <p class="mf-err" data-err="have" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">How many</span>
+          <select name="count" aria-label="How many?" required>
+            <option value="" selected disabled>How many companies?</option>
+            <option value="opening">Thinking of opening</option>
+            <option value="1">1</option>
+            <option value="1-3">1-3</option>
+            <option value="3plus">3+</option>
+          </select>
+        </label></div>
+        <p class="mf-err" data-err="count" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-field">
+        <div class="mf-pill"><label><span class="sr">Registered in which authority</span><input name="authority" type="text" autocomplete="off" placeholder="Write the name of it, e.g. SPARK Free Zone" required></label></div>
+        <p class="mf-err" data-err="authority" aria-live="polite" hidden></p>
+      </div>
+      <div class="mf-foot">
+        <button class="btn btn-light" type="submit">Join</button>
+        <p class="form-note" aria-live="polite"></p>
+      </div>
+    </form>
+
+    <div class="modal-done" hidden>
+      <h2 class="modal-h">Done.</h2>
+      <p class="modal-line">You are on the list for early access to Manage. One email when your access is ready, and nothing before it.</p>
+      <div class="mf-foot"><button class="btn btn-light" type="button" data-modal-close>Close</button></div>
+    </div>
+  </div>
+</div>
 
 <script src="/js/lenis.js"></script>
 <script src="/js/yara-orb.js"></script>

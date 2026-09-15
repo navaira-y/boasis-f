@@ -81,19 +81,68 @@ test('a contact enquiry keeps its phone, topic and company under one name end to
   const c = read('contact.json')[0];
   assert.equal(c.organisation, 'SPARK', 'stored as organisation, not authority');
   assert.ok(!('authority' in c), 'and not both');
+  assert.equal(c.about, 'setup', 'the legacy topic field still lands for the older links that send it');
   const { contactToOwner, contactToUser } = require('../lib/mail-templates');
   const mail = contactToOwner(c);
   assert.ok(mail.text.includes('SPARK'), 'the mail shows the company');
   assert.ok(mail.text.includes('+971 50 999 8888'), 'and the phone, which is the whole point of asking');
-  assert.ok(mail.text.includes('Company setup'), 'and which half of BOASIS it is about');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line into the owner mail');
-  // the receipt must differ by topic, or the split buys nothing
-  const setup = contactToUser({ name: 'Fatim', about: 'setup' }).text;
-  const manage = contactToUser({ name: 'Fatim', about: 'manage' }).text;
-  assert.match(setup, /demo of Mira/, 'a setup enquiry is offered the demo');
-  assert.match(manage, /review of your companies/, 'a manage enquiry is offered a review');
-  assert.notEqual(setup, manage, 'the two receipts must not be the same mail');
-  assert.ok(!/\s[-—–]\s/.test(setup + manage + mail.text), 'no hyphen or dash used as punctuation in mail copy');
+  // the form no longer asks which half of BOASIS it is about, so the receipt offers both,
+  // plainly, in one mail: a demo for the ones setting up, a review for the ones running
+  const receipt = contactToUser({ name: 'Fatim' }).text;
+  assert.match(receipt, /demo of Mira/, 'a visitor setting a company up is offered the demo');
+  assert.match(receipt, /review of its licences/, 'a company already running is offered the review');
+  assert.ok(!/\s[-—–]\s/.test(receipt + mail.text), 'no hyphen or dash used as punctuation in mail copy');
+});
+
+test('a demo request from the dialog is stored, and both mails are prepared', async () => {
+  const r = await post('/api/demo', { name: 'Fatim', email: 'f@spark.ae', phone: '+971 50 999 8888', who: 'gov', entity: 'SPARK', ...HUMAN() });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.ok, true);
+  assert.equal(j.confirmed, true, 'the note to us and the receipt were both queued');
+  const c = read('demo.json')[0];
+  assert.equal(c.who, 'gov');
+  assert.equal(c.entity, 'SPARK');
+  const { demoToOwner, demoToUser } = require('../lib/mail-templates');
+  const mail = demoToOwner(c);
+  assert.ok(mail.text.includes('SPARK'), 'the owner mail shows who they work for');
+  assert.ok(mail.text.includes('Government authority'), 'and which kind of visitor it is');
+  assert.ok(mail.text.includes('+971 50 999 8888'), 'and the number, which is the whole point of asking');
+  assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
+  assert.match(demoToUser(c).text, /Mira working on your own activity list/, 'the receipt promises the demo on their own list');
+  assert.ok(!/\s[-—–]\s/.test(mail.text + demoToUser(c).text), 'no dash punctuation in dialog mail');
+});
+
+test('an early access request from the dialog is stored, and both mails are prepared', async () => {
+  const r = await post('/api/manage', { name: 'Lena', email: 'lena@example.com', phone: '+971 55 111 2222', have: 'yes', count: '1-3', authority: 'SPARK Free Zone', ...HUMAN() });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.ok, true);
+  assert.equal(j.confirmed, true);
+  const c = read('manage.json')[0];
+  assert.equal(c.have, 'yes');
+  assert.equal(c.count, '1-3');
+  assert.equal(c.authority, 'SPARK Free Zone');
+  const { manageToOwner, manageToUser } = require('../lib/mail-templates');
+  const mail = manageToOwner(c);
+  assert.ok(mail.text.includes('SPARK Free Zone'), 'the owner mail shows the authority');
+  assert.ok(mail.text.includes('Yes'), 'and whether they have a company');
+  assert.ok(mail.text.includes('1-3'), 'and how many');
+  assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
+  assert.match(manageToUser(c).text, /one email when your access is ready/i, 'the receipt keeps the one promise');
+});
+
+test('a dialog posting a junk answer is a 400 naming the field, never a 500', async () => {
+  const r = await post('/api/demo', { name: 'Fatim', email: 'f@spark.ae', phone: '+971 50 999 8888', who: 'something else', entity: 'SPARK', ...HUMAN() });
+  assert.equal(r.status, 400);
+  const j = await r.json();
+  assert.equal(j.ok, false);
+  assert.ok(j.errors.includes('who'), 'the closed set is enforced server-side');
+  const r2 = await post('/api/manage', { name: 'Lena', email: 'nope', phone: '12', have: '', count: '', authority: '', ...HUMAN() });
+  assert.equal(r2.status, 400);
+  const j2 = await r2.json();
+  assert.ok(j2.errors.includes('email') && j2.errors.includes('phone') && j2.errors.includes('have'), JSON.stringify(j2.errors));
 });
 
 test('the bot traps are each enough on their own', async () => {

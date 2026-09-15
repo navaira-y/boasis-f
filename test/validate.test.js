@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { waitlistInput, contactInput, validEmail, spamCheck } = require('../lib/validate');
+const { waitlistInput, contactInput, demoInput, manageInput, validEmail, spamCheck } = require('../lib/validate');
 
 const cfg = { spam: { minFillMs: 3000, maxAgeMs: 1800000, blockFreeMail: false } };
 const req = (headers = {}) => ({ headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0', ...headers } });
@@ -69,6 +69,37 @@ test('contact needs an organisation, and accepts either spelling', () => {
 test('a message of any length is capped at 2000', () => {
   const r = contactInput({ name: 'A', email: 'a@b.co', organisation: 'X', message: 'm'.repeat(50000) });
   assert.equal(r.message.length, 2000);
+});
+
+/* ── the dialog payloads ───────────────────────────────────────────────────── */
+test('the demo dialog: a clean request passes, and the closed sets are normalised', () => {
+  const r = demoInput({ name: 'Amina', email: 'AMINA@Example.COM', phone: '+971 501234567', who: 'GOV', entity: 'SPARK' });
+  assert.equal(r.ok, true);
+  assert.equal(r.email, 'amina@example.com');
+  assert.equal(r.who, 'gov', 'the answer is stored as its own value, case folded');
+});
+test('the demo dialog: every closed set falls back to nothing, never to a guess', () => {
+  const r = demoInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', who: '<img src=x onerror=alert(1)>', entity: 'SPARK' });
+  assert.equal(r.who, '', 'anything that is not the two answers is refused');
+  assert.ok(r.errors.includes('who'));
+});
+test('the demo dialog: a missing field is a 400-worthy input, naming the field', () => {
+  const r = demoInput({ name: 'Amina', email: 'a@b.co', phone: '501234567' });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.errors, ['who', 'entity']);
+});
+test('the manage dialog: the three answers are a closed set, each spelled for a human', () => {
+  const r = manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'YES', count: '3PLUS', authority: 'SPARK Free Zone' });
+  assert.equal(r.ok, true);
+  assert.equal(r.have, 'yes');
+  assert.equal(r.count, '3plus');
+});
+test('the manage dialog: junk answers and missing fields are refused', () => {
+  const r = manageInput({ name: 'Amina', email: 'a@b.co', phone: '501234567', have: 'maybe', count: 'a lot', authority: '  ' });
+  assert.ok(r.errors.includes('have') && r.errors.includes('count') && r.errors.includes('authority'), JSON.stringify(r.errors));
+  assert.equal(r.have, '');
+  assert.equal(r.count, '');
+  assert.equal(r.authority, '');
 });
 
 /* ── the bot traps ─────────────────────────────────────────────────────────── */

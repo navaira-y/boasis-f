@@ -18,10 +18,17 @@ test('visitor input cannot inject HTML into the mail we send ourselves', () => {
     // business is not a field contactToOwner renders, so nothing to check there
     [T.contactToOwner({ ...evil, organisation: '<b>bold</b>', message: '<img src=x onerror=alert(4)>' }), false],
     [T.contactToUser(evil), false],
+    [T.demoToOwner({ ...evil, who: 'company', entity: '<b>bold</b>' }), false],
+    [T.demoToUser(evil), false],
+    [T.manageToOwner({ ...evil, have: 'yes', count: '1-3', authority: '<svg onload=alert(5)>' }), false],
+    [T.manageToUser(evil), false],
   ];
   for (const [m, businessShown] of cases) {
     assert.ok(!/<script/i.test(m.html), 'no raw <script>');
-    assert.ok(!/<svg/i.test(m.html) && !/<img/i.test(m.html.replace(/<img src="data:/g,'')), 'no element from a field survives as an element');
+    /* the one <img> the mail is allowed to carry is the site's own logo, referenced by its
+       exact URL; anything else surviving as an element is a field that escaped escaping. */
+    const ours = m.html.replace(/<img src="https:\/\/boasis\.ae\/assets\/logo\/orb-160\.png"[^>]*>/g, '');
+    assert.ok(!/<svg/i.test(ours) && !/<img/i.test(ours.replace(/<img src="data:/g,'')), 'no element from a field survives as an element');
     assert.ok(!/<b>bold<\/b>/.test(m.html), 'tags from a field are text, not markup');
     /* the payload's own markup must exist only in escaped form. Note '</td></tr>' is
        legitimately our own row() markup, so we assert on the payload's distinctive
@@ -53,10 +60,24 @@ test('a reply-to from a visitor is only used for our own notification, never for
   assert.equal(T.waitlistToUser(evil).replyTo, undefined, 'the receipt does not inherit it');
 });
 
+/* ── the look the owner asked for: the site's own orb, on a light grey ground ── */
+test('every mail carries the site logo, and the ground is a light grey', () => {
+  const s = { name: 'Amina Al Mazroui', email: 'a@b.co', intent: 'enterprise', at: Date.now(), ip: 'h' };
+  const mails = [T.waitlistToOwner(s), T.waitlistToUser(s), T.contactToOwner({ ...s, message: 'Hi' }), T.contactToUser(s),
+    T.demoToOwner({ ...s, who: 'company', entity: 'SPARK' }), T.demoToUser(s),
+    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }), T.manageToUser(s)];
+  for (const m of mails) {
+    assert.ok(m.html.includes('https://boasis.ae/assets/logo/orb-160.png'), 'the orb from the site, not a circle drawn in the mail client');
+    assert.ok(new RegExp('<body[^>]*background:' + T.BRAND.mist).test(m.html), 'the body itself sits on the light grey, not the old navy');
+  }
+});
+
 /* ── shape ─────────────────────────────────────────────────────────────────── */
 test('every mail has what a client needs to deliver it', () => {
   const s = { name: 'Amina Al Mazroui', email: 'a@b.co', intent: 'enterprise', business: 'Skincare', at: Date.now(), ip: 'h' };
-  const mails = [T.waitlistToOwner(s), T.waitlistToUser(s), T.contactToOwner({ ...s, organisation: 'SPARK', message: 'Hi' }), T.contactToUser(s)];
+  const mails = [T.waitlistToOwner(s), T.waitlistToUser(s), T.contactToOwner({ ...s, organisation: 'SPARK', message: 'Hi' }), T.contactToUser(s),
+    T.demoToOwner({ ...s, who: 'company', entity: 'SPARK' }), T.demoToUser(s),
+    T.manageToOwner({ ...s, have: 'yes', count: '1-3', authority: 'SPARK' }), T.manageToUser(s)];
   for (const m of mails) {
     assert.ok(typeof m.subject === 'string' && m.subject.length > 3 && m.subject.length < 150, 'subject present and safe');
     assert.ok(m.html.startsWith('<!doctype html>'), 'a full document');

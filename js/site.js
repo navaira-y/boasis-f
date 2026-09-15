@@ -223,6 +223,258 @@ function waitlist() {
   });
 }
 
+/* the dialogs · Book a demo and Join early access.
+   The buttons that open them keep real hrefs: with no script they still go somewhere
+   honest (the contact page, the waiting list); with a script they become the dialog.
+   The fields are the site's own, and the rules are the site's own: a stamp of when the
+   visitor arrived, a honeypot no human can see, and a fault that lands under its field.
+   The demo dialog is two steps, one send: the fields first, the calendar second. The
+   calendar loads when its step is reached, not when the page is, so nobody who only
+   reads the page pays for a Google round trip. */
+/* the pickers take the contact page's codes, in the contact page's order, and say what
+   each one is: the country by name, not just a dial code nobody matches to a flag */
+const COUNTRY_CODES = [['United Arab Emirates','+971'], ['Saudi Arabia','+966'], ['Qatar','+974'], ['Bahrain','+973'], ['Kuwait','+965'], ['Oman','+968'], ['Egypt','+20'], ['Jordan','+962'], ['Lebanon','+961'], ['Iraq','+964'], ['Israel','+972'], ['Palestine','+970'], ['Syria','+963'], ['Iran','+98'], ['Uzbekistan','+998'], ['Azerbaijan','+994'], ['Morocco','+212'], ['Tunisia','+216'], ['Algeria','+213'], ['United Kingdom','+44'], ['Germany','+49'], ['France','+33'], ['Italy','+39'], ['Spain','+34'], ['Netherlands','+31'], ['Belgium','+32'], ['Greece','+30'], ['Switzerland','+41'], ['Austria','+43'], ['Denmark','+45'], ['Sweden','+46'], ['Norway','+47'], ['Poland','+48'], ['Portugal','+351'], ['Russia','+7'], ['United States','+1'], ['Mexico','+52'], ['Argentina','+54'], ['Brazil','+55'], ['Chile','+56'], ['Colombia','+57'], ['India','+91'], ['Pakistan','+92'], ['Taiwan','+886'], ['Japan','+81'], ['South Korea','+82'], ['China','+86'], ['Singapore','+65'], ['Malaysia','+60'], ['Thailand','+66'], ['Philippines','+63'], ['Indonesia','+62'], ['Sri Lanka','+94'], ['Australia','+61'], ['New Zealand','+64'], ['South Africa','+27'], ['Nigeria','+234'], ['Kenya','+254'], ['Ghana','+233']];
+/* the same rules as lib/validate.js on the server, so what the dialog accepts is exactly
+   what the API accepts: no second, looser truth the visitor can learn by trial and error. */
+const DM_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const dmValidEmail = v => { const e = String(v == null ? '' : v).trim().toLowerCase(); return !!e && e.length <= 254 && DM_EMAIL_RE.test(e) && !/\.{2,}/.test(e); };
+const dmDigits = v => String(v == null ? '' : v).replace(/\D/g, '');
+/* the NANP has no trunk prefix to drop; everywhere else a number dialed at home starts with 0 */
+const DM_NO_TRUNK = new Set(['+1']);
+const dmFullPhone = (code, number) => {
+  let d = dmDigits(number); if (!d) return '';
+  if (!DM_NO_TRUNK.has(code)) d = d.replace(/^0+(?=\d)/, '');
+  return code + ' ' + d;
+};
+/* every dialog field, by name: what it means to be empty or wrong, said under the field */
+const DM_RULE = {
+  name: v => (String(v || '').trim().length >= 2 ? '' : 'Name is required.'),
+  email: v => { const e = String(v || '').trim(); return !e ? 'Email is required.' : (dmValidEmail(e) ? '' : 'Please enter a valid email address.'); },
+  phone: v => { const d = dmDigits(v); return !d ? 'Phone number is required.' : (d.length >= 7 && d.length <= 15 ? '' : 'Please enter a valid phone number.'); },
+  who: v => (v ? '' : 'Please choose who you are.'),
+  entity: v => (String(v || '').trim() ? '' : 'Please add the name of your company or authority.'),
+  have: v => (v ? '' : 'Please answer: do you have a company?'),
+  count: v => (v ? '' : 'Please choose how many.'),
+  authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
+};
+function modals() {
+  const dialogs = [...document.querySelectorAll('.modal')]; if (!dialogs.length) return;
+
+  /* the code pickers take the contact page's list, in the contact page's order */
+  dialogs.forEach(d => d.querySelectorAll('select[name="country_code"]').forEach(sel => {
+    COUNTRY_CODES.forEach(p => { const o = document.createElement('option'); o.value = p[1]; o.textContent = p[0] + ' · ' + p[1]; if (p[1] === '+971') o.selected = true; sel.appendChild(o); });
+  }));
+
+  const resets = new Map();
+  let lastFocus = null;
+  const openDialog = (d, trigger) => {
+    lastFocus = trigger || document.activeElement;
+    d.hidden = false;
+    document.body.classList.add('modal-open');
+    if (lenis) lenis.stop();
+    const first = d.querySelector('.modal-form input[name="name"]');
+    if (first) setTimeout(() => first.focus({ preventScroll: true }), 60);
+  };
+  const closeDialog = d => {
+    const reset = resets.get(d); if (reset) reset();   // a closed dialog opens fresh next time
+    d.hidden = true;
+    document.body.classList.remove('modal-open');
+    if (lenis) lenis.start();
+    if (lastFocus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) {} }
+  };
+
+  /* delegated, so an opener that is added later (the journey builds its own "Book a demo")
+     or a whole card that is (the two doors) works too. A click that lands on a real link
+     which is not itself an opener (the doors' "Set up" / "Manage" titles) goes to the link.
+     A middle click still does what a middle click does, and reading a passage with a
+     selection in hand never drags the page into a dialog. */
+  document.addEventListener('click', ev => {
+    if (ev.button !== 0 || !ev.target || typeof ev.target.closest !== 'function') return;
+    const link = ev.target.closest('a[href]');
+    if (link && !link.hasAttribute('data-open')) return;
+    if (window.getSelection && window.getSelection().toString()) return;
+    const a = ev.target.closest('[data-open]');
+    if (!a) return;
+    const d = document.getElementById('modal-' + a.dataset.open);
+    if (!d) return;
+    ev.preventDefault();
+    openDialog(d, a);
+  });
+  dialogs.forEach(d => d.querySelectorAll('[data-modal-close]').forEach(el => el.addEventListener('click', () => closeDialog(d))));
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') { const open = dialogs.find(d => !d.hidden); if (open) closeDialog(open); }
+  });
+
+  dialogs.forEach(d => {
+    const form = d.querySelector('.modal-form'); if (!form) return;
+    const note = form.querySelector('.form-note');
+    const stamp = form.querySelector('input[name="_t"]');
+    const codeSel = form.querySelector('select[name="country_code"]');
+    const fields = {};
+    form.querySelectorAll('input[name], select[name]').forEach(el => {
+      if (el.name === 'hp' || el.name === '_t' || el.name === 'country_code') return;
+      fields[el.name] = el;
+    });
+    const say = (n, msg) => {
+      const p = d.querySelector(`[data-err="${n}"]`);
+      if (p) { p.textContent = msg || ''; p.hidden = !msg; }
+      const f = fields[n]; if (f) { const pill = f.closest('.mf-pill'); if (pill) pill.classList.toggle('bad', !!msg); }
+    };
+    /* a field can be off the form entirely: the entity field exists only once the visitor
+       has said who they are */
+    const fieldOff = n => n === 'entity' && !!fields.who && !fields.who.value;
+
+    /* when they started: the server compares this with its own clock. The listeners are
+       armed one session at a time, so a dialog that is closed and reopened stamps its
+       second visit honestly instead of reusing a spent token. */
+    let opened = 0;
+    const markOpen = () => { if (!opened) opened = Date.now(); };
+    const arm = () => {
+      opened = 0;
+      form.addEventListener('focusin', markOpen, { once: true });
+      ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
+    };
+    arm();
+
+    /* while they write: the email and the phone answer at once, and a field that has
+       righted itself goes quiet. An empty field waits for the send, when "required" is
+       the honest thing to say. */
+    if (fields.email) fields.email.addEventListener('input', () => {
+      const e = fields.email.value.trim();
+      say('email', e && !dmValidEmail(e) ? 'Please enter a valid email address.' : '');
+    });
+    if (fields.phone) fields.phone.addEventListener('input', () => {
+      const raw = fields.phone.value, clean = dmDigits(raw);
+      if (clean !== raw) fields.phone.value = clean;   // the box holds the number, the code lives in the picker
+      say('phone', clean && (clean.length < 7 || clean.length > 15) ? 'Please enter a valid phone number.' : '');
+    });
+    if (fields.name) fields.name.addEventListener('input', () => { if (!DM_RULE.name(fields.name.value)) say('name', ''); });
+    if (fields.entity) fields.entity.addEventListener('input', () => { if (!DM_RULE.entity(fields.entity.value)) say('entity', ''); });
+    if (fields.authority) fields.authority.addEventListener('input', () => { if (!DM_RULE.authority(fields.authority.value)) say('authority', ''); });
+
+    /* the demo dialog: the entity field appears once the visitor has said who they are,
+       and it says the right thing for the answer */
+    if (fields.who) {
+      const entWrap = d.querySelector('.mf-ent');
+      const entLabel = entWrap.querySelector('.sr');
+      fields.who.addEventListener('change', () => {
+        const on = !!fields.who.value;
+        entWrap.hidden = !on;
+        if (on) {
+          fields.entity.required = true;
+          const gov = fields.who.value === 'gov';
+          fields.entity.placeholder = gov ? 'Name of the authority' : 'Name of your company';
+          if (entLabel) entLabel.textContent = gov ? 'Name of the authority' : 'Name of your company';
+        } else {
+          fields.entity.required = false;
+          say('entity', '');
+        }
+      });
+    }
+
+    /* what step one captures, for the send that comes at the end of the dialog */
+    let payload = null;
+
+    const validate = data => {
+      let firstBad = null;
+      for (const n of Object.keys(fields)) {
+        if (fieldOff(n)) { say(n, ''); continue; }
+        const msg = DM_RULE[n] ? DM_RULE[n](data[n] || '') : '';
+        say(n, msg);
+        if (msg && !firstBad) firstBad = n;
+      }
+      return firstBad;
+    };
+
+    /* the line that answers lives in the step that is showing: the form's while step one
+       is up, the calendar's while step two is */
+    const liveNote = () => {
+      const cal = d.querySelector('.modal-cal');
+      return (cal && !cal.hidden) ? cal.querySelector('.form-note') : note;
+    };
+
+    const finish = async () => {
+      if (!payload) return;
+      const an = liveNote();
+      an.textContent = 'Sending';
+      an.className = 'form-note';
+      try {
+        const r = await fetch(form.dataset.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.ok === false) {
+          const names = { name: 'your name', email: 'your email address', phone: 'your phone number', who: 'who you are', entity: 'the name field', have: 'that answer', count: 'that answer', authority: 'the authority' };
+          const e = (j.errors || []).filter(x => names[x]);
+          e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
+          const cal = d.querySelector('.modal-cal');
+          if (e.length && cal) { cal.hidden = true; form.hidden = false; }   // a fault means back to step one
+          const wn = liveNote();                                            // the line goes where the visitor is looking
+          wn.textContent = e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.';
+          wn.className = 'form-note err';
+          return;
+        }
+        form.hidden = true;
+        const cal = d.querySelector('.modal-cal'); if (cal) cal.hidden = true;
+        const done = d.querySelector('.modal-done');
+        done.hidden = false;
+        done.querySelector('button').focus();
+      } catch (e) {
+        const wn = liveNote();
+        wn.textContent = 'That did not send. Please try again, or write to support@boasis.ae.';
+        wn.className = 'form-note err';
+      }
+    };
+
+    form.addEventListener('submit', ev => {
+      ev.preventDefault();
+      markOpen();
+      if (stamp) stamp.value = opened || Date.now();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const firstBad = validate(data);
+      if (firstBad) { fields[firstBad].focus(); note.textContent = ''; note.className = 'form-note'; return; }
+
+      /* the number the owner reads: the code on the left, the number on the right, one string */
+      data.phone = dmFullPhone(codeSel ? codeSel.value : '+971', data.phone) || data.phone;
+      delete data.country_code;
+      payload = data;
+
+      const cal = d.querySelector('.modal-cal');
+      if (cal) {
+        /* step two: the calendar. The send waits for it. */
+        form.hidden = true;
+        cal.hidden = false;
+        const frame = cal.querySelector('iframe[data-src]');
+        if (frame && !frame.src) frame.src = frame.dataset.src;
+        cal.querySelector('[data-final]').focus();
+      } else {
+        finish();
+      }
+    });
+
+    const finalBtn = d.querySelector('[data-final]');
+    if (finalBtn) finalBtn.addEventListener('click', finish);
+
+    /* what a close tears down: the steps back to the first, the fields empty, the faults
+       gone, and the timing token spent so the next visit can spend it again */
+    resets.set(d, () => {
+      form.hidden = false;
+      const cal = d.querySelector('.modal-cal'); if (cal) cal.hidden = true;
+      const done = d.querySelector('.modal-done'); if (done) done.hidden = true;
+      form.querySelectorAll('input, select').forEach(el => {
+        if (el.name === 'country_code') { el.selectedIndex = 0; return; }
+        if (el.name === 'hp' || el.name === '_t') { el.value = ''; return; }
+        if (el.tagName === 'SELECT') el.selectedIndex = 0;
+        else el.value = '';
+      });
+      const ent = d.querySelector('.mf-ent'); if (ent) ent.hidden = true;
+      d.querySelectorAll('.mf-err').forEach(p => { p.textContent = ''; p.hidden = true; });
+      d.querySelectorAll('.mf-pill.bad').forEach(p => p.classList.remove('bad'));
+      d.querySelectorAll('.form-note').forEach(n => { n.textContent = ''; n.className = 'form-note'; });
+      payload = null;
+      arm();
+    });
+  });
+}
+
 /* news · newest first · from js/news.js */
 function news() {
   const g = document.getElementById('news-grid'); if (!g) return;
@@ -327,6 +579,16 @@ function journey() {
   });
   steps.forEach((s, k) => {
     if (k === n - 1) return;
+    /* the first step is the pitch, not the tour: it sends the visitor to the demo instead of
+       walking them to the next screen. The rest keep walking. */
+    if (k === 0) {
+      /* it opens the dialog like the other demo buttons; without a script it still goes
+         to the contact page, where the same thing can be said */
+      const demo = document.createElement('a');
+      demo.className = 'j-next'; demo.href = '/contact.html'; demo.dataset.open = 'demo'; demo.textContent = 'Book a demo';
+      s.appendChild(demo);
+      return;
+    }
     const next = document.createElement('button'); next.type = 'button'; next.className = 'j-next';
     next.textContent = 'Next: ' + btns[k + 1].textContent;
     next.addEventListener('click', () => pick(k + 1));
@@ -391,4 +653,4 @@ function talk() {
   addEventListener('resize', paint); paint();
 }
 
-smooth(); news(); reveals(); tabs(); waitlist(); intro(); setupScroll(); solve(); journey(); talk();
+smooth(); news(); reveals(); tabs(); waitlist(); modals(); intro(); setupScroll(); solve(); journey(); talk();

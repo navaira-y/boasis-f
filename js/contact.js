@@ -1,16 +1,58 @@
 /* BOASIS · the contact form.
    Same rules as the waiting list on the home page, on purpose: a stamp of when the visitor
-   started (a script posts too fast to have read the page), a honeypot no human can see, and a
-   line that answers. One file for one form, so nothing here can reach into the home page. */
+   started (a script posts too fast to have read the page), a honeypot no human can see, and
+   a line that answers. One file for one form, so nothing here can reach into the home page.
+
+   Every field answers as it is written, not only when the button is pressed: the email and
+   the phone are checked on every keystroke, and the fault lands under the field that
+   carries it. The phone is two controls, one number: the code the visitor picks on the
+   left, the number typed on the right, and the owner reads them as one string. */
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduce) document.documentElement.classList.add('reduce');
+
+/* the same rules as lib/validate.js on the server, so what the page accepts is exactly what
+   the API accepts: no second, looser truth the visitor can learn by trial and error. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const validEmail = v => {
+  const e = String(v == null ? '' : v).trim().toLowerCase();
+  return !!e && e.length <= 254 && EMAIL_RE.test(e) && !/\.{2,}/.test(e);
+};
+const digits = v => String(v == null ? '' : v).replace(/\D/g, '');
+/* the NANP has no trunk prefix to drop; everywhere else a number dialed at home starts with 0,
+   and that 0 is a local dialing digit, not part of the international number */
+const NO_TRUNK = new Set(['+1']);
+const fullPhone = (code, number) => {
+  let d = digits(number); if (!d) return '';
+  if (!NO_TRUNK.has(code)) d = d.replace(/^0+(?=\d)/, '');
+  return code + ' ' + d;
+};
 
 function contactForm() {
   const form = document.getElementById('contact-form'); if (!form) return;
   const note = form.querySelector('.form-note');
   const stamp = form.querySelector('input[name="_t"]');
-  const clear = () => form.querySelectorAll('.bad').forEach(f => f.classList.remove('bad'));
+  const code = () => { const s = form.querySelector('select[name="country_code"]'); return s && s.value ? s.value : '+971'; };
+  const input = {
+    name: form.querySelector('input[name="name"]'),
+    email: form.querySelector('input[name="email"]'),
+    phone: form.querySelector('input[name="phone"]'),
+    message: form.querySelector('textarea[name="message"]'),
+  };
+  const slot = n => form.querySelector(`[data-err="${n}"]`);
+  const say = (n, msg) => {
+    const p = slot(n);
+    if (p) { p.textContent = msg || ''; p.hidden = !msg; }
+    const f = input[n]; if (f) { const pill = f.closest('.ct-fields'); if (pill) pill.classList.toggle('bad', !!msg); }
+  };
+
+  /* the four checks, shared by the keystroke and the send, so the two can never disagree */
+  const rule = {
+    name: v => (String(v || '').trim().length >= 2 ? '' : 'Name is required.'),
+    email: v => { const e = String(v || '').trim(); return !e ? 'Email is required.' : (validEmail(e) ? '' : 'Please enter a valid email address.'); },
+    phone: v => { const d = digits(v); return !d ? 'Phone number is required.' : (d.length >= 7 && d.length <= 15 ? '' : 'Please enter a valid phone number.'); },
+    message: v => (String(v || '').trim().length >= 4 ? '' : 'Message is required.'),
+  };
 
   /* when they started. the server compares this with its own clock, so it cannot be faked
      into "I filled this in instantly" by a clock on the visitor's machine being wrong. */
@@ -19,27 +61,46 @@ function contactForm() {
   form.querySelectorAll('input, select, textarea, button').forEach(el => el.addEventListener('focus', markOpen, { once: true }));
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
 
+  /* while they write: a field that is wrong about itself is told so at once, and a field
+     that has righted itself goes quiet. An empty field stays quiet until the send, when
+     "required" is the honest thing to say. */
+  input.email.addEventListener('input', () => {
+    const e = input.email.value.trim();
+    say('email', e && !validEmail(e) ? 'Please enter a valid email address.' : '');
+  });
+  input.phone.addEventListener('input', () => {
+    const raw = input.phone.value;
+    const clean = digits(raw);
+    if (clean !== raw) input.phone.value = clean;   // the box holds the number, and the code lives in the picker: nothing else belongs in it
+    say('phone', clean && (clean.length < 7 || clean.length > 15) ? 'Please enter a valid phone number.' : '');
+  });
+  input.name.addEventListener('input', () => { if (!rule.name(input.name.value)) say('name', ''); });
+  input.message.addEventListener('input', () => { if (!rule.message(input.message.value)) say('message', ''); });
+
   form.addEventListener('submit', async ev => {
     ev.preventDefault();
     markOpen();
-    clear();
     if (stamp) stamp.value = opened || Date.now();
     const data = Object.fromEntries(new FormData(form).entries());
-    const bad = [];
-    if (String(data.name || '').trim().length < 2) bad.push('name');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(data.email || '').trim())) bad.push('email');
-    // presence, not shape: the API takes any sane phone string, and a strict pattern here
-    // would reject numbers people actually type (+971, 050, spaces, brackets)
-    const phone = String(data.phone || '').trim();
-    if (phone.replace(/[^\d]/g, '').length < 7) bad.push('phone');
-    if (bad.length) {
-      // the pill is what gets the flag, so the whole group lights up rather than one edge
-      bad.forEach(n => { const i = form.querySelector(`[name="${n}"]`); const f = i && i.closest('.ct-fields'); if (f) f.classList.add('bad'); });
-      (form.querySelector('.ct-fields.bad input') || form.querySelector('input[name="name"]')).focus();
-      note.textContent = 'Please fill in your name, email and phone number.';
-      note.className = 'form-note err';
+
+    /* every field is judged at the send, and its fault is printed under it, in the order a
+       person fills the form, so the first error is also the first thing they have to fix */
+    let firstBad = null;
+    for (const n of ['name', 'email', 'phone', 'message']) {
+      const msg = rule[n](data[n] || '');
+      say(n, msg);
+      if (msg && !firstBad) firstBad = n;
+    }
+    if (firstBad) {
+      input[firstBad].focus();
+      note.textContent = '';
+      note.className = 'form-note';
       return;
     }
+
+    /* the number the owner reads: the code on the left, the number on the right, one string */
+    data.phone = fullPhone(code(), data.phone) || data.phone;
+
     note.textContent = 'Sending';
     note.className = 'form-note';
     try {
@@ -48,19 +109,22 @@ function contactForm() {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j.ok === false) {
-        // name and email are checked here already, so only a rule we cannot predict reaches
-        // the visitor. Anything unknown is named plainly rather than dropped, and the address
-        // below is the fallback that never depends on the API being happy.
-        const labels = { message: 'a short message', phone: 'your phone number', organisation: 'your company name' };
-        const e = (j.errors || []).filter(x => !['name', 'email'].includes(x));
+        /* every rule the page already enforces is the server's, so only an unexpected name
+           reaches the visitor here. Known names land under their field; anything unknown is
+           named plainly rather than dropped, and the address below is the fallback that
+           never depends on the API being happy. */
+        const names = { name: 'your name', email: 'your email address', phone: 'your phone number', message: 'a short message' };
+        const e = (j.errors || []).filter(x => names[x]);
+        e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
         note.textContent = e.length
-          ? 'Please add ' + e.map(x => labels[x] || x).join(' and ') + '.'
+          ? 'Please check the fields marked above.'
           : 'Please try again, or write to support@boasis.ae.';
         note.className = 'form-note err';
         return;
       }
       form.reset(); opened = 0;
       if (stamp) stamp.value = '';
+      for (const n of ['name', 'email', 'phone', 'message']) say(n, '');
       note.textContent = 'Thank you. Your enquiry has been sent, and a confirmation is on its way to your inbox.';
       note.className = 'form-note ok';
     } catch (e) {
@@ -147,15 +211,5 @@ function reveal() {
   els.forEach((el, i) => { el.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(el); });
 }
 
-/* arriving from the site with ?i=setup or ?i=manage: the picker already answers it, so nobody
-   has to read the form twice to find the control. Unknown values leave the default alone. */
-function prefillFromLink() {
-  const form = document.getElementById('contact-form'); if (!form) return;
-  const want = new URLSearchParams(location.search).get('i');
-  if (want !== 'setup' && want !== 'manage') return;   // anything else leaves the default alone
-  const input = [...form.querySelectorAll('input[name="about"]')].find(i => i.value === want);
-  if (input) input.checked = true;
-}
-
 const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
-contactForm(); prefillFromLink(); reveal();
+contactForm(); reveal();

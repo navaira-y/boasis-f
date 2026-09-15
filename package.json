@@ -10,6 +10,7 @@
     "check": "node --check server.js && node --check config/env.js && node --check lib/mailer.js && node --check lib/validate.js && node --check lib/mail-templates.js",
     "test": "node --test \"test/*.test.js\"",
     "mail:check": "node scripts/mail-check.js",
+    "smoke:dialogs": "node scripts/dialog-smoke.js",
     "audit": "npm audit --omit=dev",
     "test:watch": "node --test --watch \"test/*.test.js\""
   },

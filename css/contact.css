@@ -47,16 +47,21 @@
 .ct-fields-stack textarea{height:auto;min-height:130px;padding:18px 22px;resize:vertical;line-height:1.6;border-radius:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
 .ct-fields.bad input,.ct-fields.bad textarea{background:rgba(242,153,74,.12)}
 
-/* the question, set like the site's own .line rather than as a form label */
-.ct-ask{margin:0;font-size:clamp(17px,1.4vw,20px);color:rgba(255,255,255,.86);line-height:1.4;text-wrap:balance}
-.ct-pick{display:grid;justify-items:center;gap:14px;text-align:center;width:100%}
-/* = .plan-pick, verbatim from site.css */
-.ct-pick .plan-pick{display:inline-flex;padding:5px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
-.ct-pick .plan-pick label{position:relative;cursor:pointer}
-.ct-pick .plan-pick input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}
-.ct-pick .plan-pick span{display:block;padding:10px 24px;border-radius:999px;font-size:15px;font-weight:500;color:rgba(255,255,255,.7);transition:background .25s,color .25s}
-.ct-pick .plan-pick input:checked + span{background:#fff;color:var(--bo-navy)}
-.ct-pick .plan-pick input:focus-visible + span{outline:2px solid var(--bo-teal);outline-offset:2px}
+/* the phone: one pill, two controls. The code is picked on the left, the number is typed on
+   the right, and the owner reads them as one. The hairline between them is the pill's own. */
+.ct-phone{grid-template-columns:auto 1fr}
+.ct-phone .ct-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
+.ct-phone .ct-code:focus-within{background:rgba(255,255,255,.07)}
+.ct-phone select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#fff;font:inherit;font-size:16px;height:50px;padding:0;cursor:pointer}
+.ct-phone select:focus{outline:none}
+/* focus is the site's own teal, the way the input's ring is: the arrow of the picker lights */
+.ct-phone .ct-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
+.ct-phone .ct-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.ct-phone input{border-left:1px solid rgba(255,255,255,.14)}
+
+/* the fault lands under its own field: the note's err colour, the field's width, tight
+   under the pill that carries it */
+.ct-err{margin:-10px 0 0;width:100%;font-size:14px;line-height:1.45;color:#F2994A;text-align:left;min-width:0}
 
 /* the send, and the one line that answers it */
 .ct-foot{display:grid;justify-items:center;gap:12px;text-align:center;width:100%}

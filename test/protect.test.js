@@ -33,6 +33,9 @@ test('client scripts are served, server scripts are not', () => {
   assert.equal(ok('/js/site.js'), true, 'the browser needs its own JS');
   assert.equal(ok('/lib/mailer.js'), false, 'server-side JS stays private');
   assert.equal(ok('/api/waitlist'), true);
+  assert.equal(ok('/api/contact'), true);
+  assert.equal(ok('/api/demo'), true, 'the demo dialog posts here');
+  assert.equal(ok('/api/manage'), true, 'the early access dialog posts here');
 });
 
 /* ── the ways people try to get around a path check ─────────────────────────── */
