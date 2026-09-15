@@ -1,0 +1,31 @@
+# BOASIS · boasis.ae · what the crawlers may take
+#
+# Everything a visitor can read, a crawler may read. There is nothing private on the public
+# side of this site: no member area, no staging copy, no search results. The API is the one
+# place a crawler has no business, and it is closed here as a second lock — lib/protect.js
+# already answers every one of those paths with a 404 before it reaches a route.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# The AI assistants and answer engines, named on purpose. This site wants to be read, quoted
+# and cited by them, so the answer is spelled out rather than left to a wildcard: an unnamed
+# bot operator reads `User-agent: *` as "undecided" and throttles. Google-Extended and
+# Applebot-Extended are the training switches, not the search ones: allowing them does not
+# change where boasis.ae ranks in Search, and disallowing them would only remove BOASIS from
+# the answers. docs/SEO.md says how to flip either one.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: anthropic-ai
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
+Sitemap: https://boasis.ae/sitemap.xml

@@ -4,10 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Terms and conditions · BOASIS</title>
-<meta name="description" content="The terms for using BOASIS.">
+<meta name="description" content="The terms for using BOASIS. The full terms are being prepared; write to support@boasis.ae with any question in the meantime.">
+<!-- indexing · NOT indexable yet, on purpose: this page says it is being prepared, and
+     a half-written page in the index reads as a half-finished company. It stays
+     reachable and its links are followed. When the text is published, change this to
+     index,follow and add the URL to sitemap.xml (docs/SEO.md has the exact lines). -->
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="https://boasis.ae/terms.html">
+<!-- Search Console · Bing · paste the token you are given, uncomment, then verify.
+     A one-line change each; DNS or the file methods also work (docs/SEO.md).
+     That comment is why these two lines are not live: no token has been issued yet,
+     and a made-up one would only fail the check.
+     <meta name="google-site-verification" content="PASTE-GOOGLE-TOKEN-HERE">
+     <meta name="msvalidate.01" content="PASTE-BING-TOKEN-HERE"> -->
+<!-- the link preview · absolute URLs, because a crawler resolves them against nothing -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BOASIS">
+<meta property="og:locale" content="en_AE">
+<meta property="og:url" content="https://boasis.ae/terms.html">
 <meta property="og:title" content="Terms and conditions · BOASIS">
-<meta property="og:description" content="The most advanced AI for company setup in the UAE.">
-<meta property="og:image" content="/assets/icons/link-preview-1200x630.png">
+<meta property="og:description" content="The terms for using BOASIS. The full terms are being prepared; write to support@boasis.ae with any question in the meantime.">
+<meta property="og:image" content="https://boasis.ae/assets/icons/link-preview-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="BOASIS · terms and conditions">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Terms and conditions · BOASIS">
+<meta name="twitter:description" content="The terms for using BOASIS. The full terms are being prepared; write to support@boasis.ae with any question in the meantime.">
+<meta name="twitter:image" content="https://boasis.ae/assets/icons/link-preview-1200x630.png">
+<meta name="twitter:image:alt" content="BOASIS · terms and conditions">
 <meta name="theme-color" content="#0B0D12">
 <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
@@ -17,6 +42,58 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500&family=Plus+Jakarta+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="/css/tokens.css">
 <link rel="stylesheet" href="/css/site.css">
+<!-- structured data · what the page says, said in a form the machines read.
+     A JSON-LD data block is never executed, so script-src 'self' does not touch it.
+     Every claim here is on the page itself: nothing is invented, and there are no
+     review scores or prices, because the site publishes none. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://boasis.ae/#organization",
+      "name": "BOASIS",
+      "legalName": "Boasis - FZC",
+      "url": "https://boasis.ae/",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://boasis.ae/#logo",
+        "url": "https://boasis.ae/assets/logo/orb-512.png",
+        "width": 512,
+        "height": 512,
+        "caption": "BOASIS"
+      },
+      "email": "support@boasis.ae"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://boasis.ae/#website",
+      "url": "https://boasis.ae/",
+      "name": "BOASIS",
+      "alternateName": "BOASIS · AI for company setup and management in the UAE",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://boasis.ae/#organization"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://boasis.ae/terms.html#webpage",
+      "url": "https://boasis.ae/terms.html",
+      "name": "Terms and conditions · BOASIS",
+      "description": "The terms for using BOASIS. The full terms are being prepared; write to support@boasis.ae with any question in the meantime.",
+      "isPartOf": {
+        "@id": "https://boasis.ae/#website"
+      },
+      "publisher": {
+        "@id": "https://boasis.ae/#organization"
+      },
+      "inLanguage": "en"
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <!-- the sky · one drifting light behind the whole page; it moves its light as you go from the intro to Set up, Manage and the end -->

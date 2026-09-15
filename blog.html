@@ -3,11 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blog · BOASIS</title>
-<meta name="description" content="News and updates from BOASIS.">
-<meta property="og:title" content="Blog · BOASIS">
-<meta property="og:description" content="The most advanced AI for company setup in the UAE.">
-<meta property="og:image" content="/assets/icons/link-preview-1200x630.png">
+<title>Blog · News and updates from BOASIS</title>
+<meta name="description" content="News and updates from BOASIS: SPARK as the first authority on the platform, the site going live, and the founding of the company in Sharjah.">
+<!-- indexing · indexable, with the full-size preview and the whole snippet allowed,
+     and a canonical that names the one address this page answers at. -->
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<link rel="canonical" href="https://boasis.ae/blog.html">
+<!-- Search Console · Bing · paste the token you are given, uncomment, then verify.
+     A one-line change each; DNS or the file methods also work (docs/SEO.md).
+     That comment is why these two lines are not live: no token has been issued yet,
+     and a made-up one would only fail the check.
+     <meta name="google-site-verification" content="PASTE-GOOGLE-TOKEN-HERE">
+     <meta name="msvalidate.01" content="PASTE-BING-TOKEN-HERE"> -->
+<!-- the link preview · absolute URLs, because a crawler resolves them against nothing -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BOASIS">
+<meta property="og:locale" content="en_AE">
+<meta property="og:url" content="https://boasis.ae/blog.html">
+<meta property="og:title" content="Blog · News and updates from BOASIS">
+<meta property="og:description" content="News and updates from BOASIS: SPARK as the first authority on the platform, the site going live, and the founding of the company in Sharjah.">
+<meta property="og:image" content="https://boasis.ae/assets/icons/link-preview-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="BOASIS · news and updates">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Blog · News and updates from BOASIS">
+<meta name="twitter:description" content="News and updates from BOASIS: SPARK as the first authority on the platform, the site going live, and the founding of the company in Sharjah.">
+<meta name="twitter:image" content="https://boasis.ae/assets/icons/link-preview-1200x630.png">
+<meta name="twitter:image:alt" content="BOASIS · news and updates">
 <meta name="theme-color" content="#0B0D12">
 <link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
@@ -17,6 +40,102 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500&family=Plus+Jakarta+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="/css/tokens.css">
 <link rel="stylesheet" href="/css/site.css">
+<!-- structured data · what the page says, said in a form the machines read.
+     A JSON-LD data block is never executed, so script-src 'self' does not touch it.
+     Every claim here is on the page itself: nothing is invented, and there are no
+     review scores or prices, because the site publishes none. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://boasis.ae/#organization",
+      "name": "BOASIS",
+      "legalName": "Boasis - FZC",
+      "url": "https://boasis.ae/",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://boasis.ae/#logo",
+        "url": "https://boasis.ae/assets/logo/orb-512.png",
+        "width": 512,
+        "height": 512,
+        "caption": "BOASIS"
+      },
+      "email": "support@boasis.ae"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://boasis.ae/#website",
+      "url": "https://boasis.ae/",
+      "name": "BOASIS",
+      "alternateName": "BOASIS · AI for company setup and management in the UAE",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://boasis.ae/#organization"
+      }
+    },
+    {
+      "@type": "Blog",
+      "@id": "https://boasis.ae/blog.html#blog",
+      "url": "https://boasis.ae/blog.html",
+      "name": "Blog · News and updates from BOASIS",
+      "description": "News and updates from BOASIS.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://boasis.ae/#website"
+      },
+      "publisher": {
+        "@id": "https://boasis.ae/#organization"
+      },
+      "mainEntity": {
+        "@id": "https://boasis.ae/blog.html#news"
+      }
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://boasis.ae/blog.html#news",
+      "numberOfItems": 3,
+      "itemListOrder": "https://schema.org/ItemListOrderDescending",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@type": "CreativeWork",
+            "name": "SPARK is the first authority on BOASIS",
+            "description": "All 961 activities, every approval mapped.",
+            "datePublished": "2026-09-01",
+            "inLanguage": "en"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@type": "CreativeWork",
+            "name": "boasis.ae goes live",
+            "description": "A holding page while the first build completes.",
+            "datePublished": "2026-08-25",
+            "inLanguage": "en"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "item": {
+            "@type": "CreativeWork",
+            "name": "BOASIS is founded in Sharjah",
+            "description": "Three founders, one goal.",
+            "datePublished": "2026-06-18",
+            "inLanguage": "en"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <!-- the sky · one drifting light behind the whole page; it moves its light as you go from the intro to Set up, Manage and the end -->

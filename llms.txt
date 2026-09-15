@@ -1,0 +1,35 @@
+# BOASIS
+
+> BOASIS is an AI for company setup and management in the United Arab Emirates. From a plain
+> description of a business, it matches the trade licence activities that fit, shows which of
+> them need a regulatory approval and whether that comes before or after the licence, prices
+> the whole application from the authority's own list of activities, rules and prices, and
+> submits a complete application to the authority's team. Manage, the second product, keeps
+> every licence, visa, tax and bank date for every company a person runs, and reminds the
+> right person before each date.
+
+Key facts:
+
+- Company: Boasis - FZC, registered in the United Arab Emirates ([boasis.ae](https://boasis.ae/)).
+- Set up is for free zones, government authorities and setup companies. SPARK (Sharjah) is the
+  first authority running on it, with all 961 activities and every approval mapped.
+- Manage is for everyone who runs a company in the UAE, on Standard or Enterprise, and is in
+  early access: the request is a short form, and the team replies by email.
+- Both products answer in plain language. Mira, the assistant, can be asked anything at any step.
+- Contact: support@boasis.ae. Enquiries go through [the contact page](https://boasis.ae/contact.html).
+- Prices for Manage come at launch; nothing on the site quotes a price that is not final.
+
+## Pages
+
+- [Home](https://boasis.ae/): what BOASIS is, the six steps of a Set up application, what Manage
+  does with a company's dates, the plans, and the questions owners ask before joining.
+- [Contact](https://boasis.ae/contact.html): one form, read by a person, answered by email.
+- [Blog](https://boasis.ae/blog.html): news and updates, newest first.
+- [Privacy](https://boasis.ae/privacy.html): how information sent through the site is handled.
+- [Terms](https://boasis.ae/terms.html): the terms for using BOASIS.
+
+## Notes
+
+- The site is English only, written for the UAE market. Prices, dates and activity lists that
+  appear on it come from the authorities themselves.
+- Nothing on this site is a review, rating or endorsement. BOASIS publishes no review scores.

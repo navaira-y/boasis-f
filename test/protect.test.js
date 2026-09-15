@@ -94,7 +94,21 @@ test('a future page at the root is allowed, a future file is not', () => {
   assert.equal(ok('/privacy-policy.html'), true);
   assert.equal(ok('/data.html'), true, 'still only an html name at the root');
   assert.equal(ok('/server.html'), true, 'a page by that name is a page');
-  assert.equal(ok('/sitemap.xml'), false, 'not on the list until we add it');
+});
+
+/* 16 September · SEO. Four files became public on purpose, and each of them is matched by
+   name rather than by extension, so nothing else at the root was opened with them. */
+test('the files a search engine asks for by name are served, and only those', () => {
+  for (const p of ['/robots.txt', '/sitemap.xml', '/llms.txt', '/BingSiteAuth.xml']) {
+    assert.equal(ok(p), true, p + ' must be readable or a crawler cannot do its job');
+  }
+  /* IndexNow: Bing's instant-indexing key file. Hex, long, one level — and never .txt alone. */
+  assert.equal(ok('/b1a2c3d4e5f60718293a4b5c6d7e8f90.txt'), true, 'an IndexNow key file');
+  for (const p of ['/deadbeef.txt', '/indexnow.txt', '/secrets.txt', '/notes.txt', '/passwords.txt',
+                   '/backup.xml', '/sitemap.xml.bak', '/robots.txt.gz', '/llms.txt/../.env',
+                   '/assets/robots.txt', '/css/robots.txt', '/data/robots.txt']) {
+    assert.equal(ok(p), false, p + ' must stay closed');
+  }
 });
 
 test('it never throws, whatever it is handed', () => {
