@@ -141,6 +141,15 @@ that string must exist at the root or the ping below will be refused (see §5).
    no code, no deploy. The same proof is also carried as
    `<meta name="google-site-verification" content="vdS7qgiTi2dTNArJdBm8tzGG1LHP2k_5977IL0VHTvU">`
    in every page's head, so tidying the DNS later cannot un-verify the property.)
+
+   **The Verify button is in Search Console, never in the DNS panel.** The DNS zone editor is
+   only the drawer the token lives in: it has no verify step and needs none. The click path is
+   Add property → **Domain** → type `boasis.ae` → it shows the TXT value (already published, so
+   do not touch the side) → **Verify**. A property that is already created but unverified is
+   verified from inside it: **Settings → Ownership verification → the `boasis.ae` row → Verify**.
+   If it reports "verification failed" on the first try it is DNS caching, not a wrong record —
+   wait 30–60 minutes and press it again. And the record type is **TXT**, not DS: DS is a
+   DNSSEC record, a different thing entirely, and this zone has none (normal).
 3. **Sitemaps → add `sitemap.xml`**. Expect 3 discovered URLs.
 4. **URL inspection → Request indexing** for `/`, `/contact.html`, `/blog.html`. On a new
    domain this is what turns weeks into days.
@@ -154,7 +163,8 @@ that string must exist at the root or the ping below will be refused (see §5).
 ### Bing Webmaster Tools
 
 1. Add `https://boasis.ae` at bing.com/webmasters.
-2. Verify — easiest first:
+2. Verify — easiest first (the button is in Bing Webmaster Tools, as with Google; DNS only
+   holds the record):
    - **Import from Google Search Console** once GSC is verified: one click, nothing to change.
    - **TXT**: value `6aaa05a440d9590b90b9962a2f70ff4a`, if that is where it came from — already
      published.
