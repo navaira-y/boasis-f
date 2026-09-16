@@ -1,30 +1,92 @@
 # BOASIS · boasis.ae · what the crawlers may take
 #
-# Everything a visitor can read, a crawler may read. There is nothing private on the public
-# side of this site: no member area, no staging copy, no search results. The API is the one
-# place a crawler has no business, and it is closed here as a second lock — lib/protect.js
-# already answers every one of those paths with a 404 before it reaches a route.
+# Two different things are being said here, and they are not the same thing.
+#
+# CITED: yes. Search engines and the AI answer engines may read this site, quote it and link
+# to it. That is the point of publishing it.
+# TRAINED ON: no. The crawlers whose only job is to build model training corpora are refused
+# by name. A citation names BOASIS and sends the reader here; training takes the words and
+# gives nothing back, and the site's terms say so too.
+#
+# A robots.txt is a request that the named operator honours, not a lock — nothing here can
+# stop a crawler that lies about its name. It is the industry-standard signal, and every
+# operator named below honours it. For the legal layer, see /terms.html.
 
-User-agent: *
+# ── search engines ──────────────────────────────────────────────────────────
+# Googlebot and Bingbot are allowed because both now answer questions on their own
+# results pages, and those answers cite the sites they read. Blocking them would remove
+# BOASIS from AI Overviews and Copilot while changing nothing about training.
+User-agent: Googlebot
 Allow: /
 Disallow: /api/
 
-# The AI assistants and answer engines, named on purpose. This site wants to be read, quoted
-# and cited by them, so the answer is spelled out rather than left to a wildcard: an unnamed
-# bot operator reads `User-agent: *` as "undecided" and throttles. Google-Extended and
-# Applebot-Extended are the training switches, not the search ones: allowing them does not
-# change where boasis.ae ranks in Search, and disallowing them would only remove BOASIS from
-# the answers. docs/SEO.md says how to flip either one.
-User-agent: GPTBot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
+# ── the answer engines: allowed, because being cited is the point ───────────
+# OpenAI splits the two: OAI-SearchBot builds the index ChatGPT cites, GPTBot collects
+# training data. ChatGPT-User is ChatGPT fetching a page because a person asked about it,
+# which is a visit, not a harvest.
 User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
-User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+
+# Anthropic's three: Claude-SearchBot indexes for citations, Claude-User fetches on a
+# person's request, ClaudeBot crawls for training. The first two are welcome.
+User-agent: Claude-SearchBot
 User-agent: Claude-User
-User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+
+# Perplexity answers with links to what it read: that is exactly the deal BOASIS wants.
 User-agent: PerplexityBot
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+
+# ── the training crawlers: refused by name ──────────────────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+# Google-Extended is the one with a real trade-off: Google does not split "train Gemini"
+# from "let Gemini answer with your page", so refusing training also empties Gemini's
+# answers. Google Search — including the AI Overviews — is a separate crawler (Googlebot,
+# allowed above) and is not affected. docs/SEO.md has the one-line change if the owner
+# ever decides the Gemini citation is worth the training.
 User-agent: Google-Extended
+Disallow: /
+
+# Applebot-Extended is the AI-training switch. Applebot itself, which feeds Siri and
+# Spotlight, is not blocked: that is a search surface, and Siri cites what it reads.
 User-agent: Applebot-Extended
-User-agent: Bingbot
+Disallow: /
+
+# Common Crawl is not an AI company: it publishes a corpus that nearly every model is
+# trained on, so it is the training path whatever the label on it says.
+User-agent: CCBot
+Disallow: /
+
+# Bots whose operator has never said what the crawl is for, or has said it is for models.
+# Treated as training, because the safe reading of an unclear claim is the unfriendly one.
+User-agent: Meta-ExternalAgent
+User-agent: FacebookBot
+User-agent: Bytespider
+User-agent: Amazonbot
+User-agent: PetalBot
+Disallow: /
+
+# ── everything else ─────────────────────────────────────────────────────────
+# The public site is open, the API is not. /api/ is a second lock: lib/protect.js already
+# answers every one of those paths with a 404 before a request reaches a route.
+User-agent: *
 Allow: /
 Disallow: /api/
 

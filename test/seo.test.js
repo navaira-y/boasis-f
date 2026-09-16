@@ -64,12 +64,43 @@ test('robots.txt is served, allows the site, and points at the sitemap', async (
   assert.match(txt, /^Allow: \/$/m, 'everything public is open');
   assert.match(txt, /^Disallow: \/api\/$/m, 'the API is the one closed path');
   assert.match(txt, /^Sitemap: https:\/\/boasis\.ae\/sitemap\.xml$/m, 'the sitemap is declared, absolute');
-  /* GEO: the AI answer engines are named, so an operator does not have to guess whether
-     this site wants to be read by them. Search ranking does not depend on any of this. */
-  for (const bot of ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'Bingbot']) {
-    assert.match(txt, new RegExp('^User-agent: ' + bot + '$', 'm'), bot + ' is not named');
+  /* GEO, and the line the owner drew: citable, not trainable. Each named operator is read
+     with the rule that follows it, because the same token in two places is how a policy
+     like this quietly becomes a lie. */
+  const groups = new Map();
+  let current = [];
+  for (const line of txt.split('\n')) {
+    const ua = /^User-agent:\s*(\S+)\s*$/.exec(line);
+    /* consecutive User-agent lines share the rules that follow them, so they accumulate */
+    if (ua) { current.push(ua[1]); continue; }
+    if (!line.trim()) { current = []; continue; }
+    const dis = /^Disallow:\s*(\S*)\s*$/.exec(line);
+    const allow = /^Allow:\s*(\S*)\s*$/.exec(line);
+    for (const name of current) {
+      const g = groups.get(name) || { allow: [], disallow: [] };
+      if (dis) g.disallow.push(dis[1]);
+      if (allow) g.allow.push(allow[1]);
+      if (dis || allow) groups.set(name, g);
+    }
   }
-  assert.ok(!/^Disallow: \/$/m.test(txt), 'nothing may close the whole site');
+  const open = name => { const g = groups.get(name); return !!g && g.allow.includes('/') && g.disallow.includes('/api/'); };
+  const shut = name => { const g = groups.get(name); return !!g && g.disallow.includes('/') && !g.allow.includes('/'); };
+
+  /* search engines and answer engines: allowed, because a citation is the point */
+  for (const bot of ['Googlebot', 'Bingbot', 'OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot',
+                     'Claude-User', 'PerplexityBot', 'Perplexity-User']) {
+    assert.ok(open(bot), bot + ' must be allowed: being cited is the point of publishing this');
+  }
+  /* training crawlers: refused, by name */
+  for (const bot of ['GPTBot', 'ClaudeBot', 'anthropic-ai', 'Google-Extended', 'Applebot-Extended',
+                     'CCBot', 'Meta-ExternalAgent', 'FacebookBot', 'Bytespider', 'Amazonbot', 'PetalBot']) {
+    assert.ok(shut(bot), bot + ' collects training data and must be refused');
+  }
+  /* nothing may be both at once, and the public site stays open to everyone else */
+  for (const name of groups.keys()) assert.ok(!(open(name) && shut(name)), name + ' is both allowed and refused');
+  assert.ok(groups.get('*').allow.includes('/'), 'the public site must stay open to everyone else');
+  /* and the file explains the two halves in words, so a person can read the policy */
+  assert.match(txt, /TRAINED ON: no/, 'robots.txt must say what it is doing, not only do it');
 });
 
 test('sitemap.xml is valid, absolute, and lists exactly the pages that may be indexed', async () => {
@@ -117,6 +148,8 @@ test('llms.txt gives an assistant the same facts the site gives a visitor', asyn
   assert.match(txt, /^> /m, 'and a one-line summary under it');
   assert.match(txt, /Boasis - FZC/, 'who the company is');
   assert.match(txt, /support@boasis\.ae/, 'how to reach it');
+  assert.match(txt, /not licensed for training AI models/i, 'the usage line must be here, not only in robots.txt');
+  assert.match(txt, /citing this site/i, 'and citation must be welcomed in words');
   assert.match(txt, /https:\/\/boasis\.ae\//, 'the canonical host');
   for (const p of ['contact.html', 'blog.html', 'privacy.html', 'terms.html']) {
     assert.ok(txt.includes('https://boasis.ae/' + p), p + ' is not linked from llms.txt');
@@ -171,6 +204,20 @@ test('the link preview is complete and absolute, so a shared link looks right on
     assert.equal(meta(html, 'twitter:card'), 'summary_large_image', url);
     /* the title a platform shows the link with must be the page's own, not the brand alone */
     assert.equal(prop(html, 'og:title'), attr(html, /<title>([^<]*)<\/title>/), url + ' og:title must equal the title');
+  }
+});
+
+test('the verification proof is on every page, and no placeholder is ever served', async () => {
+  const google = /<meta name="google-site-verification" content="([A-Za-z0-9_-]{20,})">/.exec(await text('/'));
+  assert.ok(google, 'the home page must carry the Search Console proof');
+  for (const [url] of PAGES) {
+    const html = await text(url);
+    assert.ok(html.includes('content="' + google[1] + '"'),
+      url + ' must carry the same token as every other page, the value of the TXT record');
+    /* a placeholder inside an HTML comment cannot verify anything, so only the served
+       markup is judged — the comment is where the Bing instructions live */
+    const served = html.replace(/<!--[\s\S]*?-->/g, '');
+    assert.ok(!/PASTE-[A-Z-]+-HERE/.test(served), url + ' is serving a placeholder token');
   }
 });
 
@@ -278,7 +325,88 @@ test('the sitemap and the robots meta say the same thing about every page', asyn
   }
 });
 
-/* ── the security posture is unchanged by all of this ────────────────────/* ── the security posture is unchanged by all of this ─────────────────────────────────── */
+/* ── a page that does not exist answers 404, not the home page ────────────────────────── */
+test('an address that does not exist is a 404 with a page that says so, never the home page', async () => {
+  const home = await text('/');
+  const hero = 'The Most Advanced AI';
+  assert.ok(home.includes(hero), 'the home page must still be the home page');
+
+  /* these reach the site's own not-found page: a real page name that is missing, and the
+     bare names a person types by hand (/blog without the .html is a page request too) */
+  for (const p of ['/contct.html', '/nope.html', '/about.html', '/setup', '/contct', '/nope']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status + ' — a soft 404 hands Google the home page under a second address');
+    const html = await r.text();
+    assert.match(html, /<title>Page not found · BOASIS<\/title>/, p + ' must answer with the not-found page');
+    assert.ok(!html.includes(hero), p + ' must not answer with the home page');
+    assert.match(html, /<meta name="robots" content="noindex,follow">/, p + ' must not offer itself for indexing');
+  }
+  /* the folders beside the site: a bare name is a page request, so these are 404s in fact,
+     and never a file, a listing or the home page */
+  for (const p of ['/data', '/data/', '/config', '/config/', '/lib', '/lib/', '/scripts',
+                   '/node_modules', '/node_modules/', '/.git', '/.git/config', '/data/waitlist.json']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status);
+    assert.ok(!(await r.text()).includes(hero), p + ' must never answer with the home page');
+  }
+
+  /* an API path never answers with a page, in JSON with the API's own error shape */
+  for (const p of ['/api', '/api/']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status);
+    assert.match(r.headers.get('content-type') || '', /application\/json/, p + ' must answer in JSON, not HTML');
+    assert.deepEqual(await r.json(), { ok: false, errors: ['not-found'] }, p);
+  }
+  /* and an API path that is not a route at all is refused by the guard before anything runs:
+     404, empty, and never the home page. The exact-path allow-list is not widened for it. */
+  for (const p of ['/api/unknown', '/api/health/extra', '/api/manage/x']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status);
+    assert.ok(!(await r.text()).includes(hero), p + ' must never answer with the home page');
+  }
+
+  /* these are refused before anything is read, so the body is empty: 404 and no page */
+  for (const p of ['/index.htm', '/contct.htm', '/index.php', '/foo.bar']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status);
+    assert.ok(!(await r.text()).includes(hero), p + ' must not answer with the home page');
+  }
+  /* Typing a page without its extension lands on the page itself, not on a 404 — the same
+     arrangement /contact has had all along. The alias is allowed to answer 200 because the
+     page declares which address should be indexed, so the two never compete. */
+  const pretty = await get('/blog');
+  assert.equal(pretty.status, 200, 'a bare page name must resolve, like /contact does');
+  assert.match(await pretty.text(), /<link rel="canonical" href="https:\/\/boasis\.ae\/blog\.html">/,
+    'and the alias must point at the address that should be indexed');
+  /* the file itself is a file; only the fallback is a 404 */
+  const standalone = await get('/404.html');
+  assert.equal(standalone.status, 200, 'the not-found page is a page of the site');
+  assert.match(await standalone.text(), /Page not found/, 'and it is the same page');
+
+  /* missing assets are 404s too, not the home page: a broken image must stay a broken image */
+  for (const p of ['/assets/img/nope.jpg', '/css/nope.css', '/js/nope.js']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' answered ' + r.status);
+    assert.ok(!(await r.text()).includes(hero), p + ' served the home page for a missing file');
+  }
+});
+
+test('the apex is the one host: www points at it, and the redirect keeps the path', async () => {
+  /* the host is set by hand because the site is reached on localhost here; that is exactly
+     what the redirect reads, so this tests the rule and not the network */
+  const ask = (host, path) => new Promise((resolve, reject) => {
+    const req = require('http').request({ host: '127.0.0.1', port: Number(new URL(base).port), path, headers: { host } },
+      res => { res.resume(); res.on('end', () => resolve({ status: res.statusCode, location: res.headers.location })); });
+    req.on('error', reject); req.end();
+  });
+  const www = await ask('www.boasis.ae', '/blog.html?x=1');
+  assert.equal(www.status, 301, 'www must be a permanent redirect, so the signal follows the link');
+  assert.equal(www.location, 'https://boasis.ae/blog.html?x=1', 'the path and the query must survive');
+  assert.equal((await ask('boasis.ae', '/blog.html')).status, 200, 'the apex must not redirect to itself');
+  assert.equal((await ask('127.0.0.1:' + new URL(base).port, '/')).status, 200, 'a dev host must not be dragged to production');
+});
+
+/* ── the security posture is unchanged by all of this ─────────────────────────────────── */
 test('the new public files do not open anything else, and the guard still closes the rest', async () => {
   for (const p of ['/robots.txt', '/sitemap.xml', '/llms.txt']) {
     assert.equal((await get(p)).status, 200, p + ' must be reachable');

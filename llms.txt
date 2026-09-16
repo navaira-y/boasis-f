@@ -28,8 +28,16 @@ Key facts:
 - [Privacy](https://boasis.ae/privacy.html): how information sent through the site is handled.
 - [Terms](https://boasis.ae/terms.html): the terms for using BOASIS.
 
+## Usage
+
+- Quoting, summarising and citing this site, with a link to the page you took it from, is
+  welcome. That is what it is published for.
+- The content is not licensed for training AI models. The crawlers that exist only to build
+  training corpora are refused in [robots.txt](https://boasis.ae/robots.txt); the search and
+  answer crawlers, which cite what they read, are allowed.
+- Nothing here is a review, a rating or an endorsement. BOASIS publishes no review scores.
+
 ## Notes
 
 - The site is English only, written for the UAE market. Prices, dates and activity lists that
   appear on it come from the authorities themselves.
-- Nothing on this site is a review, rating or endorsement. BOASIS publishes no review scores.

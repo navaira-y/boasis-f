@@ -96,6 +96,37 @@ test('a future page at the root is allowed, a future file is not', () => {
   assert.equal(ok('/server.html'), true, 'a page by that name is a page');
 });
 
+/* 16 September · a bare root name is a page request (/blog, /privacy, /contact). serve-static
+   is what decides whether the page exists, and the not-found page answers when it does not,
+   so this rule opens no file: only letters, digits, dash and underscore are accepted, and a
+   path carrying a dot, a slash or an extension is judged by the rules around it. */
+test('a bare page name is a page, and nothing else gets in with it', () => {
+  for (const p of ['/blog', '/privacy', '/terms', '/contact', '/about', '/a-b_c9']) {
+    assert.equal(ok(p), true, p + ' is a page request');
+  }
+  /* A bare name is only ever a *request*. `/data` is allowed as a page and then finds no
+     data.html, so over the wire it is a 404 — the folder stays closed, which is what the
+     `/data/` rule is for, and test/seo.test.js checks the real answer. */
+  /* a trailing slash is normalised away before any rule runs, so `/data/` is `/data`: a page
+     request that finds no data.html. The folder is closed by the `/data/` *prefix* rule,
+     which is what refuses every file inside it. */
+  assert.equal(ok('/data'), true, 'a bare name is a page request, not the folder');
+  assert.equal(ok('/data/'), true, 'and the trailing slash is normalised away');
+  assert.equal(ok('/data/index.html'), false, 'a file inside the folder is what stays closed');
+  /* `/api` and `/api/` normalise to the same bare name, and the fallback answers both in
+     JSON — an API path must never answer with a page (test/seo.test.js checks it live) */
+  assert.equal(ok('/api'), true, 'a bare name, answered by the fallback, not by static');
+  for (const p of ['/api/health', '/api/first-visit', '/api/waitlist', '/api/contact', '/api/demo', '/api/manage']) {
+    assert.equal(ok(p), true, p + ' is a real route, and the API is reached over the guard');
+  }
+  for (const p of ['/server.js', '/.env', '/config/env', '/lib/mailer', '/package.json',
+                   '/js/site', '/css/site', '/assets/logo/orb-160', '/blog.html/x',
+                   '/blog\\u0000', '/api/unknown', '/api/health/extra', '/api/manage/x',
+                   '/nope.php', '/data/waitlist.json']) {
+    assert.equal(ok(p), false, p + ' must stay closed');
+  }
+});
+
 /* 16 September · SEO. Four files became public on purpose, and each of them is matched by
    name rather than by extension, so nothing else at the root was opened with them. */
 test('the files a search engine asks for by name are served, and only those', () => {

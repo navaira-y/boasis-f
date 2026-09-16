@@ -11,12 +11,12 @@
      index,follow and add the URL to sitemap.xml (docs/SEO.md has the exact lines). -->
 <meta name="robots" content="noindex,follow">
 <link rel="canonical" href="https://boasis.ae/privacy.html">
-<!-- Search Console · Bing · paste the token you are given, uncomment, then verify.
-     A one-line change each; DNS or the file methods also work (docs/SEO.md).
-     That comment is why these two lines are not live: no token has been issued yet,
-     and a made-up one would only fail the check.
-     <meta name="google-site-verification" content="PASTE-GOOGLE-TOKEN-HERE">
-     <meta name="msvalidate.01" content="PASTE-BING-TOKEN-HERE"> -->
+<!-- Search Console · the property is verified by the TXT record already published at the
+     apex (google-site-verification=...), and the same proof is carried here so a later DNS
+     tidy cannot un-verify the site. Bing: paste your msvalidate.01 value into the second
+     line and uncomment it, or import the property from Search Console. docs/SEO.md. -->
+<meta name="google-site-verification" content="vdS7qgiTi2dTNArJdBm8tzGG1LHP2k_5977IL0VHTvU">
+<!-- <meta name="msvalidate.01" content="PASTE-BING-TOKEN-HERE"> -->
 <!-- the link preview · absolute URLs, because a crawler resolves them against nothing -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BOASIS">

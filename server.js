@@ -192,7 +192,22 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(SITE, { extensions: ['html'], dotfiles: 'deny', index: 'index.html' }));
-app.get('*', (req, res) => res.sendFile(path.join(SITE, 'index.html')));
+
+/* ── and a page that does not exist is a 404 ─────────────────────────────────
+   This used to be `app.get('*', ...index.html)`: every unknown address answered with the
+   home page and a 200. A typo like /contct.html therefore looked, to a browser and to
+   Google, exactly like the home page — a soft 404, which can put the home page in the index
+   under several addresses and spends the crawl budget on pages that do not exist. A site of
+   five real files has no client-side routes to fall back for, so the honest answer is the
+   one below: a 404, and a page that says so. lib/protect.js has already refused everything
+   outside the allow-list, and an unknown /api path was refused before it ever got here, so
+   the API still never answers with HTML. */
+app.use((req, res) => {
+  if (req.path === '/api' || req.path.startsWith('/api/')) {
+    return res.status(404).json({ ok: false, errors: ['not-found'] });   // an API path never answers with a page
+  }
+  res.status(404).sendFile(path.join(SITE, '404.html'));
+});
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   const m = mail.status();
