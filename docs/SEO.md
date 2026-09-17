@@ -240,7 +240,8 @@ When the real text is published, in each of the two files:
 - Title 15–65 characters ending in `· BOASIS`; description 50–160, written for a person
   deciding whether to click — not a keyword list.
 - Absolute `og:image`; re-use `/assets/icons/link-preview-1200x630.png` until there is a reason
-  not to.
+  not to. It is the logo on the brand navy (#17365E, the colour of the app icon), and its
+  dimensions are pinned by `test/seo.test.js`.
 - Add the page to the JSON-LD `@graph` on the page itself, with the site's own `@id`s.
 - Add the page to `test/seo.test.js`'s `PAGES` list, so its head is checked like the rest.
 - Run `npm test` before pushing: it fails loudly on all of the above, including a page that

@@ -99,6 +99,13 @@
 * The ticked box is the site's navy with a white check, written out in the stylesheet so no theme can wash it out.
 * smoke:dialogs now drives both forms: the homepage dialogs and the contact page. 92 checks, 0 failures.
 
+# What the link preview looks like now (17 September 2026)
+
+* Sharing boasis.ae on WhatsApp, X or Facebook shows one clean image: the exact BOASIS logo in white on the brand navy #17365E, centred on a 1200 by 630 canvas.
+* The orb in the O is your own asset (`assets/logo/orb-512.png`), and the letters are the site's own font (Outfit Medium), so nothing is redrawn by hand.
+* The file went from 672 KB to 45 KB, which also helps: several chat apps skip or shrink heavy preview images.
+* Same address as before, so no page markup changed. If a chat app still shows the old one, it is holding a cached copy of the link — sharing it once with a small query (`boasis.ae/?2`) or using Facebook's Sharing Debugger forces a fresh read.
+
 # Still to do
 
 * Push the branch so the live site gets all of this.
