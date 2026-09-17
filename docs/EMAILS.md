@@ -94,6 +94,7 @@ open and unused, because the guard still allows `POST /api/waitlist` to anyone w
 | Repeat recipients masked in the server log (`•••@domain`) | `mailer.js` |
 | `MAIL_DRY_RUN=1` prints the whole email instead of sending | `config/env.js` |
 | Bot-trapped submissions send nothing at all (they answer `{ok:true}` and are dropped) | `server.js` + `validate.js` |
+| A dropped submission is silent to the sender, but never to us: one bounded log line names the trap, the endpoint and the salted IP hash | `noteTrap` in `lib/protect.js` |
 | `npm run mail:check` renders all templates with a deliberately spammy payload; `--send` puts one real mail through the relay | `scripts/mail-check.js` |
 
 ## Known gaps, honestly
@@ -104,4 +105,10 @@ open and unused, because the guard still allows `POST /api/waitlist` to anyone w
   footer.
 - **The sender name is fixed** (`BOASIS <support@boasis.ae>`) plus an optional
   `MAIL_SUBJECT_PREFIX`, so the team can tag environment ("STAGING") if ever needed.
-- **Nothing logs a failed send beyond stdout** — no retry queue, no bounce handling.
+- **A failed send is logged, never retried.** `lib/mailer.js` prints `[mail:error]` with the
+  relay's own message and a hint when the relay refuses the client, and the visitor still sees
+  success. What does not exist is a retry queue or bounce handling — if the relay is down for
+  an hour, those emails are simply not sent, though the record on disk keeps the lead.
+- **No cap on total mail sent per hour or per day.** Eight form posts a minute per visitor is
+  the only ceiling, and the Google Workspace relay allows 10,000 recipients a day on the same
+  quota the staff mailboxes use.

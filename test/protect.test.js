@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { inspect } = require('../lib/protect');
+const { inspect, noteTrap } = require('../lib/protect');
 
 const ok = p => inspect(p).ok;
 
@@ -145,5 +145,32 @@ test('the files a search engine asks for by name are served, and only those', ()
 test('it never throws, whatever it is handed', () => {
   for (const junk of ['', ' ', '/', 0, {}, [], 'x'.repeat(5000), '/*', '\\\\', '\r\n/']) {
     assert.doesNotThrow(() => inspect(junk));
+  }
+});
+
+/* 17 September · a trapped submission is silent to the sender, never to us. The honeypot is
+   the one trap a real person can trip (autofill filling a hidden field), and their message
+   is the only copy that would ever exist — so it gets a log line, bounded so a flood cannot
+   fill the disk with them. Nothing here changes what the sender is told. */
+test('a dropped submission leaves a notice, and a flood cannot fill the log', () => {
+  const realNow = Date.now;
+  const realLog = console.log;
+  let clock = realNow();
+  const lines = [];
+  Date.now = () => clock;
+  console.log = (l) => lines.push(String(l));
+  try {
+    for (let i = 0; i < 12; i++) noteTrap('honeypot', '/api/contact · abc123');
+    assert.equal(lines.length, 10, 'ten lines a minute, then a count: got ' + lines.length);
+    assert.match(lines[0], /\[traps\] dropped · honeypot · \/api\/contact · abc123/);
+
+    clock += 61000;                       // the next minute
+    noteTrap('too-fast', '/api/demo · def456');
+    assert.equal(lines.length, 12, 'the new minute logs the summary and its own line');
+    assert.match(lines[10], /\u2026 and 2 more in the previous minute/);
+    assert.match(lines[11], /too-fast · \/api\/demo · def456/);
+  } finally {
+    Date.now = realNow;
+    console.log = realLog;
   }
 });

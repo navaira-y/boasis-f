@@ -14,7 +14,7 @@ const crypto = require('crypto');
 
 const config = require('./config/env');
 const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject } = require('./lib/validate');
-const { guard, securityHeaders, formGateLimit } = require('./lib/protect');
+const { guard, securityHeaders, formGateLimit, noteTrap } = require('./lib/protect');
 const mail = require('./lib/mailer');
 
 const app = express();
@@ -100,7 +100,16 @@ app.get('/api/first-visit', limitVisits, (req, res) => {
 /* both endpoints share the same door: right shape, then the bot traps, then the fields */
 const formGate = async (req, res, next) => {
   if (!plainObject(req.body)) return res.status(400).json({ ok: false, errors: ['body'] });
-  if (spamCheck(req, req.body || {}, config).spam) return res.json({ ok: true });
+  const check = spamCheck(req, req.body || {}, config);
+  if (check.spam) {
+    /* The sender is told the same {"ok":true} as a human — that is the trap working, and it
+       does not change here. What changes is that we are no longer blind: the line below is
+       the only trace a real person's message would leave if they ever tripped a trap
+       (see noteTrap in lib/protect.js). It logs a path and the salted hash, never an IP,
+       and never the field values. */
+    noteTrap(check.why.join(','), `${req.path} · ${req.ipHash || 'no-hash'}`);
+    return res.json({ ok: true });
+  }
   return next();
 };
 
