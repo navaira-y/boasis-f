@@ -33,6 +33,16 @@ own server.
 A script posting a thousand forms now pays that tenth of a second a thousand times, with no way
 to share one answer across them.
 
+## What the visitor sees
+
+* Clicking the box turns the small square into a spinner, then into the site's navy with a white
+  check, and the label reads `Verified`.
+* Pressing Join, Send or the last button of a dialog before the box is ticked says
+  `Please click the "I am not a robot" box first.`, puts the focus on the box, and sends nothing.
+  It never says "Sending" while nothing is going anywhere.
+* The two colours are written out in the stylesheet (`#17365E` and white) rather than taken from
+  the theme, because a check that goes invisible on one theme is worse than no check at all.
+
 ## What it costs us to run
 
 Nothing. No account, no quota, no API. The puzzle costs our server one HMAC, which is cheaper

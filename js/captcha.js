@@ -78,6 +78,10 @@
         field.value = payloadOf({ ...c, number });
         if (label) label.textContent = 'Verified';
         say('Thank you. You can send the form now.', 'done');
+        /* the form may still be saying "click the box first" from an earlier press: it is
+           ticked now, so that line has stopped being true and must not sit there */
+        const line = form.querySelector('.form-note');
+        if (line && /I am not a robot/.test(line.textContent)) { line.textContent = ''; line.className = 'form-note'; }
       } catch (e) {
         field.value = '';
         if (label) label.textContent = 'I am not a robot';

@@ -93,6 +93,12 @@
 * The FAQ answers on the page are used word for word, so an assistant can quote them as they are.
 * One thing to know: refusing Google training also takes you out of Gemini answers. Google Search and AI Overviews are not affected.
 
+# What the captcha fixes changed (17 September 2026)
+
+* Pressing Join or Send before the box is ticked now says 'Please click the "I am not a robot" box first.' and puts the cursor on the box. Before, the form said "Sending" and then quietly refused the send.
+* The ticked box is the site's navy with a white check, written out in the stylesheet so no theme can wash it out.
+* smoke:dialogs now drives both forms: the homepage dialogs and the contact page. 92 checks, 0 failures.
+
 # Still to do
 
 * Push the branch so the live site gets all of this.

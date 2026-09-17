@@ -687,10 +687,14 @@ a.j-next{text-decoration:none}
 .captcha-box:hover{border-color:var(--accent)}
 .captcha-box:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .captcha-box[disabled]{cursor:default;opacity:.85}
-.captcha-tick{width:19px;height:19px;flex:none;border:1.5px solid var(--line);border-radius:6px;position:relative;transition:border-color .2s,background .2s}
-.captcha.is-done .captcha-tick{background:var(--accent-fill);border-color:var(--accent-fill)}
+/* the box the visitor ticks: an outlined square that fills with the site's navy and takes a
+   white check once the browser has finished the puzzle. The two colours are written out
+   rather than taken from the theme, because a check that goes invisible on one theme is
+   worse than no check at all. */
+.captcha-tick{width:19px;height:19px;flex:none;border:1.5px solid #17365E;background:#fff;border-radius:6px;position:relative;transition:border-color .2s,background .2s}
+.captcha.is-done .captcha-tick{background:#17365E;border-color:#17365E}
 .captcha.is-done .captcha-tick::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
-  border:solid var(--accent-fill-text);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .captcha.is-busy .captcha-tick{border-color:var(--accent);border-top-color:transparent;animation:bo-spin .9s linear infinite;border-radius:50%}
 .captcha.is-bad .captcha-tick{border-color:#F2994A}
 @keyframes bo-spin{to{transform:rotate(360deg)}}

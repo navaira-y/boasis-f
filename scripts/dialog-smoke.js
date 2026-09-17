@@ -9,30 +9,42 @@ const BASE = process.env.BASE_URL || 'http://localhost:8080';
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('  ✗ ' + msg); } };
 
+/* what jsdom is missing, for both pages the smoke drives: media queries, a canvas context,
+   WebCrypto (the captcha box needs it, and Node's is the same API the browser exposes), and
+   a fetch that shouts until the pass below stubs it. */
+const ambient = window => {
+  window.matchMedia = q => ({ matches: false, media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
+  window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+  /* the orb and the sky are drawn on canvas; jsdom has no 2d context. A chainable no-op
+     keeps the page loading the way a real browser does — the smoke is about the logic, not
+     the pixels. */
+  const noop = new Proxy(function () {}, {
+    get: (t, p) => (p === 'canvas' ? { width: 800, height: 600, style: {} } : noop),
+    set: () => true,
+    apply: () => noop,
+  });
+  window.HTMLCanvasElement.prototype.getContext = () => noop;
+  Object.defineProperty(window.crypto, 'subtle', { value: require('crypto').webcrypto.subtle, configurable: true });
+  window.fetch = async () => { throw new Error('fetch not stubbed'); };
+};
+
+/* a real, signed challenge: the widget solves it the way it would in production */
+const challenge = () => {
+  const crypto = require('crypto');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const number = crypto.randomInt(0, 20000);
+  return {
+    algorithm: 'SHA-256', salt, maxNumber: 20000, expires: Date.now() + 600000,
+    challenge: crypto.createHash('sha256').update(salt + number).digest('hex'), signature: 'a'.repeat(64),
+  };
+};
+
 (async () => {
   const dom = await JSDOM.fromURL(BASE + '/', {
     runScripts: 'dangerously',
     resources: 'usable',
     pretendToBeVisual: true,
-    beforeParse(window) {
-      window.matchMedia = q => ({ matches: false, media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
-      window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
-      /* the orb and the sky are drawn on canvas; jsdom has no 2d context. A chainable
-         no-op keeps the page loading the way a real browser does — the smoke is about the
-         dialog logic, not the pixels. */
-      const noop = new Proxy(function () {}, {
-        get: (t, p) => (p === 'canvas' ? { width: 800, height: 600, style: {} } : noop),
-        set: () => true,
-        apply: () => noop,
-      });
-      window.HTMLCanvasElement.prototype.getContext = () => noop;
-      /* jsdom has no WebCrypto, and the captcha box needs it. Node's is the same API the
-         browser exposes, so the page's own widget can be driven here for real. */
-      Object.defineProperty(window.crypto, 'subtle', { value: require('crypto').webcrypto.subtle, configurable: true });
-      window.fetch = async () => {
-        throw new Error('fetch not stubbed');
-      };
-    },
+    beforeParse: ambient,
   });
   const { window } = dom;
   const { document } = window;
@@ -49,23 +61,22 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   const keydown = () => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   const key = (el, k) => el.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
+  /* the captcha box is part of every form: a person ticks it before the last button, so the
+     smoke ticks it too rather than leaning on the stub being forgiving. The solve is the
+     page's own — the fetch stub above hands it a real, signed challenge. */
+  const tick = async form => {
+    const box = form.querySelector('[data-captcha-start]');
+    const field = form.querySelector('input[name="altcha"]');
+    if (!box || !field) return;
+    click(box);
+    for (let i = 0; i < 100 && !field.value; i++) await new Promise(r => setTimeout(r, 100));
+  };
+
   /* a standing fetch stub: records the POSTs and answers like the API would */
   const posts = [];
   window.fetch = async (url, opts) => {
     /* the captcha's challenge: a real one, signed here, so the widget solves it for real */
-    if (String(url).includes('/api/captcha')) {
-      const crypto = require('crypto');
-      const salt = crypto.randomBytes(16).toString('hex');
-      const number = crypto.randomInt(0, 20000);
-      return {
-        ok: true, status: 200,
-        json: async () => ({
-          algorithm: 'SHA-256', salt, maxNumber: 20000, expires: Date.now() + 600000,
-          challenge: crypto.createHash('sha256').update(salt + number).digest('hex'),
-          signature: 'a'.repeat(64),
-        }),
-      };
-    }
+    if (String(url).includes('/api/captcha')) return { ok: true, status: 200, json: async () => challenge() };
     const body = JSON.parse(opts.body);
     posts.push({ url, body });
     return { ok: true, status: 200, json: async () => ({ ok: true, confirmed: true }) };
@@ -187,6 +198,7 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   ok(!cal.hidden, 'the calendar step is showing');
   ok(ef('.cal-frame iframe').src === 'https://calendar.app.google/53BYnSPnwgk92XRv8', 'the calendar loaded lazily, on arrival at step two');
 
+  await tick(ef('#demo-form'));
   click(ef('[data-final]'));
   await new Promise(r => setTimeout(r, 50));
   ok(!ef('.modal-done').hidden, 'the done step is showing');
@@ -241,6 +253,18 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   haveSel.value = 'yes'; change(haveSel);
   mf('select[name="count"]').value = '1-3';
   input(mf('input[name="authority"]'), 'SPARK Free Zone');
+  /* the box is a step of its own: pressing Join without it must say so on the spot and
+     post nothing, rather than saying "Sending" and letting the server refuse the form */
+  const beforeBox = posts.length;
+  submitForm(mf('#manage-form'));
+  await new Promise(r => setTimeout(r, 50));
+  ok(mf('.form-note').textContent === 'Please click the "I am not a robot" box first.', 'Join without the box says what to do: ' + mf('.form-note').textContent);
+  ok(posts.length === beforeBox, 'and nothing was posted');
+  ok(mf('.modal-done').hidden, 'and the done step stayed shut');
+
+  await tick(mf('#manage-form'));
+  ok(mf('input[name="altcha"]').value.length > 40, 'the box is ticked and carries its solved answer');
+  ok(mf('.form-note').textContent === '', 'and the line telling the visitor to click it is gone');
   submitForm(mf('#manage-form'));
   await new Promise(r => setTimeout(r, 50));
   ok(!mf('.modal-done').hidden, 'the done step is showing');
@@ -291,6 +315,46 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
     keydown();
   } else {
     console.log('  (no journey opener on this build; skipped)');
+  }
+
+  /* ── the contact page: the same two rules on the site's other form ─────────────── */
+  console.log('contact: send without the box, then with it');
+  {
+    const cdom = await JSDOM.fromURL(BASE + '/contact.html', {
+      runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, beforeParse: ambient,
+    });
+    const cw = cdom.window, cd = cw.document;
+    await Promise.race([new Promise(res => cw.addEventListener('load', res)), new Promise(res => setTimeout(res, 10000))]);
+    await new Promise(r => setTimeout(r, 400));
+    const cposts = [];
+    cw.fetch = async (url, opts) => {
+      if (String(url).includes('/api/captcha')) return { ok: true, status: 200, json: async () => challenge() };
+      cposts.push({ url, body: JSON.parse(opts.body) });
+      return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    };
+    const cform = cd.getElementById('contact-form');
+    const cnote = cform.querySelector('.form-note');
+    const cin = (el, v) => { el.value = v; el.dispatchEvent(new cw.Event('input', { bubbles: true })); };
+    const csubmit = () => cform.dispatchEvent(new cw.Event('submit', { bubbles: true, cancelable: true }));
+    cin(cform.querySelector('input[name="name"]'), 'Lena Karim');
+    cin(cform.querySelector('input[name="email"]'), 'lena@corp.com');
+    cin(cform.querySelector('input[name="phone"]'), '551112222');
+    cin(cform.querySelector('textarea[name="message"]'), 'I would like a demo of the manage side.');
+    csubmit();
+    await new Promise(r => setTimeout(r, 150));
+    ok(cnote.textContent === 'Please click the "I am not a robot" box first.', 'Send without the box says what to do: ' + cnote.textContent);
+    ok(cposts.length === 0, 'and nothing was posted');
+    ok(cd.activeElement === cform.querySelector('[data-captcha-start]'), 'with the focus on the box');
+    const cbox = cform.querySelector('[data-captcha-start]');
+    cbox.dispatchEvent(new cw.MouseEvent('click', { bubbles: true, cancelable: true }));
+    const cfield = cform.querySelector('input[name="altcha"]');
+    for (let i = 0; i < 100 && !cfield.value; i++) await new Promise(r => setTimeout(r, 100));
+    ok(cfield.value.length > 40, 'the box solved and holds its answer');
+    ok(cnote.textContent === '', 'and the line telling the visitor to click it is gone');
+    csubmit();
+    await new Promise(r => setTimeout(r, 150));
+    ok(cposts.length === 1 && cposts[0].url === '/api/contact', 'ticked, the send goes through to the contact endpoint');
+    ok(String(cposts[0].body.altcha || '').length > 40, 'carrying the solved answer');
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

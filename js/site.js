@@ -419,6 +419,20 @@ function modals() {
 
     const finish = async () => {
       if (!payload) return;
+      /* the box is a step like the others: pressing the button without it says so on the
+         spot, instead of saying "Sending" and quietly posting a form the server will refuse.
+         Step one is where the box lives, so the visitor is put back in front of it. */
+      const altcha = form.querySelector('input[name="altcha"]');
+      if (altcha && !altcha.value) {
+        const cal = d.querySelector('.modal-cal');
+        if (cal && !cal.hidden) { cal.hidden = true; form.hidden = false; }
+        const wn = liveNote();
+        wn.textContent = 'Please click the "I am not a robot" box first.';
+        wn.className = 'form-note err';
+        const start = form.querySelector('[data-captcha-start]');
+        if (start) start.focus();
+        return;
+      }
       const an = liveNote();
       an.textContent = 'Sending';
       an.className = 'form-note';

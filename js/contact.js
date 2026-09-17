@@ -110,6 +110,16 @@ function contactForm() {
     /* the number the owner reads: the code on the left, the number on the right, one string */
     data.phone = fullPhone(code(), data.phone) || data.phone;
 
+    /* the box is part of the form, so a send without it says so here rather than posting
+       something the server will refuse after the note has already said "Sending" */
+    if (!String(data.altcha || '').trim()) {
+      note.textContent = 'Please click the "I am not a robot" box first.';
+      note.className = 'form-note err';
+      const box = form.querySelector('[data-captcha-start]');
+      if (box) box.focus();
+      return;
+    }
+
     note.textContent = 'Sending';
     note.className = 'form-note';
     try {
