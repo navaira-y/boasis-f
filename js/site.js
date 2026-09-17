@@ -220,7 +220,7 @@ function waitlist() {
       const r = await fetch(form.dataset.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
       if (!r.ok) throw new Error(r.status);
       const plan = data.intent === 'enterprise' ? 'Enterprise' : 'Standard';
-      form.reset(); opened = 0; note.textContent = `You are on the list for ${plan}. One email when your access is ready.`; note.className = 'form-note ok';
+      form.reset(); opened = 0; note.textContent = `You are on the list for ${plan}. The next email comes when your access is ready.`; note.className = 'form-note ok';
     } catch (e) { note.textContent = 'That did not go through. Write to support@boasis.ae.'; note.className = 'form-note err'; }
   });
 }

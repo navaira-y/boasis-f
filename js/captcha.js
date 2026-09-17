@@ -94,7 +94,7 @@
       field.value = '';
       button.disabled = false;
       if (label) label.textContent = 'I am not a robot';
-      say('One click. No pictures to read.', '');
+      say('Click the box to continue.', '');
     }
     reset();
     return { reset, el };
