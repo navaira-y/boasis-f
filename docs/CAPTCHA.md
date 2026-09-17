@@ -60,6 +60,18 @@ than serving a CSS file.
 in the repo, and then a script could mint its own easy puzzle. The server prints a warning at
 startup while it is missing.
 
+### Where to set it, on Hostinger
+
+1. hPanel → the website → **Environment variables** in the dashboard sidebar.
+2. **Add environment variable** → Key `CAPTCHA_SECRET` → paste the value. No quotes, no spaces.
+3. Save. Hostinger redeploys the app, and the value reaches the running process.
+4. Check **Runtime Logs** in the same sidebar: the line `⚠ CAPTCHA_SECRET is empty` must be gone
+   from the newest boot. That warning is the only thing that changes — no code change, no
+   DNS, no account, nothing else to touch.
+
+Rotating the value later is safe: puzzles issued in the previous ten minutes stop working, and a
+visitor simply clicks the box again.
+
 ## The kill switch
 
 If the box ever breaks in production, the forms must not go down with it. Set
