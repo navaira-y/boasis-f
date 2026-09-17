@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const config = require('./config/env');
 const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject } = require('./lib/validate');
 const { guard, securityHeaders, formGateLimit, noteTrap } = require('./lib/protect');
+const captcha = require('./lib/captcha');
 const mail = require('./lib/mailer');
 
 const app = express();
@@ -97,6 +98,20 @@ app.get('/api/first-visit', limitVisits, (req, res) => {
   res.set('Cache-Control', 'no-store').json({ first });
 });
 
+/* ── the captcha · one puzzle per visit, signed by us ──────────────────────────
+   The widget asks for this when the visitor clicks the box, solves it in their browser,
+   and posts the answer back in a field named `altcha`. Nothing about the visitor is sent
+   anywhere, and nothing is stored: the challenge carries its own proof in the signature. */
+/* No rate limit on purpose. Minting a challenge is 16 random bytes and one HMAC — cheaper
+   than serving /css/site.css — and it is the *posts* that must stay rationed, not the
+   asking. Putting it in the visitor bucket also made every submission count twice against
+   the form limit, which the rate-limit tests would have been right to catch. */
+app.get('/api/captcha', (req, res) => {
+  res.set('Cache-Control', 'no-store').json(captcha.makeChallenge(config.captcha.secret, {
+    maxNumber: config.captcha.difficulty,
+  }));
+});
+
 /* both endpoints share the same door: right shape, then the bot traps, then the fields */
 const formGate = async (req, res, next) => {
   if (!plainObject(req.body)) return res.status(400).json({ ok: false, errors: ['body'] });
@@ -110,14 +125,32 @@ const formGate = async (req, res, next) => {
     noteTrap(check.why.join(','), `${req.path} · ${req.ipHash || 'no-hash'}`);
     return res.json({ ok: true });
   }
+  /* The traps ran first and still decide silently, exactly as before. The captcha is the
+     next door: anything that looks like a person (or a script careful enough to pass for
+     one) now has to answer a puzzle it cannot cheaply fake. It is deliberately told *that*
+     it failed — that is a captcha's whole contract with the visitor — and nothing else.
+     If the widget is ever broken in production, CAPTCHA_DISABLED=1 opens this door again. */
+  if (config.captcha.disabled) return next();
+  const answer = captcha.verify(config.captcha.secret, req.body.altcha);
+  if (!answer.ok) {
+    noteTrap('captcha:' + answer.why, `${req.path} · ${req.ipHash || 'no-hash'}`);
+    return res.status(400).json({ ok: false, errors: ['captcha'] });
+  }
+  req.captcha = answer;                 // burned only once the send is real (see below)
   return next();
 };
+
+/* A solved puzzle is spent the moment a submission is accepted, so it cannot be posted
+   twice. A form that came back with a field error is not accepted, so the visitor fixes it
+   and sends again without solving a second puzzle. */
+const spendCaptcha = req => { if (req.captcha) captcha.consume(req.captcha.tag, req.captcha.expires); };
 
 app.post('/api/waitlist', limitForms, formGate, async (req, res) => {
   /* shape and bot traps already passed in formGate. A script that gets here is told the
      same {"ok":true} as a human, so it cannot use our error messages to tune itself. */
   const in_ = waitlistInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+  spendCaptcha(req);
 
   const record = { name: in_.name, email: in_.email, intent: in_.intent, business: in_.business, at: new Date().toISOString() };
   const list = readJson(waitlistFile, []);
@@ -132,6 +165,7 @@ app.post('/api/waitlist', limitForms, formGate, async (req, res) => {
 app.post('/api/contact', limitForms, formGate, async (req, res) => {
   const in_ = contactInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+  spendCaptcha(req);
 
   const record = {
     name: in_.name, email: in_.email, phone: in_.phone,
@@ -152,6 +186,7 @@ app.post('/api/contact', limitForms, formGate, async (req, res) => {
 app.post('/api/demo', limitForms, formGate, async (req, res) => {
   const in_ = demoInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+  spendCaptcha(req);
 
   const record = {
     name: in_.name, email: in_.email, phone: in_.phone,
@@ -168,6 +203,7 @@ app.post('/api/demo', limitForms, formGate, async (req, res) => {
 app.post('/api/manage', limitForms, formGate, async (req, res) => {
   const in_ = manageInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+  spendCaptcha(req);
 
   const record = {
     name: in_.name, email: in_.email, phone: in_.phone,

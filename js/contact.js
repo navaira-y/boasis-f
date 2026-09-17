@@ -122,16 +122,19 @@ function contactForm() {
            reaches the visitor here. Known names land under their field; anything unknown is
            named plainly rather than dropped, and the address below is the fallback that
            never depends on the API being happy. */
-        const names = { name: 'your name', email: 'your email address', phone: 'your phone number', message: 'a short message' };
+        const names = { name: 'your name', email: 'your email address', phone: 'your phone number', message: 'a short message', captcha: 'the verification box' };
         const e = (j.errors || []).filter(x => names[x]);
         e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
         note.textContent = e.length
           ? 'Please check the fields marked above.'
           : 'Please try again, or write to support@boasis.ae.';
         note.className = 'form-note err';
+        /* a spent or failed puzzle must be solved again, so the box goes back to its start */
+        if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
         return;
       }
       form.reset(); opened = 0;
+      if (window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
       if (stamp) stamp.value = '';
       /* the picker is not a form control: a reset empties the box but leaves the button
          saying the country the visitor picked, so it is put back deliberately */

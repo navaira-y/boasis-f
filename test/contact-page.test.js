@@ -30,6 +30,7 @@ before(async () => {
 });
 after(() => { proc.kill('SIGTERM'); try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) {} });
 
+const { withCaptcha } = require('./helpers/captcha');
 const get = p => fetch(base + p);
 const HUMAN = () => ({ _t: Date.now() - 12000 });
 /* exactly the body the browser sends: FormData of the form, JSON.stringify'd */
@@ -315,7 +316,8 @@ test('bots get the same fake success here as they do on the list', async () => {
    not a form. It sends what the browser sends, and requires the lead to land and the mail to
    be queued. */
 test('the form submits end to end: stored, and both mails queued', async () => {
-  const body = formPayload();                       // exactly what js/contact.js posts
+  /* exactly what js/contact.js posts, plus the solved captcha the widget puts in the form */
+  const body = await withCaptcha(base, formPayload());
   const r = await fetch(base + '/api/contact', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
   });

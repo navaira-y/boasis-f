@@ -426,7 +426,7 @@ function modals() {
         const r = await fetch(form.dataset.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || j.ok === false) {
-          const names = { name: 'your name', email: 'your email address', phone: 'your phone number', who: 'who you are', entity: 'the name field', have: 'that answer', count: 'that answer', authority: 'the authority', plans: 'that sentence' };
+          const names = { name: 'your name', email: 'your email address', phone: 'your phone number', who: 'who you are', entity: 'the name field', have: 'that answer', count: 'that answer', authority: 'the authority', plans: 'that sentence', captcha: 'the verification box' };
           const e = (j.errors || []).filter(x => names[x]);
           e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
           const cal = d.querySelector('.modal-cal');
@@ -434,6 +434,8 @@ function modals() {
           const wn = liveNote();                                            // the line goes where the visitor is looking
           wn.textContent = e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.';
           wn.className = 'form-note err';
+          /* a spent or failed puzzle must be solved again, so the box goes back to its start */
+          if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
           return;
         }
         form.hidden = true;
@@ -494,6 +496,7 @@ function modals() {
       d.querySelectorAll('.mf-pill.bad').forEach(p => p.classList.remove('bad'));
       d.querySelectorAll('.form-note').forEach(n => { n.textContent = ''; n.className = 'form-note'; });
       payload = null;
+      if (window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
       arm();
     });
   });

@@ -535,6 +535,14 @@
         <div class="mf-pill"><label><span class="sr">Name of your company</span><input name="entity" type="text" autocomplete="organization" placeholder="Name of your company"></label></div>
         <p class="mf-err" data-err="entity" aria-live="polite" hidden></p>
       </div>
+      <div class="captcha" data-captcha>
+        <button class="captcha-box" type="button" data-captcha-start>
+          <span class="captcha-tick" aria-hidden="true"></span>
+          <span class="captcha-label">I am not a robot</span>
+        </button>
+        <input type="hidden" name="altcha" value="">
+        <p class="captcha-note" data-captcha-note>One click. No pictures to read.</p>
+      </div>
       <div class="mf-foot">
         <button class="btn btn-light" type="submit">Next</button>
         <p class="form-note" aria-live="polite"></p>
@@ -623,6 +631,14 @@
         <div class="mf-pill"><label><span class="sr">Thinking of opening one</span><input name="plans" type="text" autocomplete="off" placeholder="Thinking of opening one? Describe it in a sentence"></label></div>
         <p class="mf-err" data-err="plans" aria-live="polite" hidden></p>
       </div>
+      <div class="captcha" data-captcha>
+        <button class="captcha-box" type="button" data-captcha-start>
+          <span class="captcha-tick" aria-hidden="true"></span>
+          <span class="captcha-label">I am not a robot</span>
+        </button>
+        <input type="hidden" name="altcha" value="">
+        <p class="captcha-note" data-captcha-note>One click. No pictures to read.</p>
+      </div>
       <div class="mf-foot">
         <button class="btn btn-light" type="submit">Join</button>
         <p class="form-note" aria-live="polite"></p>
@@ -642,5 +658,6 @@
 <script src="/js/news.js"></script>
 <script src="/js/countries.js"></script>
 <script src="/js/site.js"></script>
+<script src="/js/captcha.js"></script>
 </body>
 </html>

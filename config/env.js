@@ -89,6 +89,18 @@ const config = {
     blockFreeMail: bool('SPAM_BLOCK_FREE_MAIL', false), // optional: refuse gmail/yahoo/etc on the waitlist
   },
 
+  /* ── the captcha: a proof of work we run ourselves ──
+     The secret signs the puzzles, so a script cannot invent its own easy one. It falls back
+     to VISITOR_SALT on a fresh clone, and the boot warning says so out loud. The kill switch
+     exists for one reason: if the widget ever breaks in production, the forms must not go
+     down with it — CAPTCHA_DISABLED=1 and the site trades the captcha for the traps it had
+     before, with no deploy. */
+  captcha: {
+    secret: str('CAPTCHA_SECRET', '') || str('VISITOR_SALT', '') || 'boasis-dev-only',
+    difficulty: num('CAPTCHA_DIFFICULTY', 20000),   // the search space; half of it is the average
+    disabled: bool('CAPTCHA_DISABLED', false),
+  },
+
   /* ── abuse limits ──
      Forms: 8 a minute per visitor is generous for a human and ruinous for a script. The
      relay also caps at 100 recipients per transaction and 10,000 a day, so a flood here
@@ -114,6 +126,7 @@ if (config.mail.notifyTo.some(a => addrOf(a).split('@')[1] !== config.mail.fromD
 if (SMTP_USER && !SMTP_PASS) problems.push('SMTP_USER is set but SMTP_PASS is not · the relay needs both');
 if (!SMTP_USER && SMTP_PASS) problems.push('SMTP_PASS is set but SMTP_USER is not · the relay needs both');
 if (!config.visitorSalt) problems.push('VISITOR_SALT is empty · set a private one in production');
+if (!str('CAPTCHA_SECRET', '')) problems.push('CAPTCHA_SECRET is empty · the captcha is signing puzzles with the visitor salt');
 config.problems = problems;
 
 module.exports = config;

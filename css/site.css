@@ -676,3 +676,25 @@ a.j-next{text-decoration:none}
 @keyframes spotPulse{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
 @media (max-width:640px){.spot-hint{font-size:11px;padding:4px 8px 4px 9px;right:calc(100% + 8px)}}
 @media (prefers-reduced-motion:reduce){.solve-panel.lit:not(.open) .spot-mark::after{animation:none}}
+
+/* ── the captcha box ──────────────────────────────────────────────────────────
+   One click, no pictures. Reads like the site's own pills, and says what it is
+   doing while it works, because a frozen-looking form is worse than no captcha. */
+.captcha{display:flex;flex-direction:column;gap:8px;margin:2px 0 6px}
+.captcha-box{display:inline-flex;align-items:center;gap:11px;align-self:flex-start;padding:12px 18px 12px 14px;
+  border:1px solid var(--line);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);
+  font-family:var(--font-body);font-size:14px;font-weight:500;cursor:pointer;transition:border-color .2s,background .2s}
+.captcha-box:hover{border-color:var(--accent)}
+.captcha-box:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.captcha-box[disabled]{cursor:default;opacity:.85}
+.captcha-tick{width:19px;height:19px;flex:none;border:1.5px solid var(--line);border-radius:6px;position:relative;transition:border-color .2s,background .2s}
+.captcha.is-done .captcha-tick{background:var(--accent-fill);border-color:var(--accent-fill)}
+.captcha.is-done .captcha-tick::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid var(--accent-fill-text);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.captcha.is-busy .captcha-tick{border-color:var(--accent);border-top-color:transparent;animation:bo-spin .9s linear infinite;border-radius:50%}
+.captcha.is-bad .captcha-tick{border-color:#F2994A}
+@keyframes bo-spin{to{transform:rotate(360deg)}}
+.captcha-note{margin:0;font-size:12.5px;line-height:1.55;color:var(--text-muted)}
+.captcha.is-bad .captcha-note{color:#F2994A}
+.captcha.is-done .captcha-note{color:var(--fresh)}
+@media (prefers-reduced-motion: reduce){.captcha.is-busy .captcha-tick{animation:none}}

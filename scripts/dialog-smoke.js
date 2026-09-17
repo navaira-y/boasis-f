@@ -26,6 +26,9 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
         apply: () => noop,
       });
       window.HTMLCanvasElement.prototype.getContext = () => noop;
+      /* jsdom has no WebCrypto, and the captcha box needs it. Node's is the same API the
+         browser exposes, so the page's own widget can be driven here for real. */
+      Object.defineProperty(window.crypto, 'subtle', { value: require('crypto').webcrypto.subtle, configurable: true });
       window.fetch = async () => {
         throw new Error('fetch not stubbed');
       };
@@ -49,6 +52,20 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   /* a standing fetch stub: records the POSTs and answers like the API would */
   const posts = [];
   window.fetch = async (url, opts) => {
+    /* the captcha's challenge: a real one, signed here, so the widget solves it for real */
+    if (String(url).includes('/api/captcha')) {
+      const crypto = require('crypto');
+      const salt = crypto.randomBytes(16).toString('hex');
+      const number = crypto.randomInt(0, 20000);
+      return {
+        ok: true, status: 200,
+        json: async () => ({
+          algorithm: 'SHA-256', salt, maxNumber: 20000, expires: Date.now() + 600000,
+          challenge: crypto.createHash('sha256').update(salt + number).digest('hex'),
+          signature: 'a'.repeat(64),
+        }),
+      };
+    }
     const body = JSON.parse(opts.body);
     posts.push({ url, body });
     return { ok: true, status: 200, json: async () => ({ ok: true, confirmed: true }) };
@@ -235,6 +252,38 @@ const ok = (cond, msg) => { if (cond) { pass++; } else { fail++; console.error('
   /* ── the journey builds its own "Book a demo" after the page has wired up:
        the delegated handler must still open the dialog for it ───────────────── */
   console.log('journey opener (built late) also opens the dialog');
+
+  /* ── the captcha box: clicked, solved, posted, and reset ───────────────── */
+  console.log('captcha');
+  {
+    const demo = $('#modal-demo');
+    const openDemo = $('.j-next[data-open="demo"]') || $('[data-open="demo"]');
+    click(openDemo);
+    const form = ef('#demo-form');
+    const box = form.querySelector('[data-captcha-start]');
+    const field = form.querySelector('input[name="altcha"]');
+    ok(!!box && !!field, 'the demo form carries a captcha box and its hidden field');
+    if (box) {
+      click(box);
+      /* the browser's search, in jsdom: wait for the answer rather than guess how long it
+         takes, because a busy machine is slower than a quiet one and a flaky check is worse
+         than no check */
+      for (let i = 0; i < 100 && !field.value; i++) await new Promise(r => setTimeout(r, 100));
+      ok(field.value.length > 40, 'clicking it fills the hidden field with a solved answer');
+      ok(/is-done/.test(form.querySelector('.captcha').className), 'and the box says it is done');
+      ok(box.querySelector('.captcha-label').textContent === 'Verified', 'with the label a person reads');
+      /* a used puzzle must not be posted twice: closing the dialog puts the box back */
+      keydown();
+      click(openDemo);
+      const box2 = ef('#demo-form').querySelector('[data-captcha-start]');
+      ok(ef('#demo-form').querySelector('input[name="altcha"]').value === '', 'and reopening it clears the spent answer');
+      ok(!/is-done/.test(ef('#demo-form').querySelector('.captcha').className), 'with the box back to its start');
+      ok(box2 && !box2.disabled, 'ready to be solved again');
+      keydown();
+    }
+  }
+
+  /* the journey opener, when the build has one */
   const late = document.querySelector('.j-next[data-open="demo"]');
   if (late) {
     click(late);

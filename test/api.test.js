@@ -29,9 +29,18 @@ async function up() {
   base = 'http://127.0.0.1:' + /port (\d+)/.exec(log)[1];
   return base;
 }
-const post = (p, body, headers = {}) => fetch(base + p, {
-  method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body),
-});
+const { withCaptcha } = require('./helpers/captcha');
+/* A form body gets a solved puzzle attached, exactly as the browser posts it. Anything
+   that is deliberately not a form (a malformed string, an array) is sent untouched, and a
+   trapped post never reaches the captcha at all — the traps stay first on purpose. */
+const post = async (p, body, headers = {}) => {
+  const isForm = body !== null && typeof body === 'object' && !Array.isArray(body);
+  const sent = isForm ? await withCaptcha(base, body) : body;
+  return fetch(base + p, {
+    method: 'POST', headers: { 'content-type': 'application/json', ...headers },
+    body: typeof sent === 'string' ? sent : JSON.stringify(sent),
+  });
+};
 const get = p => fetch(base + p);
 const HUMAN = () => ({ _t: Date.now() - 12000 });
 const read = f => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));

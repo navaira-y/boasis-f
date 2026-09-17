@@ -164,6 +164,14 @@
       </div>
       <p class="ct-err" data-err="message" aria-live="polite" hidden></p>
 
+      <div class="captcha" data-captcha>
+        <button class="captcha-box" type="button" data-captcha-start>
+          <span class="captcha-tick" aria-hidden="true"></span>
+          <span class="captcha-label">I am not a robot</span>
+        </button>
+        <input type="hidden" name="altcha" value="">
+        <p class="captcha-note" data-captcha-note>One click. No pictures to read.</p>
+      </div>
       <div class="ct-foot">
         <button class="btn btn-light" type="submit">Send</button>
         <p class="form-note" aria-live="polite"></p>
@@ -209,5 +217,6 @@
 
 <script src="/js/countries.js"></script>
 <script src="/js/contact.js"></script>
+<script src="/js/captcha.js"></script>
 </body>
 </html>

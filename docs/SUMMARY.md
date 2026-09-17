@@ -35,6 +35,16 @@
 * If sending fails there is no retry and no bounce handling.
 * One endpoint, /api/waitlist, is dead. No page uses it, but it is still open and still live.
 
+# What things did in captcha
+
+* Every form now has one box to click before it can be sent.
+* No pictures to read, no third party, no account, and no monthly fee.
+* The visitor's own browser does a small sum. A spam script would have to do it thousands of times.
+* One solved box works for one send only. A mistake in a field does not waste it.
+* Our server checks the answer itself, so nothing about the visitor goes anywhere.
+* If the box ever breaks, one setting turns it off and the older protection carries on.
+* Set CAPTCHA_SECRET on the server. The site warns at startup while it is missing.
+
 # What things did in SEO
 
 * Every page has its own title and description, checked for the right length.

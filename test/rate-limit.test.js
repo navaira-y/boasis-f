@@ -23,13 +23,18 @@ const start = env => new Promise((res, rej) => {
   setTimeout(() => rej(new Error('never bound a port: ' + log)), 12000);
 });
 
-/* a request that must never be allowed to hang the suite: no server answer is a failure */
-const post = (port, p, body, ms = 4000) => {
+const { withCaptcha } = require('./helpers/captcha');
+
+/* a request that must never be allowed to hang the suite: no server answer is a failure.
+   It carries a solved captcha, because these are honest submissions: the limiter sits in
+   front of the captcha, so the ones that get a 429 never reach it anyway. */
+const post = async (port, p, body, ms = 8000) => {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
+  const sent = await withCaptcha(`http://127.0.0.1:${port}`, { ...body, _t: Date.now() - 12000 });
   return fetch(`http://127.0.0.1:${port}${p}`, {
     method: 'POST', signal: ac.signal,
-    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, _t: Date.now() - 12000 }),
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify(sent),
   }).finally(() => clearTimeout(t));
 };
 
