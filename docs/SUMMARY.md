@@ -45,6 +45,18 @@
 * If the box ever breaks, one setting turns it off and the older protection carries on.
 * Set CAPTCHA_SECRET on the server. The site warns at startup while it is missing.
 
+# What things did in limits and security
+
+* The rate limit could be skipped by lying about who you are. That is fixed.
+* Only the address our own proxy really saw is counted now, so a made up one is ignored.
+* Proof: one attacker trying twelve made up addresses gets 8 through and 4 refused. Twelve real visitors all get through.
+* Added limits for the whole site, not one visitor. These cannot be moved by any header.
+* Added a cap on how much mail the site will send in an hour and a day. Past it, leads are still saved and the visitor still sees success, but sending stops. This is what protects your inbox and your Google quota.
+* Added a cap on new visitor records, so invented visitors cannot churn the disk.
+* Everything tripping a limit writes one clear line in the log. The site now says in its log when it is being flooded.
+* Added a way to check that setting after a deploy. Open https://boasis.ae/api/health and it tells you the address the server saw for you. Compare it with your address from any whatismyip page.
+* Measured at size: with 10,000 leads stored, a form submission costs the server 15 milliseconds.
+
 # What things did in SEO
 
 * Every page has its own title and description, checked for the right length.

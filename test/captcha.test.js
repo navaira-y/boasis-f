@@ -77,7 +77,7 @@ let proc, base;
 
 const start = async env => {
   proc = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
-    cwd: ROOT, env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 't', RATE_LIMIT_FORMS_PER_MIN: '1000', ...env },
+    cwd: ROOT, env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 't', RATE_LIMIT_FORMS_PER_MIN: '1000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';

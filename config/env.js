@@ -76,6 +76,12 @@ const config = {
     // who gets told: comma-separated, so one variable covers a team
     notifyTo: str('MAIL_NOTIFY_TO', 'support@boasis.ae').split(',').map(s => s.trim()).filter(isEmail),
     subjectPrefix: str('MAIL_SUBJECT_PREFIX', ''),
+    /* The relay allows 10,000 recipients a day and shares that quota with the staff
+       mailboxes. Two emails go out per submission, so the day cap is also the point where
+       a flood would start eating the company's own mail. Past it, leads are still stored
+       and the visitor still sees success: only the sending stops. */
+    maxPerHour: num('MAIL_MAX_PER_HOUR', 60),
+    maxPerDay: num('MAIL_MAX_PER_DAY', 400),
     /* the relay will only accept "From:" inside the domains it serves; a typo here fails
        every send with a confusing TLS-looking error, so catch it at boot. */
     fromDomain: addrOf(configFrom).split('@')[1] || '',
@@ -101,6 +107,13 @@ const config = {
     disabled: bool('CAPTCHA_DISABLED', false),
   },
 
+  /* ── how many proxies sit in front of us ──
+     Express trusts X-Forwarded-For only up to this many hops, and it is what makes a
+     forged header useless. 1 means "one proxy, and it appends the real client", which is
+     the shape of shared hosting. Too low and every visitor shares one bucket; too high and
+     a header can be invented again. TRUST_PROXY=0 ignores the header entirely. */
+  trustProxy: Math.max(1, num('TRUST_PROXY', 1)),
+
   /* ── abuse limits ──
      Forms: 8 a minute per visitor is generous for a human and ruinous for a script. The
      relay also caps at 100 recipients per transaction and 10,000 a day, so a flood here
@@ -109,6 +122,14 @@ const config = {
   limits: {
     forms: num('RATE_LIMIT_FORMS_PER_MIN', 8),
     visits: num('RATE_LIMIT_VISITS_PER_MIN', 60),
+    /* The caps below count the whole site, so they hold even when the per-visitor bucket
+       is fooled. Generous on purpose: a quiet day never comes near them, and a flood stops
+       at a number the owner can live with instead of one the header decides. */
+    formsPerMin: num('GLOBAL_FORMS_PER_MIN', 60),
+    formsPerDay: num('GLOBAL_FORMS_PER_DAY', 2000),
+    captchaPerMin: num('GLOBAL_CAPTCHA_PER_MIN', 600),
+    visitsPerMin: num('GLOBAL_VISITS_PER_MIN', 900),
+    newVisitorsPerMin: num('NEW_VISITORS_PER_MIN', 200),
   },
 
   /* where the sign-ups are kept, as JSON. Swap for a DB when this grows. */

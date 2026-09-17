@@ -16,7 +16,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 async function up() {
   proc = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
     cwd: ROOT,
-    env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 'test-salt' , RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000' },
+    env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 'test-salt' , RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';
@@ -267,6 +267,10 @@ test('every API route answers with JSON, not the catch-all page', async () => {
   assert.ok(['live', 'dry-run'].includes(h.mail));
   assert.ok(!('apiKey' in h) && !('notifyTo' in h), 'health must not leak config');
   assert.match(h.node, /^\d+\./, 'and it does report the runtime');
+  /* the proxy probe: it answers with the caller's own address so the trust proxy setting can
+     be checked after a deploy, and with nothing about anyone else */
+  assert.equal(typeof h.yourIp, 'string', 'health reports the address it resolved for this request');
+  assert.equal(typeof h.proxyHops, 'number', 'and how many proxy hops it believes');
 });
 
 test('first-visit is a hash, never an address, and second call is not first', async () => {

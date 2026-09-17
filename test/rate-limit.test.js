@@ -38,6 +38,66 @@ const post = async (port, p, body, ms = 8000) => {
   }).finally(() => clearTimeout(t));
 };
 
+/* the raw helper: sends whatever X-Forwarded-For the test asks for, solved captcha and all */
+const postAs = async (port, p, body, xff) => {
+  const sent = await withCaptcha(`http://127.0.0.1:${port}`, { ...body, _t: Date.now() - 12000 });
+  return fetch(`http://127.0.0.1:${port}${p}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(xff ? { 'x-forwarded-for': xff } : {}) },
+    body: JSON.stringify(sent),
+  });
+};
+
+test('a forged X-Forwarded-For cannot buy a fresh bucket (the hole that was here)', async () => {
+  /* This is the bug in full: trust proxy was `true`, so Express believed the whole header
+     and req.ip became whatever the caller typed. Twelve posts under twelve made-up names
+     all passed. Now only the hop our own proxy appended is read, so the made-up part is
+     ignored and the bucket is the same one. */
+  const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '3', TRUST_PROXY: '1' });
+  try {
+    const codes = [];
+    for (let i = 0; i < 6; i++) {
+      /* what a real proxy produces when the caller also sent a header: theirs, then the truth */
+      const r = await postAs(port, '/api/waitlist', { name: 'P' + i, email: `spoof${i}@boasis.ae`, intent: 'standard' }, `10.0.0.${i}, 203.0.113.9`);
+      codes.push(r.status);
+    }
+    assert.equal(codes.filter(c => c === 200).length, 3, 'exactly the limit may pass: ' + codes.join(','));
+    assert.equal(codes.filter(c => c === 429).length, 3, 'a new invented address must not win a new bucket: ' + codes.join(','));
+  } finally { proc.kill('SIGTERM'); }
+});
+
+test('when the header is the only thing that changes, the site-wide cap still holds', async () => {
+  /* The belt to the per-visitor braces: this cap counts the whole site, so it cannot be
+     escaped by any header at all. */
+  const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '1000', GLOBAL_FORMS_PER_MIN: '3', TRUST_PROXY: '1' });
+  try {
+    const codes = [];
+    for (let i = 0; i < 6; i++) {
+      const r = await postAs(port, '/api/waitlist', { name: 'Q' + i, email: `global${i}@boasis.ae`, intent: 'standard' }, `172.16.0.${i}, 203.0.113.9`);
+      codes.push(r.status);
+    }
+    assert.equal(codes.filter(c => c === 200).length, 3, 'the site cap must stop it: ' + codes.join(','));
+    assert.equal(codes.filter(c => c === 429).length, 3, 'and answer honestly rather than hang: ' + codes.join(','));
+  } finally { proc.kill('SIGTERM'); }
+});
+
+test('the sending budget stops the mail, and the lead is still kept', async () => {
+  /* The owner's actual complaint is a full inbox. Past the budget the emails stop, the
+     visitor still sees success, and the record stays on disk. */
+  const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '1000', GLOBAL_FORMS_PER_MIN: '100', MAIL_MAX_PER_HOUR: '2' });
+  try {
+    const answers = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await post(port, '/api/waitlist', { name: 'M' + i, email: `budget${i}@boasis.ae`, intent: 'standard' });
+      answers.push(await r.json());
+    }
+    assert.equal(answers[0].confirmed, true, 'the first submission mails as normal');
+    assert.equal(answers[2].confirmed, false, 'past the budget nothing is sent');
+    const stored = JSON.parse(fs.readFileSync(path.join(DATA, 'waitlist.json'), 'utf8'));
+    assert.equal(stored.filter(e => /^budget\d@boasis\.ae$/.test(e.email)).length, 3, 'but every lead is still stored');
+  } finally { proc.kill('SIGTERM'); }
+});
+
 test('a rate limited POST answers instead of hanging (the forgotten next() bug)', async () => {
   const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '1000' });
   try {

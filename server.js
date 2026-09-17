@@ -14,7 +14,7 @@ const crypto = require('crypto');
 
 const config = require('./config/env');
 const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject } = require('./lib/validate');
-const { guard, securityHeaders, formGateLimit, noteTrap } = require('./lib/protect');
+const { guard, securityHeaders, formGateLimit, globalGate, noteTrap } = require('./lib/protect');
 const captcha = require('./lib/captcha');
 const mail = require('./lib/mailer');
 
@@ -47,7 +47,12 @@ const contactFile = path.join(DATA, 'contact.json');
 const demoFile = path.join(DATA, 'demo.json');
 const manageFile = path.join(DATA, 'manage.json');
 
-app.set('trust proxy', true);                  // Hostinger sits behind a proxy; req.ip is then the real client
+/* How many proxies to believe. This used to be `true`, which means "believe every
+   X-Forwarded-For", and that made the per-visitor rate limit free to skip: a script could
+   invent a new address on every post. Counting hops instead means only the entries a real
+   proxy appended are read, so a made-up one is ignored. TRUST_PROXY=1 is one proxy that
+   appends the client; if Hostinger ever puts a CDN in front, TRUST_PROXY=2 says so. */
+app.set('trust proxy', config.trustProxy);
 app.disable('x-powered-by');                   // do not advertise the stack
 app.use(express.json({ limit: '20kb' }));
 
@@ -59,6 +64,17 @@ app.use(guard);
 app.use(securityHeaders);
 
 /* ── the API ───────────────────────────────────────────────────────────────── */
+
+/* Writing a first-visit record costs a file rewrite, and an attacker who forges identities
+   can ask for one per request. This budgets the WRITES, not the reads: a visitor we have
+   already seen is answered from memory of the file and costs nothing, so a real crowd is
+   unaffected even when the budget for new records is spent. */
+let newVisitorAt = -1, newVisitorCount = 0;
+function newVisitorBudget() {
+  const minute = Math.floor(Date.now() / 60000);
+  if (minute !== newVisitorAt) { newVisitorAt = minute; newVisitorCount = 0; }
+  return ++newVisitorCount <= config.limits.newVisitorsPerMin;
+}
 const ipHash = req => {
   const ip = req.ip || (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || '';
   return crypto.createHash('sha256').update(SALT + ip).digest('hex').slice(0, 16);
@@ -74,6 +90,13 @@ const bucket = (req, res, next) => { req.ipHash = ipHash(req); return next(); };
 const limitForms = [bucket, formGateLimit(config.limits.forms)];
 const limitVisits = [bucket, formGateLimit(config.limits.visits)];
 
+/* the whole-site caps: the visitor bucket first, so one noisy visitor never spends the
+   site's budget, then the cap that no header can move */
+const capForms = globalGate({ name: 'form submissions', perMinute: config.limits.formsPerMin, perDay: config.limits.formsPerDay });
+const capCaptcha = globalGate({ name: 'captcha challenges', perMinute: config.limits.captchaPerMin });
+const capVisits = globalGate({ name: 'first-visit checks', perMinute: config.limits.visitsPerMin });
+const gateForms = [...limitForms, capForms];
+
 /* a small readiness endpoint, so Hostinger's monitor and the test suite can ask
    "is it up" without a browser. It answers with no secrets and no customer data. */
 app.get('/api/health', (req, res) => {
@@ -81,14 +104,20 @@ app.get('/api/health', (req, res) => {
   res.set('Cache-Control', 'no-store').json({
     ok: true, uptime: Math.round(process.uptime()), node: process.versions.node,
     mail: (m.enabled && !m.dryRun) ? 'live' : 'dry-run', recipients: m.notify.length,
+    /* your own address, as this server resolves it — nothing else, and nothing of anyone
+       else's. It is here to answer one question after a deploy: is the proxy hop count
+       right? Ask a "what is my IP" page for yours, then ask this. Same address means the
+       rate limits are counting per visitor as intended; a Hostinger address means the
+       header is being read further in than it should be (see TRUST_PROXY in docs/LIMITS.md). */
+    yourIp: req.ip || null, proxyHops: config.trustProxy,
   });
 });
 
-app.get('/api/first-visit', limitVisits, (req, res) => {
+app.get('/api/first-visit', limitVisits, capVisits, (req, res) => {
   const key = ipHash(req);
   const seen = readJson(visitorsFile, {});
   const first = !seen[key];
-  if (first) {
+  if (first && newVisitorBudget()) {
     const keys = Object.keys(seen);
     if (keys.length >= 20000) {                // a scanner sweeping IPs must not grow this forever
       for (const k of keys.sort((a, b) => (seen[a] < seen[b] ? -1 : 1)).slice(0, 8000)) delete seen[k];
@@ -106,7 +135,7 @@ app.get('/api/first-visit', limitVisits, (req, res) => {
    than serving /css/site.css — and it is the *posts* that must stay rationed, not the
    asking. Putting it in the visitor bucket also made every submission count twice against
    the form limit, which the rate-limit tests would have been right to catch. */
-app.get('/api/captcha', (req, res) => {
+app.get('/api/captcha', capCaptcha, (req, res) => {
   res.set('Cache-Control', 'no-store').json(captcha.makeChallenge(config.captcha.secret, {
     maxNumber: config.captcha.difficulty,
   }));
@@ -145,7 +174,7 @@ const formGate = async (req, res, next) => {
    and sends again without solving a second puzzle. */
 const spendCaptcha = req => { if (req.captcha) captcha.consume(req.captcha.tag, req.captcha.expires); };
 
-app.post('/api/waitlist', limitForms, formGate, async (req, res) => {
+app.post('/api/waitlist', gateForms, formGate, async (req, res) => {
   /* shape and bot traps already passed in formGate. A script that gets here is told the
      same {"ok":true} as a human, so it cannot use our error messages to tune itself. */
   const in_ = waitlistInput(req.body);
@@ -162,7 +191,7 @@ app.post('/api/waitlist', limitForms, formGate, async (req, res) => {
   res.json({ ok: true, confirmed: r.sent > 0 });
 });
 
-app.post('/api/contact', limitForms, formGate, async (req, res) => {
+app.post('/api/contact', gateForms, formGate, async (req, res) => {
   const in_ = contactInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
   spendCaptcha(req);
@@ -183,7 +212,7 @@ app.post('/api/contact', limitForms, formGate, async (req, res) => {
 /* the two dialogs on the home page: Book a demo (setup) and Join early access (manage).
    Same door as the contact form: right shape, then the bot traps, then the fields. The
    records keep the answers as the dialog asked them; the mailer turns them into words. */
-app.post('/api/demo', limitForms, formGate, async (req, res) => {
+app.post('/api/demo', gateForms, formGate, async (req, res) => {
   const in_ = demoInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
   spendCaptcha(req);
@@ -200,7 +229,7 @@ app.post('/api/demo', limitForms, formGate, async (req, res) => {
   res.json({ ok: true, confirmed: r.sent > 0 });
 });
 
-app.post('/api/manage', limitForms, formGate, async (req, res) => {
+app.post('/api/manage', gateForms, formGate, async (req, res) => {
   const in_ = manageInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
   spendCaptcha(req);
