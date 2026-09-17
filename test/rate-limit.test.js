@@ -98,6 +98,43 @@ test('the sending budget stops the mail, and the lead is still kept', async () =
   } finally { proc.kill('SIGTERM'); }
 });
 
+test('a flood alerts the owner, once, and never the visitor or the attacker', async () => {
+  /* The point of the alert: the owner hears a flood happened instead of finding out from a
+     full inbox. It goes to MAIL_NOTIFY_TO only, and the half-hour cooldown means the flood
+     cannot turn our warning system into the spam it is warning about. */
+  const { proc, port } = await start({
+    RATE_LIMIT_FORMS_PER_MIN: '1000', GLOBAL_FORMS_PER_MIN: '2', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000',
+  });
+  let log = '';
+  proc.stdout.on('data', d => { log += d; });
+  proc.stderr.on('data', d => { log += d; });
+  try {
+    for (let i = 0; i < 6; i++) await post(port, '/api/waitlist', { name: 'A' + i, email: `flood${i}@boasis.ae`, intent: 'standard' });
+    await new Promise(r => setTimeout(r, 400));           // let the alert's dry-run print land
+    const alerts = log.split('\n').filter(l => l.includes('[mail:dry] alert:limit-form-submissions'));
+    assert.equal(alerts.length, 1, 'exactly one alert for the whole minute, not one per refused request: ' + alerts.length);
+    /* the log masks the local part on purpose, so the owner domain is what is observable —
+       and it is the fact that matters: the alert went to the owner, not to a visitor */
+    assert.match(alerts[0], /•••@boasis\.ae/, 'and it goes to the owner address');
+    assert.ok(!/mail:dry\] alert:.*@example\.com/.test(log), 'never to the visitor domain');
+    const receipts = log.split('\n').filter(l => l.includes('waitlist:user')).length;
+    assert.equal(receipts, 2, 'only the two submissions that were allowed produced a receipt: ' + receipts);
+  } finally { proc.kill('SIGTERM'); }
+});
+
+test('the mail budget alerts the owner even though it is the reason sending stopped', async () => {
+  const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '1000', GLOBAL_FORMS_PER_MIN: '1000', MAIL_MAX_PER_HOUR: '2', MAIL_MAX_PER_DAY: '10000' });
+  let log = '';
+  proc.stdout.on('data', d => { log += d; });
+  proc.stderr.on('data', d => { log += d; });
+  try {
+    for (let i = 0; i < 3; i++) await post(port, '/api/waitlist', { name: 'B' + i, email: `cap${i}@boasis.ae`, intent: 'standard' });
+    await new Promise(r => setTimeout(r, 400));
+    assert.match(log, /the hour cap is reached/, 'the log says the budget is spent');
+    assert.match(log, /\[mail:dry\] alert:mail-hour/, 'and an alert still gets out: it is the one email the budget must not block');
+  } finally { proc.kill('SIGTERM'); }
+});
+
 test('a rate limited POST answers instead of hanging (the forgotten next() bug)', async () => {
   const { proc, port } = await start({ RATE_LIMIT_FORMS_PER_MIN: '1000' });
   try {

@@ -71,6 +71,22 @@ security hole in the wrong direction — too *low* only makes the per-visitor li
 The per-visitor limits and the site-wide limits are deliberately separate. The first is precise
 and cheap; the second cannot be fooled by any header, which is why it exists at all.
 
+## The traps: what is refused, and what is only marked
+
+| Signal | What it means | What happens |
+|---|---|---|
+| a filled honeypot (`hp`, `company_website`) | a robot filled a field no person can see | **discarded**, silent fake success, nothing stored |
+| a form-encoded post | not something our own page can produce | **discarded** |
+| a blocked mailbox (`SPAM_BLOCK_FREE_MAIL=1`) | the owner's explicit policy | **discarded** |
+| missing the captcha answer | no browser ran our code | **refused** with `{"errors":["captcha"]}` |
+| filled in under 3 seconds | autofill, a pasted message, a fast typist | **kept**, marked `too-fast`, owner told |
+| the page was open over 30 minutes | a tab left open over lunch | **kept**, marked `stale-form`, owner told |
+| no timing stamp at all | usually a script, occasionally a half-loaded page | **kept**, marked, and still must solve the captcha |
+
+The rule behind the split: **a robot by its own hand is discarded; a guess about a person is
+only ever marked.** Losing a real enquiry is far worse than reading one that says it arrived
+quickly. A marked lead appears in the owner's email with a plain-language `Check:` line.
+
 ## What happens when a cap trips
 
 - **Forms**: `429` with a `Retry-After`, and one log line naming which cap and at what number.
@@ -80,6 +96,19 @@ and cheap; the second cannot be fooled by any header, which is why it exists at 
 - **New-visitor records**: a visitor we have not seen is answered normally but not remembered,
   so `first` may be true twice. Cheap, invisible, and it cannot be used to fill the disk.
 - **Trapped submissions**: unchanged, silent to the sender, one bounded log line to us.
+
+## Sizing: when a quiet site or a busy one meets these numbers
+
+Two emails go out per submission, so the mail budget is the tighter of the pair.
+
+| Submissions a day | Emails a day | Verdict |
+|---|---|---|
+| up to 200 | up to 400 | the defaults carry it with no change |
+| 200 – 1,000 | 400 – 2,000 | raise `MAIL_MAX_PER_DAY` (the relay allows 10,000) and `GLOBAL_FORMS_PER_DAY` |
+| 1,000 + | 2,000 + | raise both, and move the lists out of JSON files into a database |
+
+Visitors *browsing* never touch any of this. The caps count submissions, and nothing else: a
+site with 10,000 visitors a day and 20 enquiries is nowhere near them.
 
 ## What this does not cover, honestly
 
@@ -94,3 +123,6 @@ and cheap; the second cannot be fooled by any header, which is why it exists at 
 - **Nothing here makes an attacker stop reading the site.** These limits guard the forms, the
   disk, and the mail. They are not a firewall.
 - **The counters are per-process**, so `MAIL_MAX_PER_DAY` is a per-process budget too.
+- **The alerts depend on mail working.** If the SMTP relay itself is down, a flood shows in
+  the log and nowhere else. The alert is best-effort by design: it can never be the reason a
+  submission fails.

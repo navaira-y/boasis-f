@@ -153,11 +153,18 @@ test('the traps still decide first, and still decide silently', async () => {
   try {
     /* No captcha at all here: a trapped post never reaches that door, so the answer stays
        the fake success it has always been. This is the ordering the forms depend on. */
-    for (const trap of [{ company_website: 'http://pills' }, { hp: 'x' }, { _t: Date.now() }, { _t: undefined }]) {
+    /* the honeypot is the hard one: still silent, still nothing kept, and it still decides
+       before the captcha is ever consulted */
+    for (const trap of [{ company_website: 'http://pills' }, { hp: 'x' }]) {
       const r = await post('/api/waitlist', { name: 'Bot', email: 'bot@x.co', intent: 'standard', ...trap });
       assert.equal(r.status, 200, JSON.stringify(trap) + ' must be answered, not refused');
       assert.deepEqual(await r.json(), { ok: true });
     }
+    /* the timing signals stay soft, so with no puzzle it is the captcha that refuses — and
+       that is the honest floor: the box is visible on the page for anyone to read */
+    const fast = await post('/api/waitlist', { name: 'Person', email: 'fast@x.co', intent: 'standard', _t: Date.now() - 30 });
+    assert.equal(fast.status, 400, 'no puzzle, no submission');
+    assert.deepEqual((await fast.json()).errors, ['captcha']);
   } finally { stop(); }
 });
 

@@ -32,15 +32,21 @@ test('a variable left BLANK in .env still takes the default (the bug that shippe
   assert.equal(c.port, 3000);
 });
 
-test('a real sign-up is not flagged as stale, on the real config', () => {
+test('a real sign-up is never thrown away for its timing, on the real config', () => {
   const { spamCheck } = require('../lib/validate');
   const c = load({});
   const req = { headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0' } };
   for (const age of [4000, 20000, 60000, 5 * 60 * 1000]) {
-    assert.equal(spamCheck(req, { _t: Date.now() - age }, c).spam, false, `${age}ms is a person`);
+    const r = spamCheck(req, { _t: Date.now() - age }, c);
+    assert.equal(r.spam, false, `${age}ms is a person`);
+    assert.deepEqual(r.flags, [], `${age}ms is a person, with nothing to check`);
   }
-  assert.equal(spamCheck(req, { _t: Date.now() - 100 }, c).spam, true, '100ms is a script');
-  assert.equal(spamCheck(req, { _t: Date.now() - 3 * 60 * 60 * 1000 }, c).spam, true, 'a 3h-old tab is a stale form');
+  /* the two ends of the scale are still noticed, but noticed by being MARKED: the lead is
+     kept, the owner is told, and nothing a person typed is ever silently destroyed */
+  assert.deepEqual(spamCheck(req, { _t: Date.now() - 100 }, c).flags, ['too-fast']);
+  assert.equal(spamCheck(req, { _t: Date.now() - 100 }, c).spam, false);
+  assert.deepEqual(spamCheck(req, { _t: Date.now() - 3 * 60 * 60 * 1000 }, c).flags, ['stale-form']);
+  assert.equal(spamCheck(req, { _t: Date.now() - 3 * 60 * 60 * 1000 }, c).spam, false);
 });
 
 test('with no key at all, mail is dry-run and nothing can be sent by accident', () => {

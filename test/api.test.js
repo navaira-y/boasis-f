@@ -42,11 +42,24 @@ const post = async (p, body, headers = {}) => {
   });
 };
 const get = p => fetch(base + p);
+/* nothing added: what a script posts when it skips the page, the puzzle and the stamp */
+const rawPost = (p, body) => fetch(base + p, {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: typeof body === 'string' ? body : JSON.stringify(body),
+});
 const HUMAN = () => ({ _t: Date.now() - 12000 });
 const read = f => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
 
 before(async () => { await up(); });
 after(() => { proc.kill('SIGTERM'); try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) {} });
+
+test('a visitor without JavaScript is told what to do, not left with a dead button', async () => {
+  for (const page of ['/', '/contact.html']) {
+    const html = await (await get(page)).text();
+    assert.ok(/<noscript>/.test(html), page + ' must say something when scripts are off');
+    assert.match(html, /mailto:support@boasis\.ae/, page + ' must offer the address to write to');
+  }
+});
 
 test('the site boots and serves the real page', async () => {
   const r = await get('/');
@@ -171,18 +184,23 @@ test('a dialog posting a junk answer is a 400 naming the field, never a 500', as
   assert.ok(j2.errors.includes('email') && j2.errors.includes('phone') && j2.errors.includes('have'), JSON.stringify(j2.errors));
 });
 
-test('the bot traps are each enough on their own', async () => {
-  const good = { name: 'Bot', email: 'b@x.com' };
-  const caught = [];
-  const honeypot = await post('/api/waitlist', { ...good, ...HUMAN(), company_website: 'http://pills' });
-  caught.push(honeypot.status === 200);
-  const fast = await post('/api/waitlist', { ...good, _t: Date.now() - 30 });
-  caught.push(fast.status === 200);
-  const noToken = await post('/api/waitlist', good, { 'user-agent': 'Mozilla/5.0 (iPhone)' });
-  caught.push(noToken.status === 200);
-  assert.deepEqual(caught, [true, true, true]);
+test('the honeypot is discarded as a robot; a fast person is kept and marked', async () => {
+  /* Two kinds of trap, two answers. The honeypot is a field no human can see, so a value in
+     it is a robot: silent fake success, nothing stored. Timing is a guess about a person, so
+     the lead lands and the owner's mail says what looked odd. */
+  const honeypot = await post('/api/waitlist', { name: 'Bot', email: 'h@x.com', intent: 'standard', ...HUMAN(), company_website: 'http://pills' });
+  assert.equal(honeypot.status, 200);
+  assert.deepEqual(await honeypot.json(), { ok: true }, 'told nothing, as before');
+
+  const fast = await post('/api/waitlist', { name: 'Quick Person', email: 'quick@x.com', intent: 'standard', _t: Date.now() - 30 });
+  assert.equal(fast.status, 200);
+  assert.equal((await fast.json()).confirmed, true, 'a fast visitor is a visitor: their mails go out');
+
   const list = read('waitlist.json');
-  assert.equal(list.filter(e => e.email === 'b@x.com').length, 0, 'none of them were stored');
+  assert.equal(list.some(e => e.email === 'h@x.com'), false, 'the robot is not stored');
+  const kept = list.find(e => e.email === 'quick@x.com');
+  assert.ok(kept, 'the fast person is stored');
+  assert.equal(kept.flagged, 'too-fast', 'and marked, so the owner knows why it looked odd');
 });
 
 test('invalid input is a 400 naming the field; bot-shaped input is never a 500', async () => {
@@ -207,19 +225,20 @@ test('invalid input is a 400 naming the field; bot-shaped input is never a 500',
     const body = await r.text();
     assert.ok(!body.includes('at ') && !body.includes('node_modules'), 'no stack trace in the response');
   }
-  /* An empty body parses to {} — a well-shaped object with nothing in it. So it is not a
-     shape error, it is bot-shaped input, and the bot rule applies: fake success, store
-     nothing. The two must not be confused, and neither may become a 500. */
-  const empty = await post('/api/waitlist', '');
-  assert.equal(empty.status, 200, 'empty body is a bot, not a parse failure');
-  assert.deepEqual(await empty.json(), { ok: true });
+  /* An empty body parses to {} — a well-shaped object with nothing in it, so it is not a
+     shape error and must never be a 500. It is stopped by the captcha, which is the honest
+     floor now: the box is on the page for anyone to see, so saying "solve the puzzle" tells
+     a script nothing it could not read in the HTML. What it does NOT do is reveal which
+     field was wrong, the way a field error would. */
+  const empty = await rawPost('/api/waitlist', '');
+  assert.equal(empty.status, 400, 'no puzzle, no submission');
+  assert.deepEqual((await empty.json()).errors, ['captcha']);
+  assert.equal(empty.headers.get('x-powered-by'), null, 'and still no advertisement of the stack');
 
-  // rubbish that also looks like a bot (no token) is fake-succeeded, not 400: a script
-  // must not learn that its payload was the problem rather than its behaviour
-  for (const botish of [{}, { name: 'x', email: 'nope' }]) {   // valid JSON objects, no token
-    const r = await post('/api/waitlist', botish);
-    assert.equal(r.status, 200, JSON.stringify(botish));
-    assert.deepEqual(await r.json(), { ok: true });
+  for (const botish of [{}, { name: 'x', email: 'nope' }]) {   // valid JSON objects, no token, no puzzle
+    const r = await rawPost('/api/waitlist', botish);
+    assert.equal(r.status, 400, JSON.stringify(botish));
+    assert.deepEqual((await r.json()).errors, ['captcha'], 'and it never says which field was wrong');
   }
 });
 

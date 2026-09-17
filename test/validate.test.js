@@ -117,28 +117,41 @@ test('a filled honeypot is caught', () => {
   }
 });
 
-test('posting faster than a person can read the form is caught', () => {
+test('posting faster than a person can read the form is marked, not discarded', () => {
+  /* A person can be fast: autofill, a pasted message, a form filled while reading the page.
+     Their message is kept and the owner is told why it looked odd. Losing a real enquiry is
+     far worse than reading one that arrived quickly. */
   const r = spamCheck(req(), { _t: Date.now() - 500 }, cfg);
-  assert.ok(r.why.includes('too-fast'));
+  assert.equal(r.spam, false, 'a timing signal is not proof of a robot');
+  assert.deepEqual(r.flags, ['too-fast']);
 });
 
-test('a human taking their time passes', () => {
-  assert.equal(spamCheck(req(), { _t: Date.now() - 20000 }, cfg).spam, false);
+test('a human taking their time passes clean', () => {
+  const r = spamCheck(req(), { _t: Date.now() - 20000 }, cfg);
+  assert.equal(r.spam, false);
+  assert.deepEqual(r.flags, [], 'and with nothing to check');
 });
 
-test('a form left open overnight is treated as a person, not a bot', () => {
-  assert.equal(spamCheck(req(), { _t: Date.now() - 40 * 60 * 1000 }, cfg).spam, true, 'stale is flagged');
-  assert.ok(spamCheck(req(), { _t: Date.now() - 40 * 60 * 1000 }, cfg).why.includes('stale-form'));
+test('a form left open over lunch is kept, and marked slow rather than hostile', () => {
+  const r = spamCheck(req(), { _t: Date.now() - 40 * 60 * 1000 }, cfg);
+  assert.equal(r.spam, false, 'the old comment said this is not spam; now the code agrees');
+  assert.deepEqual(r.flags, ['stale-form']);
 });
 
-test('a script with no timing token and no user agent is caught', () => {
-  assert.ok(spamCheck(req({ 'user-agent': '', 'content-type': 'text/plain' }), {}, cfg).spam, true);
+test('a script with no token and no user agent is refused by what it is, not by timing', () => {
+  const r = spamCheck(req({ 'user-agent': '', 'content-type': 'text/plain' }), {}, cfg);
+  assert.equal(r.spam, true, 'a form-encoded post is not something our own page can produce');
+  assert.ok(r.hard.includes('bad-content-type'));
+  assert.ok(r.soft.includes('no-timing-token'), 'and the missing stamp is recorded as well');
 });
 
-test('a submission with no token is caught, even wearing a browser user-agent', () => {
-  // this is the hole a spoofed UA used to slip through
-  assert.equal(spamCheck(req({ 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' }), {}, cfg).spam, true);
-  assert.ok(spamCheck(req(), {}, cfg).why.includes('no-timing-token'));
+test('a missing timing stamp is marked, and the captcha is what refuses it', () => {
+  /* This used to be a hard drop. It still cannot get in: a script that sends no timing stamp
+     also cannot solve the puzzle, so the captcha is the floor — and an honest visitor whose
+     page half-loaded keeps their message. */
+  const r = spamCheck(req({ 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' }), {}, cfg);
+  assert.equal(r.spam, false, 'not a hard drop any more');
+  assert.deepEqual(r.flags, ['no-timing-token']);
 });
 
 test('a valid token from an old page (no UA at all) is still judged on time, not existence', () => {

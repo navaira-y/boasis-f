@@ -29,12 +29,26 @@ fs.mkdirSync(DATA, { recursive: true });
    readJson/writeJson stay, but writes are now atomic (temp + rename) so two
    sign-ups in the same second cannot leave a half-written file. */
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
+/* The lists are plain JSON files on purpose — at this size a database is a dependency with
+   nothing to give back. The honest limit of that choice is size, so say so in the log when
+   a file gets big enough for it to matter, rather than letting the first sign be a slow
+   site. Once per process, and it changes nothing about how the file is used. */
+const DATA_SIZE_WARN = 8 * 1024 * 1024;
+const bigFilesWarned = new Set();
+function noteDataSize(f, bytes) {
+  if (bytes < DATA_SIZE_WARN || bigFilesWarned.has(f)) return;
+  bigFilesWarned.add(f);
+  console.log(`[data] ${path.basename(f)} has passed ${(bytes / 1048576).toFixed(1)} MB · `
+    + 'the JSON file is doing its job, but this is the size where a small database earns its keep (docs/LIMITS.md)');
+}
 function writeJson(f, v) {
   const tmp = f + '.' + process.pid + '.tmp';
   try {
     // 0600 BEFORE the data lands. The default 0644 exists for a moment on every write, and
     // on a shared Hostinger box that moment is a stranger reading a customer list.
-    fs.writeFileSync(tmp, JSON.stringify(v, null, 2), { mode: 0o600 });
+    const body = JSON.stringify(v, null, 2);
+    noteDataSize(f, Buffer.byteLength(body));
+    fs.writeFileSync(tmp, body, { mode: 0o600 });
     fs.renameSync(tmp, f);                     // atomic on POSIX: readers see old or new, never a mix
   } catch (e) {
     try { fs.unlinkSync(tmp); } catch (e2) {}  // never leave a half-written copy of PII behind
@@ -90,11 +104,28 @@ const bucket = (req, res, next) => { req.ipHash = ipHash(req); return next(); };
 const limitForms = [bucket, formGateLimit(config.limits.forms)];
 const limitVisits = [bucket, formGateLimit(config.limits.visits)];
 
+/* ── telling the owner when the site is being worked hard ──────────────────────
+   A cap tripping is worth an email, because the alternative is the owner finding out from
+   a full inbox. One line per kind per half hour, at most, and only ever to MAIL_NOTIFY_TO:
+   someone attacking the site must not be able to turn this into a mail flood of its own. */
+const alertOnTrip = ({ name, over, limit }) => {
+  mail.notifyAlert('limit-' + name.replace(/\W+/g, '-'),
+    name + ': the site is being hit harder than usual',
+    [`${name}: the whole site passed ${limit} and further requests are being refused for now.`]).catch(() => {});
+};
+/* the mail budget tripping is the one the owner feels most directly */
+mail.onCap(over => {
+  mail.notifyAlert('mail-' + over, `email sending paused: the ${over} cap is reached`, [
+    `The site passed its ${over === 'hour' ? config.mail.maxPerHour + ' an hour' : config.mail.maxPerDay + ' a day'} email budget.`,
+    'Leads are still being stored and visitors still see success; only the sending has paused.',
+  ]).catch(() => {});
+});
+
 /* the whole-site caps: the visitor bucket first, so one noisy visitor never spends the
    site's budget, then the cap that no header can move */
-const capForms = globalGate({ name: 'form submissions', perMinute: config.limits.formsPerMin, perDay: config.limits.formsPerDay });
-const capCaptcha = globalGate({ name: 'captcha challenges', perMinute: config.limits.captchaPerMin });
-const capVisits = globalGate({ name: 'first-visit checks', perMinute: config.limits.visitsPerMin });
+const capForms = globalGate({ name: 'form submissions', perMinute: config.limits.formsPerMin, perDay: config.limits.formsPerDay, onTrip: alertOnTrip });
+const capCaptcha = globalGate({ name: 'captcha challenges', perMinute: config.limits.captchaPerMin, onTrip: alertOnTrip });
+const capVisits = globalGate({ name: 'first-visit checks', perMinute: config.limits.visitsPerMin, onTrip: alertOnTrip });
 const gateForms = [...limitForms, capForms];
 
 /* a small readiness endpoint, so Hostinger's monitor and the test suite can ask
@@ -146,13 +177,19 @@ const formGate = async (req, res, next) => {
   if (!plainObject(req.body)) return res.status(400).json({ ok: false, errors: ['body'] });
   const check = spamCheck(req, req.body || {}, config);
   if (check.spam) {
-    /* The sender is told the same {"ok":true} as a human — that is the trap working, and it
-       does not change here. What changes is that we are no longer blind: the line below is
-       the only trace a real person's message would leave if they ever tripped a trap
-       (see noteTrap in lib/protect.js). It logs a path and the salted hash, never an IP,
-       and never the field values. */
+    /* A robot by its own hand — a filled honeypot, a form-encoded post, a blocked mailbox.
+       It is told the same {"ok":true} as a human, so it learns nothing, and nothing is kept.
+       The line below is the only trace it leaves, with a path and the salted hash, never an
+       address and never a field value (see noteTrap in lib/protect.js). */
     noteTrap(check.why.join(','), `${req.path} · ${req.ipHash || 'no-hash'}`);
     return res.json({ ok: true });
+  }
+  /* Timing looked odd but nothing says robot: the lead is kept and marked, and the owner is
+     told why in their notification. Losing a real message is worse than reading one that
+     says it was sent quickly. */
+  if (check.flags.length) {
+    req.flags = check.flags;
+    noteTrap(check.flags.join(','), `${req.path} · ${req.ipHash || 'no-hash'}`, 'kept, marked');
   }
   /* The traps ran first and still decide silently, exactly as before. The captcha is the
      next door: anything that looks like a person (or a script careful enough to pass for
@@ -182,6 +219,7 @@ app.post('/api/waitlist', gateForms, formGate, async (req, res) => {
   spendCaptcha(req);
 
   const record = { name: in_.name, email: in_.email, intent: in_.intent, business: in_.business, at: new Date().toISOString() };
+  if (req.flags) record.flagged = req.flags.join(',');
   const list = readJson(waitlistFile, []);
   if (!list.some(e => e.email === record.email)) list.push(record);   // a repeat join is not a new lead
   writeJson(waitlistFile, list);
@@ -201,6 +239,7 @@ app.post('/api/contact', gateForms, formGate, async (req, res) => {
     organisation: in_.organisation, about: in_.about, message: in_.message,
     at: new Date().toISOString(),
   };
+  if (req.flags) record.flagged = req.flags.join(',');
   const list = readJson(contactFile, []);
   list.push(record);
   writeJson(contactFile, list);
@@ -221,6 +260,7 @@ app.post('/api/demo', gateForms, formGate, async (req, res) => {
     name: in_.name, email: in_.email, phone: in_.phone,
     who: in_.who, entity: in_.entity, at: new Date().toISOString(),
   };
+  if (req.flags) record.flagged = req.flags.join(',');
   const list = readJson(demoFile, []);
   list.push(record);
   writeJson(demoFile, list);
@@ -238,6 +278,7 @@ app.post('/api/manage', gateForms, formGate, async (req, res) => {
     name: in_.name, email: in_.email, phone: in_.phone,
     have: in_.have, count: in_.count, authority: in_.authority, plans: in_.plans, at: new Date().toISOString(),
   };
+  if (req.flags) record.flagged = req.flags.join(',');
   const list = readJson(manageFile, []);
   list.push(record);
   writeJson(manageFile, list);

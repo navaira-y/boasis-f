@@ -162,13 +162,13 @@ test('a dropped submission leaves a notice, and a flood cannot fill the log', ()
   try {
     for (let i = 0; i < 12; i++) noteTrap('honeypot', '/api/contact · abc123');
     assert.equal(lines.length, 10, 'ten lines a minute, then a count: got ' + lines.length);
-    assert.match(lines[0], /\[traps\] dropped · honeypot · \/api\/contact · abc123/);
+    assert.match(lines[0], /\[traps\] dropped · honeypot · \/api\/contact · abc123/, 'a robot is dropped');
 
     clock += 61000;                       // the next minute
-    noteTrap('too-fast', '/api/demo · def456');
+    noteTrap('too-fast', '/api/demo · def456', 'kept, marked');
     assert.equal(lines.length, 12, 'the new minute logs the summary and its own line');
     assert.match(lines[10], /\u2026 and 2 more in the previous minute/);
-    assert.match(lines[11], /too-fast · \/api\/demo · def456/);
+    assert.match(lines[11], /kept, marked · too-fast · \/api\/demo · def456/, 'a person is kept, and the word says so');
   } finally {
     Date.now = realNow;
     console.log = realLog;

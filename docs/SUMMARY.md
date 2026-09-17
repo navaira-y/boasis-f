@@ -26,7 +26,7 @@
 * The mail is written in the site's own design, plus a plain text copy of the same words.
 * Every field is escaped, so nobody can send code or fake headers through your forms.
 * Dates are always Dubai time and say so.
-* Bot filled forms get no email at all.
+* A form filled by a robot, the kind that fills a field no person can see, gets no email and is thrown away.
 * You can preview any email with: npm run mail:check
 
 ## Email gaps, honestly
@@ -45,16 +45,27 @@
 * If the box ever breaks, one setting turns it off and the older protection carries on.
 * Set CAPTCHA_SECRET on the server. The site warns at startup while it is missing.
 
-# What things did in limits and security
+# What things did in captcha
 
-* The rate limit could be skipped by lying about who you are. That is fixed.
-* Only the address our own proxy really saw is counted now, so a made up one is ignored.
-* Proof: one attacker trying twelve made up addresses gets 8 through and 4 refused. Twelve real visitors all get through.
-* Added limits for the whole site, not one visitor. These cannot be moved by any header.
-* Added a cap on how much mail the site will send in an hour and a day. Past it, leads are still saved and the visitor still sees success, but sending stops. This is what protects your inbox and your Google quota.
-* Added a cap on new visitor records, so invented visitors cannot churn the disk.
-* Everything tripping a limit writes one clear line in the log. The site now says in its log when it is being flooded.
-* Added a way to check that setting after a deploy. Open https://boasis.ae/api/health and it tells you the address the server saw for you. Compare it with your address from any whatismyip page.
+* Every form has one box to click before it can be sent.
+* No pictures to read, no third party, no account, no monthly fee.
+* The visitor's own browser does a small sum. A spam script would have to do it thousands of times.
+* One solved box works for one send only. A mistake in a field does not waste it.
+* If the box ever breaks, one setting turns it off and the older protection carries on.
+* Set CAPTCHA_SECRET on the server. The site warns at startup while it is missing.
+
+# What things did in limits
+
+* Fixed: the rate limit could be skipped by lying about who you are.
+* Only the address our own proxy really saw is counted now. A made up one is ignored.
+* Proof: one attacker using twelve made up addresses got 8 through and 4 refused. Twelve real visitors all got through.
+* Add limits for the whole site, not one visitor. These cannot be moved by any header.
+* Add a cap on mail per hour and per day. Past it, leads are still saved and visitors still see success, only sending stops. This protects the inbox and the Google quota.
+* Add a cap on new visitor records, so invented visitors cannot keep the disk busy.
+* Fixed: a real person could be quietly dropped for filling the form quickly, or for leaving the tab open too long. That message used to disappear. Now it is saved and marked.
+* Only a filled honeypot is thrown away, because a field no person can see cannot be filled by a person.
+* When we keep an odd looking lead, your email says why in one plain line.
+* You now get one warning email if the site is being flooded. At most one every half hour, so it cannot become a nuisance.
 * Measured at size: with 10,000 leads stored, a form submission costs the server 15 milliseconds.
 
 # What things did in SEO

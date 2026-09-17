@@ -82,6 +82,31 @@ open and unused, because the guard still allows `POST /api/waitlist` to anyone w
 
 ---
 
+## The alert email (only when something is wrong)
+
+Nothing here fires on a normal day. When a cap trips, the owner gets one short mail:
+
+- **Subject**: `[BOASIS] form submissions: the site is being hit harder than usual`
+- **Says**: which cap tripped and at what number, that the site is still up and leads are still
+  being stored, and where to look (`docs/LIMITS.md`, `/api/health`)
+- **At most once per half hour per kind of limit** — a flood must not be able to turn our
+  warning system into the spam it is warning about
+- **Never to a visitor**, and never to an address that submitted a form
+- **Skips the sending budget**: the moment the mail cap trips is exactly the moment this has
+  to get out
+
+## A lead that looked odd
+
+If a submission arrived quickly, or from a tab left open over lunch, it is **kept** and the
+owner's notification carries one extra line:
+
+```
+Check:    filled in faster than a person usually types
+```
+
+Nothing is discarded for its timing — only a filled honeypot, a form-encoded post, or a
+mailbox blocked by policy. See `docs/LIMITS.md` for the whole table.
+
 ## Rules that apply to all of them
 
 | Rule | Where it lives |
