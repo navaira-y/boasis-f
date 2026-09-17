@@ -81,6 +81,27 @@ test('when the header is the only thing that changes, the site-wide cap still ho
   } finally { proc.kill('SIGTERM'); }
 });
 
+test('a minute is counted from the first request, not from the clock', () => {
+  /* Found by this suite failing about one run in ten ("200,200,200,200,429,429"): the caps
+     used to reset on the clock minute, so a flood starting at 12:59:59 got its full
+     allowance again one second later. Frozen time makes that boundary deterministic. */
+  const { globalGate } = require('../lib/protect');
+  const real = Date.now;
+  let t = Date.parse('2026-01-01T12:59:58.500Z');
+  Date.now = () => t;
+  try {
+    const gate = globalGate({ name: 'boundary', perMinute: 3, perDay: 1000 });
+    let code = 0;
+    const res = { set() { return this; }, status(c) { code = c; return this; }, json() {} };
+    const call = () => { code = 0; gate({}, res, () => { code = 200; }); return code; };
+    assert.deepEqual([call(), call(), call(), call()], [200, 200, 200, 429], 'three through, then stop');
+    t += 1500;   // 13:00:00.000 — a new clock minute, 1.5 s later
+    assert.equal(call(), 429, 'the allowance must not refill on the clock minute');
+    t += 60000;  // a real minute after the first request
+    assert.equal(call(), 200, 'and it does refill once a real minute has passed');
+  } finally { Date.now = real; }
+});
+
 test('the sending budget stops the mail, and the lead is still kept', async () => {
   /* The owner's actual complaint is a full inbox. Past the budget the emails stop, the
      visitor still sees success, and the record stays on disk. */
