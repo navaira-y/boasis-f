@@ -101,7 +101,7 @@
 
 # What the link preview looks like now (17 September 2026)
 
-* Sharing boasis.ae on WhatsApp, X or Facebook shows one clean image: the exact BOASIS logo in white on the brand navy #17365E, centred on a 1200 by 630 canvas.
+* Sharing boasis.ae on WhatsApp, X or Facebook shows one clean image: the exact BOASIS logo in white on the navy #163652, centred on a 1200 by 630 canvas.
 * The orb in the O is your own asset (`assets/logo/orb-512.png`), and the letters are the site's own font (Outfit Medium), so nothing is redrawn by hand.
 * The file went from 672 KB to 45 KB, which also helps: several chat apps skip or shrink heavy preview images.
 * Same address as before, so no page markup changed. If a chat app still shows the old one, it is holding a cached copy of the link — sharing it once with a small query (`boasis.ae/?2`) or using Facebook's Sharing Debugger forces a fresh read.
