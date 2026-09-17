@@ -432,7 +432,10 @@ function modals() {
           const cal = d.querySelector('.modal-cal');
           if (e.length && cal) { cal.hidden = true; form.hidden = false; }   // a fault means back to step one
           const wn = liveNote();                                            // the line goes where the visitor is looking
-          wn.textContent = e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.';
+          const tooMany = (j.errors || []).includes('too-many');
+          wn.textContent = tooMany
+            ? 'That is a few too many in a row. Please wait a minute, then press the button again. Nothing you typed is lost.'
+            : (e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.');
           wn.className = 'form-note err';
           /* a spent or failed puzzle must be solved again, so the box goes back to its start */
           if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);

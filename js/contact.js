@@ -125,9 +125,11 @@ function contactForm() {
         const names = { name: 'your name', email: 'your email address', phone: 'your phone number', message: 'a short message', captcha: 'the verification box' };
         const e = (j.errors || []).filter(x => names[x]);
         e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
-        note.textContent = e.length
-          ? 'Please check the fields marked above.'
-          : 'Please try again, or write to support@boasis.ae.';
+        const tooMany = (j.errors || []).includes('too-many');
+        note.textContent = tooMany
+          ? 'That is a few too many in a row. Please wait a minute, then press Send again. Your message is still here.'
+          : (e.length ? 'Please check the fields marked above.'
+                      : 'Please try again, or write to support@boasis.ae.');
         note.className = 'form-note err';
         /* a spent or failed puzzle must be solved again, so the box goes back to its start */
         if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
