@@ -239,11 +239,12 @@ When the real text is published, in each of the two files:
 - One page, one canonical, listed in `sitemap.xml` if and only if it says `index`.
 - Title 15–65 characters ending in `· BOASIS`; description 50–160, written for a person
   deciding whether to click — not a keyword list.
-- Absolute `og:image`; re-use `/assets/icons/link-preview-1200x630.png` until there is a reason
+- Absolute `og:image`; re-use `/assets/icons/link-preview-1200x630-v2.png` until there is a reason
   not to. It is the logo on the site's own background recipe: the section gradient
   `linear-gradient(160deg,#0D4C74 0%,#15345A 55%,#101828 100%)` with the `.sky` blue glow
   (60vw circle, `rgba(14,134,196,.55)`) off the right edge, both copied from `css/site.css`.
-  Its dimensions are pinned by `test/seo.test.js`.
+  Its dimensions are pinned by `test/seo.test.js`. The `-v2` is deliberate: chat apps cache a
+  preview by its file path, so a new picture needs a new path or the old one keeps showing.
 - Add the page to the JSON-LD `@graph` on the page itself, with the site's own `@id`s.
 - Add the page to `test/seo.test.js`'s `PAGES` list, so its head is checked like the rest.
 - Run `npm test` before pushing: it fails loudly on all of the above, including a page that

@@ -21,7 +21,7 @@ test('the site still works: every file the page actually loads is allowed', () =
     '/css/tokens.css', '/css/site.css',
     '/js/site.js', '/js/news.js', '/js/yara-orb.js',
     '/assets/icons/favicon.ico', '/assets/icons/favicon-32.png', '/assets/icons/apple-touch-icon.png',
-    '/assets/icons/link-preview-1200x630.png',
+    '/assets/icons/link-preview-1200x630-v2.png',
     '/assets/logo/orb-160.png', '/assets/logo/orb-512.png',
     '/assets/img/setup-poster.jpg', '/assets/img/manage-poster.jpg',
     '/assets/orb/orb.mp4',
