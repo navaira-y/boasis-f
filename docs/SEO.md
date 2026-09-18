@@ -239,7 +239,7 @@ When the real text is published, in each of the two files:
 - One page, one canonical, listed in `sitemap.xml` if and only if it says `index`.
 - Title 15–65 characters ending in `· BOASIS`; description 50–160, written for a person
   deciding whether to click — not a keyword list.
-- Absolute `og:image`; re-use `/assets/icons/link-preview-1200x630-v2.png` until there is a reason
+- Absolute `og:image`; re-use `/assets/icons/link-preview-1200x630-v3.png` until there is a reason
   not to. It is the logo on the site's own background recipe: the section gradient
   `linear-gradient(160deg,#0D4C74 0%,#15345A 55%,#101828 100%)` with the `.sky` blue glow
   (60vw circle, `rgba(14,134,196,.55)`) off the right edge, both copied from `css/site.css`.

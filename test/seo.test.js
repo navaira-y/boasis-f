@@ -198,7 +198,7 @@ test('the link preview is complete and absolute, so a shared link looks right on
     for (const key of ['og:title', 'og:description', 'og:image', 'twitter:card', 'twitter:title', 'twitter:description', 'twitter:image']) {
       assert.ok(prop(html, key) || meta(html, key), url + ' is missing ' + key);
     }
-    assert.equal(prop(html, 'og:image'), SITE + '/assets/icons/link-preview-1200x630-v2.png', url + ' og:image must be absolute');
+    assert.equal(prop(html, 'og:image'), SITE + '/assets/icons/link-preview-1200x630-v3.png', url + ' og:image must be absolute');
     assert.equal(prop(html, 'og:image:width'), '1200', url);
     assert.equal(prop(html, 'og:image:height'), '630', url);
     assert.equal(meta(html, 'twitter:card'), 'summary_large_image', url);
@@ -222,7 +222,7 @@ test('the verification proof is on every page, and no placeholder is ever served
 });
 
 test('the preview image is really 1200 by 630, and the favicons are the sizes they claim', async () => {
-  const png = Buffer.from(await (await get('/assets/icons/link-preview-1200x630-v2.png')).arrayBuffer());
+  const png = Buffer.from(await (await get('/assets/icons/link-preview-1200x630-v3.png')).arrayBuffer());
   assert.equal(png.slice(1, 4).toString(), 'PNG', 'the preview must be a PNG');
   assert.equal(png.readUInt32BE(16), 1200, 'preview width');
   assert.equal(png.readUInt32BE(20), 630, 'preview height');
