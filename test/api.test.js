@@ -134,7 +134,7 @@ test('a demo request from the dialog is stored, and both mails are prepared', as
   assert.ok(mail.text.includes('+971 50 999 8888'), 'and the number, which is the whole point of asking');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
   assert.match(demoToUser(c).text, /We look forward to meeting you, Fatim\./, 'the receipt greets them and confirms the session');
-  assert.match(demoToUser(c).text, /Google has emailed you the joining link/, 'and says where the joining link comes from');
+  assert.match(demoToUser(c).text, /everything you need to join is in Google's confirmation/, 'and says where the joining link comes from');
   assert.ok(!/\s[-—–]\s/.test(mail.text + demoToUser(c).text), 'no dash punctuation in dialog mail');
 });
 
