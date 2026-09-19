@@ -109,11 +109,12 @@ test('a contact enquiry keeps its phone, topic and company under one name end to
   assert.ok(mail.text.includes('SPARK'), 'the mail shows the company');
   assert.ok(mail.text.includes('+971 50 999 8888'), 'and the phone, which is the whole point of asking');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line into the owner mail');
-  // the receipt is deliberately short: a thank-you, confirmation of receipt, and the
-  // follow-up promise — nothing more
-  const receipt = contactToUser({ name: 'Fatim' }).text;
-  assert.match(receipt, /Thank you, Fatim\. We have your message\./, 'it thanks them by first name');
-  assert.match(receipt, /has reached BOASIS\. We will be in touch with you soon\./, 'and promises the follow-up');
+  // the receipt the client reviewed: a thank-you, where the message is now, and the
+  // reply time they are owed
+  const receipt = contactToUser({ name: 'Fatim', email: 'f@spark.ae', message: 'A licence renewal question.' }).text;
+  assert.match(receipt, /Thank you for writing to us, Fatim\./, 'it thanks them by first name');
+  assert.match(receipt, /within two business days\./, 'and gives the reply time');
+  assert.ok(receipt.includes('A licence renewal question.'), 'and quotes the message back to them');
   assert.ok(!/\s[-—–]\s/.test(receipt + mail.text), 'no hyphen or dash used as punctuation in mail copy');
 });
 
@@ -132,7 +133,8 @@ test('a demo request from the dialog is stored, and both mails are prepared', as
   assert.ok(mail.text.includes('Government authority'), 'and which kind of visitor it is');
   assert.ok(mail.text.includes('+971 50 999 8888'), 'and the number, which is the whole point of asking');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
-  assert.match(demoToUser(c).text, /has reached BOASIS\. We will be in touch with you soon\./, 'the receipt is a thank-you and a follow-up, nothing more');
+  assert.match(demoToUser(c).text, /We look forward to meeting you, Fatim\./, 'the receipt greets them and confirms the session');
+  assert.match(demoToUser(c).text, /Google has emailed you the joining link/, 'and says where the joining link comes from');
   assert.ok(!/\s[-—–]\s/.test(mail.text + demoToUser(c).text), 'no dash punctuation in dialog mail');
 });
 
@@ -152,7 +154,9 @@ test('an early access request from the dialog is stored, and both mails are prep
   assert.ok(mail.text.includes('Yes'), 'and whether they have a company');
   assert.ok(mail.text.includes('1-3'), 'and how many');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
-  assert.match(manageToUser(c).text, /has reached BOASIS\. We will be in touch with you soon\./, 'the receipt is a thank-you and a follow-up, nothing more');
+  const receipt = manageToUser({ ...c, at: c.at }).text;
+  assert.match(receipt, /Your place is reserved, Lena\./, 'the receipt reserves their place by first name');
+  assert.match(receipt, /Nothing is required from you meanwhile\./, 'and says plainly that nothing is asked of them yet');
 });
 
 test('an early access request without a company describes the thought instead', async () => {

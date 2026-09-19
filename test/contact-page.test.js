@@ -339,12 +339,12 @@ test('the form submits end to end: stored, and both mails queued', async () => {
      topic for the record's shape, and older links that send it keep working */
   assert.equal(rec.about, 'setup', 'the topic defaults, it is not invented per visitor');
   assert.ok(!/Not given|undefined/.test(JSON.stringify(rec)), 'no placeholder may be stored');
-  // the receipt is deliberately short: a thank-you, confirmation of receipt, and the
-  // follow-up promise — nothing more
+  // the receipt the client reviewed: a thank-you, where the message is now, and the
+  // reply time they are owed
   const { contactToUser } = require('../lib/mail-templates');
-  const receipt = contactToUser({ name: 'Amina' }).text;
-  assert.match(receipt, /Thank you, Amina\. We have your message\./, 'it thanks them by first name');
-  assert.match(receipt, /has reached BOASIS\. We will be in touch with you soon\./, 'and promises the follow-up');
+  const receipt = contactToUser({ name: 'Amina', email: 'amina@spark.ae', message: 'Please call me back.' }).text;
+  assert.match(receipt, /Thank you for writing to us, Amina\./, 'it thanks them by first name');
+  assert.match(receipt, /within two business days\./, 'and gives the reply time');
   assert.ok(!/\s[-—–]\s/.test(receipt), 'no dash punctuation in a customer email');
 });
 
