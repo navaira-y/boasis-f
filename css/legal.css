@@ -1,0 +1,52 @@
+/* the Terms and Privacy pages · one document column, the clause numbers in the margin,
+   and a contents list that follows on wide screens. Same sky, same type as the rest. */
+
+.lg-head{max-width:62ch}
+.lg-meta{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 26px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.lg-meta li{margin:0}
+
+.lg-body{display:grid;grid-template-columns:minmax(0,1fr);gap:34px;margin-top:clamp(36px,4vw,56px);align-items:start}
+
+.lg-toc{display:none}
+.lg-toc p{margin:0 0 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.lg-toc ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.lg-toc a{display:grid;grid-template-columns:26px 1fr;gap:2px;color:rgba(255,255,255,.6);font-size:14px;line-height:1.35;padding:3px 0;text-decoration:none}
+.lg-toc a span{font-family:var(--font-mono);font-size:11px;padding-top:2px;color:rgba(255,255,255,.4)}
+.lg-toc a:hover{color:var(--bo-teal)}
+
+.lg-doc{max-width:74ch;color:rgba(255,255,255,.78);font-size:17px;line-height:1.7}
+.lg-doc a{color:var(--bo-teal);border-bottom:1px solid rgba(95,211,232,.45)}
+.lg-doc strong{color:#fff;font-weight:500}
+
+.lg-notice{border-top:1px solid rgba(255,255,255,.22);border-bottom:1px solid rgba(255,255,255,.1);padding:18px 0;margin:0 0 40px}
+.lg-notice p{margin:0;font-size:16px;line-height:1.65;color:rgba(255,255,255,.72)}
+.lg-notice .lg-kicker{display:block;margin-bottom:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--bo-teal)}
+
+.lg-sec{scroll-margin-top:120px;margin-top:clamp(34px,4vw,48px)}
+.lg-sec > h2{display:grid;grid-template-columns:52px 1fr;align-items:baseline;gap:0;margin:0 0 14px;color:#fff;font-family:var(--font-display);font-size:clamp(20px,2.2vw,25px);font-weight:500;letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+.lg-sec > h2 .lg-n{font-family:var(--font-mono);font-size:13px;color:var(--bo-teal);letter-spacing:0}
+
+.lg-c{display:grid;grid-template-columns:52px minmax(0,1fr);margin:0 0 14px}
+.lg-c > .lg-n{font-family:var(--font-mono);font-size:12.5px;color:rgba(255,255,255,.42);padding-top:5px;font-variant-numeric:tabular-nums}
+.lg-c p{margin:0}
+.lg-c p + p{margin-top:10px}
+
+.lg-sub{list-style:none;margin:10px 0 10px;padding:0;display:grid;gap:8px}
+.lg-sub li{display:grid;grid-template-columns:38px 1fr}
+.lg-sub li > i{font-style:normal;font-family:var(--font-mono);font-size:12.5px;color:rgba(255,255,255,.42);padding-top:4px}
+
+.lg-defs{display:grid;gap:10px;margin:10px 0 0}
+.lg-defs p{margin:0}
+
+.lg-caps{text-transform:uppercase;font-size:15px;letter-spacing:.015em;line-height:1.65}
+
+.lg-foot{margin-top:clamp(40px,5vw,64px);padding-top:18px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-wrap:wrap;gap:8px 28px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+
+@media (min-width:1080px){
+  .lg-body{grid-template-columns:230px minmax(0,1fr);gap:56px}
+  .lg-toc{display:block;position:sticky;top:120px;max-height:calc(100vh - 160px);overflow:auto}
+}
+@media (max-width:560px){
+  .lg-doc{font-size:16px}
+  .lg-sec > h2,.lg-c{grid-template-columns:42px minmax(0,1fr)}
+}

@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- BOASIS · the pages worth indexing, and nothing else.
-     Three pages only, on purpose: privacy.html and terms.html still say "this page is being
-     prepared", and a sitemap must never point at a page that says noindex (see their own
-     <meta name="robots">, and docs/SEO.md for the two-line change that adds them back once
-     the legal text is published).
+     The legal pages joined the list on 19 September 2026, when their text was published and
+     their <meta name="robots"> turned to index,follow: a sitemap and a page must always agree.
      The contact page is listed as /contact.html, which is the address its own canonical
      names, so the same page is not offered twice as /contact and /contact.html. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -18,5 +16,13 @@
   <url>
     <loc>https://boasis.ae/blog.html</loc>
     <lastmod>2026-09-16</lastmod>
+  </url>
+  <url>
+    <loc>https://boasis.ae/privacy.html</loc>
+    <lastmod>2026-09-19</lastmod>
+  </url>
+  <url>
+    <loc>https://boasis.ae/terms.html</loc>
+    <lastmod>2026-09-19</lastmod>
   </url>
 </urlset>

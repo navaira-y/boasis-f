@@ -44,8 +44,8 @@ const PAGES = [
   ['/', '/index.html', 'index'],
   ['/contact.html', '/contact.html', 'index'],
   ['/blog.html', '/blog.html', 'index'],
-  ['/privacy.html', '/privacy.html', 'noindex'],
-  ['/terms.html', '/terms.html', 'noindex'],
+  ['/privacy.html', '/privacy.html', 'index'],
+  ['/terms.html', '/terms.html', 'index'],
 ];
 const indexable = PAGES.filter(p => p[2] === 'index').map(p => p[1]);
 
@@ -113,16 +113,19 @@ test('sitemap.xml is valid, absolute, and lists exactly the pages that may be in
   assert.match(xml, /<\/urlset>\s*$/, 'closed, with nothing after it');
 
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
-  assert.deepEqual(locs, [SITE + '/', SITE + '/contact.html', SITE + '/blog.html'],
-    'the three indexable pages, in that order, and nothing else');
+  assert.deepEqual(locs, [SITE + '/', SITE + '/contact.html', SITE + '/blog.html',
+    SITE + '/privacy.html', SITE + '/terms.html'],
+    'the five indexable pages, in that order, and nothing else');
   for (const loc of locs) {
     assert.ok(loc.startsWith(SITE + '/'), loc + ' must be absolute, on the canonical host');
     assert.ok(!/[?#]/.test(loc), loc + ' must carry no query or fragment');
   }
   /* the same page must not be offered twice: /contact is /contact.html under another name */
   assert.ok(!locs.includes(SITE + '/contact'), 'the short path must not be listed as a second page');
+  /* the legal pages carry their real text since 19 September 2026: they say index, so the
+     sitemap must name them. The two halves are checked against each other further down. */
   for (const p of ['privacy.html', 'terms.html']) {
-    assert.ok(!locs.some(l => l.endsWith(p)), p + ' says noindex and must stay out of the sitemap');
+    assert.ok(locs.some(l => l.endsWith(p)), p + ' says index and must be listed in the sitemap');
   }
   /* The date is judged in the site's own timezone, not the runner's: on a box still on the
      15th in UTC, a lastmod of the 16th is today in Dubai, and calling that a lie would fail

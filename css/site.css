@@ -376,7 +376,7 @@ body.modal-open{overflow:hidden}
 .foot-main{display:grid;grid-template-columns:minmax(0,1.7fr) repeat(3,minmax(0,1fr));gap:40px;margin-top:clamp(56px,6vw,88px)}
 .foot-brand{display:inline-flex;align-items:center;font-family:var(--font-display);font-weight:500;font-size:30px;line-height:1;letter-spacing:.08em;color:#fff}
 .foot-brand img{width:1.06em;height:1.06em;margin:0 .02em;transform:translateY(-.02em)}
-.foot-line{margin:16px 0 0;max-width:30ch;text-wrap:balance;color:rgba(255,255,255,.66);font-size:16px;line-height:1.5}
+.foot-line{margin:16px 0 0;max-width:36ch;text-wrap:balance;color:rgba(255,255,255,.66);font-size:16px;line-height:1.5}
 .socials{list-style:none;display:flex;gap:10px;margin:24px 0 0;padding:0}
 .socials a{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.18);color:#fff;transition:background .25s,border-color .25s,color .25s}
 .socials a:hover{background:rgba(95,211,232,.12);border-color:var(--bo-teal);color:var(--bo-teal)}
@@ -405,6 +405,9 @@ body.modal-open{overflow:hidden}
 
 /* phones and narrow screens */
 @media (max-width:980px){
+  /* the tagline keeps its two lines: the brand block takes the full width and the links share the row under it */
+  .foot-main{grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 24px}
+  .foot-id{grid-column:1/-1}
   .does{grid-template-columns:1fr 1fr;row-gap:34px}
   .plan-grid{grid-template-columns:1fr;row-gap:0}
   .plan{grid-template-rows:auto;grid-row:auto}
