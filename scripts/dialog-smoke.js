@@ -196,7 +196,7 @@ const challenge = () => {
   ok(ef('#demo-form').hidden, 'step one is hidden');
   const cal = ef('.modal-cal');
   ok(!cal.hidden, 'the calendar step is showing');
-  ok(ef('.cal-frame iframe').src === 'https://calendar.app.google/53BYnSPnwgk92XRv8', 'the calendar loaded lazily, on arrival at step two');
+  ok(ef('.cal-frame iframe').src.startsWith('https://calendar.google.com/calendar/appointments/schedules/') && /\?gv=true$/.test(ef('.cal-frame iframe').src), 'the calendar loaded lazily, on arrival at step two, in the form Google embeds');
 
   await tick(ef('#demo-form'));
   click(ef('[data-final]'));

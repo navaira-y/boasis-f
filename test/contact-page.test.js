@@ -87,7 +87,10 @@ test('the two dialogs are on the page, with their endpoints and the calendar', a
   assert.match(home, /<div class="modal" id="modal-manage"/, 'the early access dialog');
   assert.match(home, /id="demo-form" data-endpoint="\/api\/demo"/, 'it posts to its own endpoint');
   assert.match(home, /id="manage-form" data-endpoint="\/api\/manage"/, 'and so does the list');
-  assert.match(home, /<iframe data-src="https:\/\/calendar\.app\.google\/53BYnSPnwgk92XRv8"/, 'the demo step two carries the calendar, lazy-loaded');
+  /* the embed form Google documents: the full schedule URL with gv=true. The short
+     calendar.app.google link is refused inside a frame. */
+  assert.match(home, /<iframe data-src="https:\/\/calendar\.google\.com\/calendar\/appointments\/schedules\/[\w-]+\?gv=true"/,
+    'the demo step two carries the calendar, lazy-loaded, in the embeddable form');
   assert.match(home, /name="who"/, 'the demo asks who they are');
   assert.match(home, /name="entity"/, 'and, once answered, the name of the company or authority');
   assert.match(home, /name="have"/, 'the list asks about the company');
