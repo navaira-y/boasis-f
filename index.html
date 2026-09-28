@@ -218,19 +218,20 @@
   <div class="intro-stage">
 
     <!-- the first screen · who we are and the two ways in. Still, instant, the same on every visit.
-         Each card IS its dialog: the title's own link carries the data-open, and its ::after covers
-         the card, so a click anywhere on Set up opens the demo dialog and a click anywhere on
-         Manage opens the early access one. The hrefs stay real for a browser with no script. -->
+         The card goes to its section: the title's link carries the real href and its ::after covers
+         the card, so a click anywhere on Set up glides to the Set up section, and a click anywhere
+         on Manage glides to Manage. The button inside is the only thing that opens a dialog. The
+         hrefs stay real for a browser with no script. -->
     <div class="hello beat on" id="hello">
       <h1><span class="l">The Most Advanced AI</span> <span class="l">For Company Setup<br class="ph"> and Management</span> <span class="l">in The UAE.</span></h1>
       <div class="doors">
-        <div class="door" data-open="demo">
-          <a class="t" href="#setup" data-open="demo">Set up</a>
+        <div class="door">
+          <a class="t" href="#setup">Set up</a>
           <p class="d">For free zones, authorities and setup companies.</p>
           <a class="act" href="/contact.html" data-open="demo">Book a demo</a>
         </div>
-        <div class="door" data-open="manage">
-          <a class="t" href="#manage" data-open="manage">Manage</a>
+        <div class="door">
+          <a class="t" href="#manage">Manage</a>
           <p class="d">For everyone who runs a company in the UAE.</p>
           <a class="act" href="#manage" data-open="manage">Join early access</a>
         </div>

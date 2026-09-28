@@ -18,8 +18,9 @@ function smooth() {
   if (reduce || typeof Lenis === 'undefined') return;
   lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, syncTouch: false, wheelMultiplier: 1, autoRaf: true });
   document.addEventListener('click', e => {
-    /* an opener is not an anchor: a hero door's title keeps href="#setup" for a browser with
-       no script, and with one it opens the dialog, so it must not also glide the page */
+    /* a hero door's title is an in-page anchor and nothing else: clicking the card glides to
+       that door's section. The button inside the card is a dialog opener, and an opener must
+       not also glide the page. */
     const a = e.target.closest('a[href^="#"]'); if (!a || a.hasAttribute('data-open')) return;
     const id = a.getAttribute('href'), el = id === '#top' ? 0 : (id.length > 1 ? document.querySelector(id) : null);
     if (el === null) return;
@@ -290,7 +291,7 @@ function modals() {
 
   /* delegated, so an opener that is added later (the journey builds its own "Book a demo")
      or a whole card that is (the two doors) works too. A click that lands on a real link
-     which is not itself an opener (the doors' "Set up" / "Manage" titles) goes to the link.
+     which is not itself an opener (a hero door's "Set up" / "Manage" title) goes to the link.
      A middle click still does what a middle click does, and reading a passage with a
      selection in hand never drags the page into a dialog. */
   document.addEventListener('click', ev => {

@@ -163,8 +163,28 @@ const challenge = () => {
     ok(dlg.hidden, 'the next escape closes the dialog, as it always did');
     ok(cc.querySelector('input[name="country_code"]').value === '+971' && cc.querySelector('.cc-cur').textContent === 'AE', 'and the shut dialog hands the picker back on the UAE');
   }
-  ok($$('a[data-open="demo"]').length === 4, 'four demo openers (the Set up card and its button share one, the free-zone CTA, and the one the journey builds)');
-  ok($$('a[data-open="manage"]').length === 5, 'five manage openers (the Manage card and its button, two plans, header button)');
+  ok($$('a[data-open="demo"]').length === 3, 'three demo openers (the Set up button, the free-zone CTA, and the one the journey builds)');
+  ok($$('a[data-open="manage"]').length === 4, 'four manage openers (the Manage button, two plans, the header button)');
+
+  /* ── the hero cards: the card goes to its section, the button opens the dialog ───── */
+  console.log('hero cards');
+  {
+    const cards = $$('.door');
+    ok(cards.length === 2, 'two hero cards');
+    ok(cards.every(c => !c.hasAttribute('data-open')), 'neither card is a dialog opener any more');
+    const titles = cards.map(c => c.querySelector('.t'));
+    ok(titles[0].getAttribute('href') === '#setup' && !titles[0].hasAttribute('data-open'), 'the Set up card links to the Set up section');
+    ok(titles[1].getAttribute('href') === '#manage' && !titles[1].hasAttribute('data-open'), 'the Manage card links to Manage');
+    ok(!!cards[0].querySelector('.act[data-open="demo"]'), 'the Set up button is the opener');
+    ok(!!cards[1].querySelector('.act[data-open="manage"]'), 'and the Manage button is the opener');
+    /* the click that matters: the card must not open a dialog, and the button must */
+    click(titles[0]);
+    ok($('#modal-demo').hidden, 'clicking the Set up card does not open the dialog');
+    click(cards[1].querySelector('.act'));
+    ok(!$('#modal-manage').hidden, 'clicking the Manage button does open it');
+    ok($('#modal-demo').hidden, 'and only that one');
+    keydown();
+  }
   ok(!$('.nav-contact'), 'no header contact button');
 
   /* ── the demo dialog, end to end ───────────────────────────────────────── */

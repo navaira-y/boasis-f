@@ -62,15 +62,16 @@ test('the main page points set-up at the demo dialog and manage at the list dial
   const joins = [...home.matchAll(/href="#manage"[^>]*data-open="manage"[^>]*>Join early access/g)];
   assert.equal(joins.length, 3, 'the Manage door and both plans open the list dialog, saw ' + joins.length);
   assert.ok(!/id="waitlist"/.test(home), 'the waiting list section is gone from the page');
-  assert.match(home, /<div class="door" data-open="demo">/, 'the whole Set up door opens the demo dialog');
-  assert.match(home, /<div class="door" data-open="manage">/, 'and the whole Manage door opens the list dialog');
-  /* 15 September: the owner asked for the two hero cards to be linked to the same dialog
-     their button opens. The title's link carries the data-open (its ::after already covers
-     the card, so the card IS the control), and the href stays real for a browser with no
-     script. js/site.js skips the glide for an opener, so the card cannot both scroll and
-     open. */
-  assert.match(home, /<a class="t" href="#setup" data-open="demo">Set up<\/a>/, 'the Set up card opens the demo dialog, not only its button');
-  assert.match(home, /<a class="t" href="#manage" data-open="manage">Manage<\/a>/, 'and the Manage card opens the early access dialog, with its href kept');
+  /* 19 September: the owner asked for the two hero cards to go to their own sections, and
+     for the button inside to be the only thing that opens a dialog. The title's link carries
+     the real href and its ::after covers the card, so the card glides; the button is the
+     opener and js/site.js skips the glide for an opener, so one click can never do both. */
+  assert.match(home, /<div class="door">/, 'the hero card itself is not a dialog opener any more');
+  assert.ok(!/<div class="door" data-open/.test(home), 'no hero card opens a dialog');
+  assert.match(home, /<a class="t" href="#setup">Set up<\/a>/, 'the Set up card goes to the Set up section');
+  assert.match(home, /<a class="t" href="#manage">Manage<\/a>/, 'and the Manage card goes to Manage');
+  assert.match(home, /<a class="act" href="\/contact\.html" data-open="demo">Book a demo<\/a>/, 'the Set up button still opens the demo dialog');
+  assert.match(home, /<a class="act" href="#manage" data-open="manage">Join early access<\/a>/, 'and the Manage button still opens the list dialog');
   const js = await (await get('/js/site.js')).text();
   assert.match(js, /if \(!a \|\| a\.hasAttribute\('data-open'\)\) return;/, 'an opener is not an in-page anchor: no glide behind the dialog');
   assert.match(home, /<div class="foot-ask">\s*<h2>Any questions\?<\/h2>\s*<a class="btn btn-light" href="\/contact\.html">Contact us/, 'the footer question is the last Contact us');
