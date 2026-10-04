@@ -14,7 +14,7 @@
 /* the split · the promise on one side, the questions on the other. Below 1080 the panel
    simply comes after the words, in order, as it always did. */
 .ea-split{display:grid;gap:clamp(34px,4vw,64px);align-items:start;padding:clamp(30px,4vw,56px) 0 clamp(64px,7vw,100px)}
-@media (min-width:1080px){
+@media (min-width:900px){
   .ea-split{grid-template-columns:1.05fr .95fr;gap:clamp(44px,4.5vw,80px);padding-top:clamp(44px,5vw,72px)}
 }
 .ea-left{text-align:left}

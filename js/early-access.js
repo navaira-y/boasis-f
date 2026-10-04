@@ -178,7 +178,7 @@ function joinForm() {
        click, a puzzle, a tick — is untouched, the visitor just never waits on it */
     if (el.getAttribute('data-step') === 'last') autoBox();
     const panel = form.closest('.ea-panel');
-    if (panel && window.innerWidth < 1080 && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    if (panel && window.innerWidth < 900 && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
 
   if (stepEls.length) {
