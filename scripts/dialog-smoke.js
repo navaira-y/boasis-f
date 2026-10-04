@@ -312,8 +312,8 @@ const challenge = () => {
     einput(form.querySelector('input[name="name"]'), 'Lena Karim');
     click(steps[0].querySelector('[data-next]'));
     ok(steps[0].hidden && !steps[1].hidden, 'answered, the name collapses and the email is asked');
-    ok(steps[0].classList.contains('is-done') && steps[0].querySelector('.ea-sum span').textContent === 'Lena Karim', 'it leaves its summary line behind, and an Edit');
-    ok(!!steps[0].querySelector('[data-edit]'), 'the edit control is on it');
+    ok(steps[0].classList.contains('is-done') && steps[0].querySelector('.ea-sum span').textContent === 'Lena Karim', 'it leaves its answer on one line behind');
+    ok(!ed.querySelector('[data-edit]'), 'and there is no Edit control on the page, on purpose');
 
     /* the code: asked for, checked, and only then does the form go on */
     einput(form.querySelector('input[name="email"]'), 'lena@corp.com');

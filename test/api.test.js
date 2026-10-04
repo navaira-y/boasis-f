@@ -16,7 +16,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 async function up() {
   proc = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
     cwd: ROOT,
-    env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 'test-salt' , RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000' },
+    env: { ...process.env, BOASIS_NO_ENV_FILE: '1', PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 'test-salt' , RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';

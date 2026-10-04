@@ -13,7 +13,7 @@ const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-rate-'));
 
 const start = env => new Promise((res, rej) => {
   const proc = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
-    cwd: ROOT, env: { ...process.env, PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 's', ...env },
+    cwd: ROOT, env: { ...process.env, BOASIS_NO_ENV_FILE: '1', PORT: '0', DATA_DIR: DATA, MAIL_DRY_RUN: '1', VISITOR_SALT: 's', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';

@@ -29,7 +29,11 @@ function loadEnv(file) {
     if (key && !(key in process.env)) process.env[key] = val;
   }
 }
-loadEnv(path.join(ROOT, '.env'));
+/* A test run must read the environment it was GIVEN, not the file a developer keeps for
+   their laptop: a .env with MAIL_DRY_RUN=1 in the repo once turned a green suite red
+   without a single line of the code changing. So the harnesses say BOASIS_NO_ENV_FILE=1
+   and the file stays out of it. Nothing else about the loading moves. */
+if (!process.env.BOASIS_NO_ENV_FILE) loadEnv(path.join(ROOT, '.env'));
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const str = (k, d = '') => (process.env[k] || '').trim() || d;

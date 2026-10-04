@@ -120,7 +120,9 @@
   lib/mail-templates.js was not reworded, only extended (see the next line).
 * The same day, the page became a split: the words on one side, the form on the other, and
   the form asks one question at a time — name, email, a six-digit code mailed to that
-  address, phone, the company question, the box. /api/manage now refuses a signup whose
+  address, phone, the company question, the box, and an answered step keeps no Edit link.
+  The heading says what the visitor gets, in their words, and the trust comes from the limits
+  the page states rather than from adjectives. /api/manage now refuses a signup whose
   mailbox never spoke (lib/email-verify.js; test/verify-email.test.js drives the whole
   thing, including the three-tries rule and the one-minute gap between codes).
 * Access opens on 17 November 2026. The first year is free on the one-company plan.

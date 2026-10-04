@@ -99,7 +99,7 @@ function joinForm() {
     have: v => (v ? '' : 'Please answer: do you have a company?'),
     count: v => (v ? '' : 'Please choose how many.'),
     authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
-    plans: v => (String(v || '').trim() ? '' : 'Describe it in a sentence — it helps us answer properly.'),
+    plans: v => (String(v || '').trim() ? '' : 'Write a sentence about it. It helps us answer properly.'),
     code: v => (/^\d{6}$/.test(String(v || '').trim()) ? '' : 'The code is six digits.'),
   };
   const STEP_FIELDS = { 0: ['name'], 1: ['email'], 2: ['code'], 3: ['phone'], 4: ['have', 'count', 'authority', 'plans'] };
@@ -112,9 +112,9 @@ function joinForm() {
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
 
   /* ── the steps ────────────────────────────────────────────────────────────────
-     A step that is answered collapses to one line with an Edit on it — the visitor can
-     always look back and change an answer; the field underneath never disappears, so a
-     scriptless browser still sees the whole form, and so does the browser's autofill. */
+     A step that is answered collapses to one line, plain. The field underneath never
+     disappears from the form, so a scriptless browser still sees the whole thing, and so
+     does the browser's autofill. */
   const stepEls = ['name', 'email', 'code', 'phone', 'have', 'last']
     .map(n => form.querySelector(`[data-step="${n}"]`)).filter(Boolean);
   const pips = [...document.querySelectorAll('.ea-pips i')];
@@ -184,15 +184,14 @@ function joinForm() {
   if (stepEls.length) {
     stepEls.forEach((el, i) => { if (i) el.hidden = true; stepDone(el, false); });
     stepEls.forEach(el => {
+      /* the answered line, and nothing to click: the owner asked for the Edit link gone.
+         The one way back that stays is the code step's "Wrong address?", because an
+         unreadable inbox needs a real exit. */
       const sum = document.createElement('p');
       sum.className = 'ea-sum'; sum.hidden = true;
-      sum.innerHTML = '<span data-sum></span> <button type="button" class="ea-link" data-edit>Edit</button>';
+      const sv = document.createElement('span'); sv.setAttribute('data-sum', '');
+      sum.appendChild(sv);
       el.appendChild(sum);
-      sum.querySelector('[data-edit]').addEventListener('click', () => {
-        const i = stepEls.indexOf(el);
-        for (let k = i; k < stepEls.length; k++) stepDone(stepEls[k], false);
-        cur = i; openStep(i);
-      });
     });
     stepEls.forEach((el, i) => {
       const b = el.querySelector('[data-next]'); if (!b) return;

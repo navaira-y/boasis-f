@@ -15,7 +15,7 @@ let proc, base;
 function boot(dataDir, env) {
   const p = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
     cwd: ROOT,
-    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, MAIL_DRY_RUN: '1', VISITOR_SALT: 'v', RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000', ...env },
+    env: { ...process.env, BOASIS_NO_ENV_FILE: '1', PORT: '0', DATA_DIR: dataDir, MAIL_DRY_RUN: '1', VISITOR_SALT: 'v', RATE_LIMIT_FORMS_PER_MIN: '10000', RATE_LIMIT_VISITS_PER_MIN: '10000', MAIL_MAX_PER_HOUR: '10000', MAIL_MAX_PER_DAY: '10000', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   return new Promise((res, rej) => {

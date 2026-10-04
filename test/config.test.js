@@ -13,7 +13,7 @@ const PROBE = path.resolve(__dirname, 'helpers/config-probe.js');
 
 /* a fresh process, because config/env.js reads process.env once at require time */
 const load = (env = {}) => {
-  const e = { ...process.env };
+  const e = { ...process.env, BOASIS_NO_ENV_FILE: '1' };
   for (const k of Object.keys(env)) { if (env[k] === undefined) delete e[k]; else e[k] = env[k]; }
   return JSON.parse(execFileSync(process.execPath, [PROBE], { env: e, encoding: 'utf8' }));
 };

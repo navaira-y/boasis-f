@@ -44,8 +44,8 @@
 .ea-pips i.on{background:var(--bo-teal)}
 
 /* one question at a time · without a script every step is simply here, all at once; the
-   script hides what is not asked yet, and an answered step collapses to its summary line,
-   with Edit to open it again. The fields never leave the DOM — that is the point. */
+   script hides what is not asked yet, and an answered step collapses to its answer on one
+   line, plain, with nothing to click. The fields never leave the DOM: that is the point. */
 .ea-form{display:grid;gap:16px;margin:clamp(20px,2.2vw,28px) 0 0;text-align:left}
 .ea-step{display:grid;gap:12px}
 .ea-step[hidden]{display:none}
