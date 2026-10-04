@@ -207,7 +207,7 @@
   <div class="nav-bar">
     <a class="brand" href="#top" aria-label="BOASIS, to the top">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
     <nav class="tabs" aria-label="Sections"><a href="#setup">Set up</a><a href="#manage">Manage</a><i class="tab-dot" aria-hidden="true"></i></nav>
-    <a class="nav-wait" href="/#manage" data-open="manage">Join Early Access</a>
+    <a class="nav-wait" href="/early-access">Join Early Access</a>
   </div>
 </header>
 
@@ -233,7 +233,7 @@
         <div class="door">
           <a class="t" href="#manage">Manage</a>
           <p class="d">For everyone who runs a company in the UAE.</p>
-          <a class="act" href="#manage" data-open="manage">Join early access</a>
+          <a class="act" href="/early-access">Join early access</a>
         </div>
       </div>
     </div>
@@ -423,7 +423,7 @@
           <p class="plan-price"><span class="plan-amount">AED 30</span><span class="plan-per">a month</span><span class="plan-free">Free for the first year</span></p>
           <p class="plan-for">For founders and freelancers with one company.</p>
         </div>
-        <a class="btn btn-light" href="#manage" data-open="manage">Join early access</a>
+        <a class="btn btn-light" href="/early-access">Join early access</a>
       </article>
       <article class="plan reveal">
         <div class="plan-top">
@@ -431,7 +431,7 @@
           <p class="plan-price"><span class="plan-amount">AED 90</span><span class="plan-per">a month</span></p>
           <p class="plan-for">For founders and freelancers with up to three companies.</p>
         </div>
-        <a class="btn btn-light" href="#manage" data-open="manage">Join early access</a>
+        <a class="btn btn-light" href="/early-access">Join early access</a>
       </article>
       <article class="plan plan-ent reveal">
         <div class="plan-top">
@@ -439,7 +439,7 @@
           <p class="plan-price"><span class="plan-amount">Custom</span><span class="plan-per">for your group</span></p>
           <p class="plan-for">For groups beyond three companies.</p>
         </div>
-        <a class="btn btn-light" href="#manage" data-open="manage">Join early access</a>
+        <a class="btn btn-light" href="/early-access">Join early access</a>
       </article>
     </div>
     <p class="plan-note reveal">Prices are in UAE dirhams, a month. The first year is free on One company.</p>
@@ -496,10 +496,9 @@
   </div>
 </footer>
 
-<!-- the dialogs · Book a demo and Join early access. The buttons that open them keep real
-     hrefs on purpose: with no script they still go somewhere honest (the contact page, the
-     waiting list); with a script they become the dialog instead. The fields are the site's
-     own: the same pills, the same hairlines, the same focus, the same stamp and honeypot. -->
+<!-- the one dialog left · Book a demo. Its buttons keep real hrefs on purpose: with no script
+     they still go somewhere honest (the contact page); with a script it becomes the dialog.
+     The early-access form is not a dialog any more: it lives on its own page, /early-access. -->
 <div class="modal" id="modal-demo" hidden>
   <div class="modal-back" data-modal-close></div>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-demo-title" data-lenis-prevent>
@@ -578,94 +577,6 @@
     <div class="modal-done" hidden>
       <h2 class="modal-h">Done.</h2>
       <p class="modal-line">We have your request. A person at BOASIS will confirm your time by email, and the calendar sends its own confirmation through Google.</p>
-      <div class="mf-foot"><button class="btn btn-light" type="button" data-modal-close>Close</button></div>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="modal-manage" hidden>
-  <div class="modal-back" data-modal-close></div>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-manage-title" data-lenis-prevent>
-    <button class="modal-x" type="button" data-modal-close aria-label="Close">×</button>
-    <p class="label light modal-kicker">Join early access</p>
-    <h2 class="modal-h" id="modal-manage-title">Be first when Manage opens.</h2>
-
-    <form class="modal-form" id="manage-form" data-endpoint="/api/manage" novalidate>
-      <label class="sr" for="manage-hp" aria-hidden="true">Website<input id="manage-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></label>
-      <input type="hidden" name="_t" value="">
-      <div class="mf-field">
-        <div class="mf-pill"><label><span class="sr">Full name</span><input name="name" type="text" autocomplete="name" placeholder="Enter your full name" required></label></div>
-        <p class="mf-err" data-err="name" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field">
-        <div class="mf-pill"><label><span class="sr">Email</span><input name="email" type="email" autocomplete="email" inputmode="email" placeholder="Enter your email" required></label></div>
-        <p class="mf-err" data-err="email" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field">
-        <div class="mf-pill mf-phone">
-          <div class="mf-code" data-cc>
-            <span class="sr">Country code</span>
-            <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
-            <div class="cc-pop" hidden>
-              <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
-              <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
-              <p class="cc-none" hidden>No country found.</p>
-            </div>
-            <input type="hidden" name="country_code" value="+971">
-          </div>
-          <label><span class="sr">Phone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
-        </div>
-        <p class="mf-err" data-err="phone" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field">
-        <div class="mf-pill"><label><span class="sr">Do you have a company</span>
-          <select name="have" aria-label="Do you have a company?" required>
-            <option value="" selected disabled>Do you have a company?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label></div>
-        <p class="mf-err" data-err="have" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field mf-count" hidden>
-        <div class="mf-pill"><label><span class="sr">How many</span>
-          <select name="count" aria-label="How many?" required>
-            <option value="" selected disabled>How many companies?</option>
-            <option value="1">1</option>
-            <option value="1-3">1-3</option>
-            <option value="3plus">3+</option>
-          </select>
-        </label></div>
-        <p class="mf-err" data-err="count" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field mf-auth" hidden>
-        <div class="mf-pill"><label><span class="sr">Registered in which authority</span><input name="authority" type="text" autocomplete="off" placeholder="Write the name of it, e.g. SPARK Free Zone" required></label></div>
-        <p class="mf-err" data-err="authority" aria-live="polite" hidden></p>
-      </div>
-      <div class="mf-field mf-plans" hidden>
-        <div class="mf-pill"><label><span class="sr">Thinking of opening one</span><input name="plans" type="text" autocomplete="off" placeholder="Thinking of opening one? Describe it in a sentence"></label></div>
-        <p class="mf-err" data-err="plans" aria-live="polite" hidden></p>
-      </div>
-      <div class="captcha" data-captcha>
-        <button class="captcha-box" type="button" data-captcha-start>
-          <span class="captcha-tick" aria-hidden="true"></span>
-          <span class="captcha-label">I am not a robot</span>
-        </button>
-        <input type="hidden" name="altcha" value="">
-        <p class="captcha-note" data-captcha-note aria-live="polite">Click the box to continue.</p>
-      </div>
-      <noscript>
-        <p class="form-noscript">This form needs JavaScript, which your browser has switched off. Write to <a href="mailto:support@boasis.ae">support@boasis.ae</a> and a person will answer you.</p>
-      </noscript>
-      <div class="mf-foot">
-        <button class="btn btn-light" type="submit">Join</button>
-        <p class="form-note" aria-live="polite"></p>
-      </div>
-    </form>
-
-    <div class="modal-done" hidden>
-      <h2 class="modal-h">Done.</h2>
-      <p class="modal-line">You are on the list for early access to Manage. A confirmation is on its way to your inbox, and the next email comes when your access is ready.</p>
       <div class="mf-foot"><button class="btn btn-light" type="button" data-modal-close>Close</button></div>
     </div>
   </div>

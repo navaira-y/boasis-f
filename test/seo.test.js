@@ -44,6 +44,7 @@ const text = async p => (await get(p)).text();
 /* every page of the site, and the one address each answers at */
 const PAGES = [
   ['/', '/index.html', 'index'],
+  ['/early-access', '/early-access.html', 'index'],
   ['/contact.html', '/contact.html', 'index'],
   ['/blog.html', '/blog.html', 'index'],
   ['/privacy.html', '/privacy.html', 'index'],
@@ -115,9 +116,9 @@ test('sitemap.xml is valid, absolute, and lists exactly the pages that may be in
   assert.match(xml, /<\/urlset>\s*$/, 'closed, with nothing after it');
 
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
-  assert.deepEqual(locs, [SITE + '/', SITE + '/contact.html', SITE + '/blog.html',
+  assert.deepEqual(locs, [SITE + '/', SITE + '/early-access.html', SITE + '/contact.html', SITE + '/blog.html',
     SITE + '/privacy.html', SITE + '/terms.html'],
-    'the five indexable pages, in that order, and nothing else');
+    'the six indexable pages, in that order, and nothing else');
   for (const loc of locs) {
     assert.ok(loc.startsWith(SITE + '/'), loc + ' must be absolute, on the canonical host');
     assert.ok(!/[?#]/.test(loc), loc + ' must carry no query or fragment');
@@ -156,7 +157,7 @@ test('llms.txt gives an assistant the same facts the site gives a visitor', asyn
   assert.match(txt, /not licensed for training AI models/i, 'the usage line must be here, not only in robots.txt');
   assert.match(txt, /citing this site/i, 'and citation must be welcomed in words');
   assert.match(txt, /https:\/\/boasis\.ae\//, 'the canonical host');
-  for (const p of ['contact.html', 'blog.html', 'privacy.html', 'terms.html']) {
+  for (const p of ['early-access.html', 'contact.html', 'blog.html', 'privacy.html', 'terms.html']) {
     assert.ok(txt.includes('https://boasis.ae/' + p), p + ' is not linked from llms.txt');
   }
   /* Only the disclaimer may mention reviews or scores. An assistant handed a number like

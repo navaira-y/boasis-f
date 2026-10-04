@@ -84,9 +84,10 @@ const challenge = () => {
 
   /* ── init: the dialogs are wired and the code pickers are full ──────────── */
   console.log('init');
-  ok($$('#modal-demo, #modal-manage').length === 2, 'both dialogs are on the page');
+  ok($$('.modal').length === 1 && !!$('#modal-demo'), 'one dialog is on the page: Book a demo');
+  ok(!$('#modal-manage'), 'the early-access dialog is gone: its form is a page of its own now');
   ok($$('#modal-demo [hidden]').some(e => e.id === 'demo-form') === false, 'demo form is visible');
-  for (const id of ['modal-demo', 'modal-manage']) {
+  for (const id of ['modal-demo']) {
     const cc = document.querySelector(`#${id} [data-cc]`);
     const lis = cc && [...cc.querySelectorAll('.cc-list li')];
     ok(lis && lis.length === 59, id + ' picker list has the 59 countries');
@@ -164,7 +165,8 @@ const challenge = () => {
     ok(cc.querySelector('input[name="country_code"]').value === '+971' && cc.querySelector('.cc-cur').textContent === 'AE', 'and the shut dialog hands the picker back on the UAE');
   }
   ok($$('a[data-open="demo"]').length === 3, 'three demo openers (the Set up button, the free-zone CTA, and the one the journey builds)');
-  ok($$('a[data-open="manage"]').length === 5, 'five manage openers (the Manage button, three plans, the header button)');
+  ok($$('a[data-open="manage"]').length === 0, 'no manage openers are left on the home page');
+  ok($$('a[href="/early-access"]').length === 5, 'five ways to the early-access page (the Manage button, three plans, the header)');
 
   /* ── the hero cards: the card goes to its section, the button opens the dialog ───── */
   console.log('hero cards');
@@ -176,13 +178,11 @@ const challenge = () => {
     ok(titles[0].getAttribute('href') === '#setup' && !titles[0].hasAttribute('data-open'), 'the Set up card links to the Set up section');
     ok(titles[1].getAttribute('href') === '#manage' && !titles[1].hasAttribute('data-open'), 'the Manage card links to Manage');
     ok(!!cards[0].querySelector('.act[data-open="demo"]'), 'the Set up button is the opener');
-    ok(!!cards[1].querySelector('.act[data-open="manage"]'), 'and the Manage button is the opener');
+    ok(cards[1].querySelector('.act').getAttribute('href') === '/early-access', 'and the Manage button leads to the early-access page');
     /* the click that matters: the card must not open a dialog, and the button must */
     click(titles[0]);
     ok($('#modal-demo').hidden, 'clicking the Set up card does not open the dialog');
-    click(cards[1].querySelector('.act'));
-    ok(!$('#modal-manage').hidden, 'clicking the Manage button does open it');
-    ok($('#modal-demo').hidden, 'and only that one');
+    ok($('#modal-demo').hidden, 'the Manage button opens no dialog, because it is a link');
     keydown();
   }
   ok(!$('.nav-contact'), 'no header contact button');
@@ -254,44 +254,65 @@ const challenge = () => {
   ok(ef('#demo-form') && !ef('#demo-form').hidden, 'the form stays put');
   ok(posts.length === before, 'nothing was sent');
 
-  /* ── the manage dialog ─────────────────────────────────────────────────── */
-  console.log('manage: open, fill, send, done');
-  const m = $('#modal-manage');
-  click($('a[data-open="manage"]'));
-  ok(!m.hidden, 'it opened');
-  const mf = el => m.querySelector(el);
-  input(mf('input[name="name"]'), 'Lena Karim');
-  input(mf('input[name="email"]'), 'lena@corp.com');
-  input(mf('input[name="phone"]'), '0551112222');
-  const haveSel = mf('select[name="have"]');
-  const change = el => el.dispatchEvent(new window.Event('change', { bubbles: true }));
-  haveSel.value = 'yes'; change(haveSel);
-  ok(!mf('.mf-count').hidden && !mf('.mf-auth').hidden && mf('.mf-plans').hidden, '"yes" reveals the company fields and hides the sentence');
-  haveSel.value = 'no'; change(haveSel);
-  ok(mf('.mf-count').hidden && mf('.mf-auth').hidden && !mf('.mf-plans').hidden, '"no" reveals the sentence and hides the company fields');
-  input(mf('input[name="plans"]'), 'A small import business, still deciding the authority.');
-  haveSel.value = 'yes'; change(haveSel);
-  mf('select[name="count"]').value = '1-3';
-  input(mf('input[name="authority"]'), 'SPARK Free Zone');
-  /* the box is a step of its own: pressing Join without it must say so on the spot and
-     post nothing, rather than saying "Sending" and letting the server refuse the form */
-  const beforeBox = posts.length;
-  submitForm(mf('#manage-form'));
-  await new Promise(r => setTimeout(r, 50));
-  ok(mf('.form-note').textContent === 'Please click the "I am not a robot" box first.', 'Join without the box says what to do: ' + mf('.form-note').textContent);
-  ok(posts.length === beforeBox, 'and nothing was posted');
-  ok(mf('.modal-done').hidden, 'and the done step stayed shut');
-
-  await tick(mf('#manage-form'));
-  ok(mf('input[name="altcha"]').value.length > 40, 'the box is ticked and carries its solved answer');
-  ok(mf('.form-note').textContent === '', 'and the line telling the visitor to click it is gone');
-  submitForm(mf('#manage-form'));
-  await new Promise(r => setTimeout(r, 50));
-  ok(!mf('.modal-done').hidden, 'the done step is showing');
-  const mpost = posts[posts.length - 1];
-  ok(mpost.url === '/api/manage', 'it posted to the manage endpoint');
-  ok(mpost.body.phone === '+971 551112222' && mpost.body.have === 'yes' && mpost.body.count === '1-3' && mpost.body.authority === 'SPARK Free Zone', 'its fields went out');
-  keydown(window);
+  /* ── the early-access page: the whole form on its own page ─────────────── */
+  console.log('early access: the page, the branch, the send, the done');
+  {
+    const edom = await JSDOM.fromURL(BASE + '/early-access', {
+      runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, beforeParse: ambient,
+    });
+    const ew = edom.window, ed = ew.document;
+    await Promise.race([new Promise(res => ew.addEventListener('load', res)), new Promise(res => setTimeout(res, 10000))]);
+    await new Promise(r => setTimeout(r, 400));
+    const eposts = [];
+    ew.fetch = async (url, opts) => {
+      if (String(url).includes('/api/captcha')) return { ok: true, status: 200, json: async () => challenge() };
+      eposts.push({ url, body: JSON.parse(opts.body) });
+      return { ok: true, status: 200, json: async () => ({ ok: true, confirmed: true }) };
+    };
+    const eq = sel => ed.querySelector(sel);
+    const form = eq('#join-form');
+    ok(!!form, 'the page carries the form');
+    ok(form.getAttribute('data-endpoint') === '/api/manage', 'and it posts to the manage endpoint');
+    /* the content comes from the client's own document, so the four things and the three
+       limits are pinned here: a rewrite that invents a feature fails this check */
+    for (const word of ['Know', 'Tell', 'Guide', 'Keep']) ok(!!eq('.ea-does') && eq('.ea-does').textContent.includes(word), 'the page keeps ' + word);
+    ok(ed.body.textContent.includes('Nothing is submitted to government or a zone'), 'the limits are on the page');
+    ok(ed.body.textContent.includes('17 November'), 'and the date the list is told');
+    const joins = [...ed.querySelectorAll('a[href="#join"]')];
+    ok(joins.length >= 3, 'the page leads to its own form from the top and the plans');
+    const cc = form.querySelector('[data-cc]');
+    ok(!!cc && cc.querySelectorAll('.cc-list li').length === 59, 'the form carries the 59-country picker');
+    const einput = (el, v) => { el.value = v; el.dispatchEvent(new ew.Event('input', { bubbles: true })); };
+    const esubmit = () => form.dispatchEvent(new ew.Event('submit', { bubbles: true, cancelable: true }));
+    einput(form.querySelector('input[name="name"]'), 'Lena Karim');
+    einput(form.querySelector('input[name="email"]'), 'lena@corp.com');
+    einput(form.querySelector('input[name="phone"]'), '0551112222');
+    const haveSel = form.querySelector('select[name="have"]');
+    const change = el => el.dispatchEvent(new ew.Event('change', { bubbles: true }));
+    haveSel.value = 'yes'; change(haveSel);
+    ok(!form.querySelector('.mf-count').hidden && !form.querySelector('.mf-auth').hidden && form.querySelector('.mf-plans').hidden, '"yes" reveals the company fields and hides the sentence');
+    haveSel.value = 'no'; change(haveSel);
+    ok(form.querySelector('.mf-count').hidden && form.querySelector('.mf-auth').hidden && !form.querySelector('.mf-plans').hidden, '"no" reveals the sentence and hides the company fields');
+    einput(form.querySelector('input[name="plans"]'), 'A small import business, still deciding the authority.');
+    haveSel.value = 'yes'; change(haveSel);
+    form.querySelector('select[name="count"]').value = '1-3';
+    einput(form.querySelector('input[name="authority"]'), 'SPARK Free Zone');
+    /* the box is part of the form: pressing Join without it says so on the spot and posts nothing */
+    esubmit();
+    await new Promise(r => setTimeout(r, 50));
+    ok(form.querySelector('.form-note').textContent === 'Please click the "I am not a robot" box first.', 'Join without the box says what to do: ' + form.querySelector('.form-note').textContent);
+    ok(eposts.length === 0, 'and nothing was posted');
+    ok(eq('.ea-done').hidden, 'and the done step stayed shut');
+    await tick(form);
+    ok(form.querySelector('input[name="altcha"]').value.length > 40, 'the box is ticked and carries its solved answer');
+    esubmit();
+    await new Promise(r => setTimeout(r, 50));
+    ok(!eq('.ea-done').hidden, 'the done step is showing');
+    ok(form.hidden, 'and the form stepped aside');
+    const mpost = eposts[eposts.length - 1];
+    ok(mpost.url === '/api/manage', 'it posted to the manage endpoint');
+    ok(mpost.body.phone === '+971 551112222' && mpost.body.have === 'yes' && mpost.body.count === '1-3' && mpost.body.authority === 'SPARK Free Zone', 'its fields went out');
+  }
 
   /* ── the journey builds its own "Book a demo" after the page has wired up:
        the delegated handler must still open the dialog for it ───────────────── */

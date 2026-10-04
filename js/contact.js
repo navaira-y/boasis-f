@@ -1,5 +1,5 @@
 /* BOASIS · the contact form.
-   Same rules as the waiting list on the home page, on purpose: a stamp of when the visitor
+   Same rules as the early-access form on /early-access, on purpose: a stamp of when the visitor
    started (a script posts too fast to have read the page), a honeypot no human can see, and
    a line that answers. One file for one form, so nothing here can reach into the home page.
 

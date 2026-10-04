@@ -1,6 +1,6 @@
 /* BOASIS · the country codes, and the picker that carries them · 15 September 2026
-   Three phone fields ask the same question: the two dialogs on the home page and the
-   contact form. They used to answer it with two different controls — the dialogs had a
+   Three phone fields ask the same question: the demo dialog, the /early-access page and
+   the contact form. They used to answer it with two different controls — the dialogs had a
    picker with no search (sixty countries is a scroll, and a scroll is not a search), and
    the contact page had a native <select> that could not say what a code belonged to. The
    owner asked for the search, and for the contact picker to be the same as the others, so

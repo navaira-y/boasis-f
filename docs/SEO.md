@@ -17,8 +17,9 @@ deliberate: it says things about the site that a visitor has no reason to read.
 | `/` | yes | `https://boasis.ae/` |
 | `/contact.html` | yes | `https://boasis.ae/contact.html` |
 | `/blog.html` | yes | `https://boasis.ae/blog.html` |
-| `/privacy.html` | **noindex, follow** — the page still says it is being prepared | `https://boasis.ae/privacy.html` |
-| `/terms.html` | **noindex, follow** — same reason | `https://boasis.ae/terms.html` |
+| `/early-access.html` | yes | `https://boasis.ae/early-access.html` |
+| `/privacy.html` | yes — the client's real text landed 19 September 2026 | `https://boasis.ae/privacy.html` |
+| `/terms.html` | yes — same | `https://boasis.ae/terms.html` |
 
 Each page carries: a `title` (15–65 characters), a `meta description` (50–160), one
 `canonical`, `robots` with `max-image-preview:large` so a preview can be the full image, the
@@ -54,7 +55,7 @@ What is deliberately absent, because publishing it would be a lie:
 ### The three files a crawler fetches by name
 
 - `robots.txt` — see §2: citable, not trainable.
-- `sitemap.xml` — the three indexable pages, absolute URLs, a real `lastmod`. No `changefreq`
+- `sitemap.xml` — the six indexable pages, absolute URLs, a real `lastmod`. No `changefreq`
   or `priority`: Google ignores both, and stale ones are worse than none.
 - `llms.txt` — plain-language facts for assistants, per the emerging convention: what BOASIS
   is, who runs it, what Set up and Manage do, the links, and the usage line (citation welcome,
@@ -204,25 +205,13 @@ its first real post.
 
 ---
 
-## 6 · The two unfinished pages, and how to flip them
+## 6 · The legal pages were flipped on 19 September 2026
 
-`privacy.html` and `terms.html` currently say *"This page is being prepared."* Indexing a page
-that says that reads as a half-finished company, so both are `noindex,follow` and both are out
-of the sitemap — the two must agree, or Search Console reports the contradiction for months.
-
-When the real text is published, in each of the two files:
-
-1. `<meta name="robots" content="noindex,follow">` → `index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1`
-2. add its URL to `sitemap.xml`:
-   ```xml
-   <url>
-     <loc>https://boasis.ae/privacy.html</loc>
-     <lastmod>YYYY-MM-DD</lastmod>
-   </url>
-   ```
-3. rewrite the `meta description` to describe the real text, and update the JSON-LD `description`.
-
-`test/seo.test.js` fails until both sides are changed — that is the point of it.
+`privacy.html` and `terms.html` carry the client's real text, say `index,follow`, and are
+listed in `sitemap.xml` — a sitemap and a page must always agree, or Search Console reports
+the contradiction for months. If a page ever has to go back to `noindex` while it is rebuilt,
+the same rule runs the other way: remove it from the sitemap in the same change, and
+`test/seo.test.js` will fail until both sides match.
 
 ## 7 · Known limits
 

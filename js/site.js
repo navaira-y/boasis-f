@@ -4,7 +4,6 @@
               one line of light lights the free zone and the setup company that could be next.
    smooth   · Lenis glides the wheel; in-page links land below the header; touch and reduced motion stay native.
    tabs     · the header lights the section you are in, and the sky behind the page moves its light to match.
-   waitlist · name, email and plan (Standard or Enterprise), posted to /api/waitlist; the plan buttons preselect the plan.
    manage   · the real portal film swings in flat and plays while on screen.
    reveals  · devices, monitors and cards arrive from a visible resting state; the dial draws itself once. */
 
@@ -194,44 +193,12 @@ function tabs() {
   addEventListener('resize', paint); paint();
 }
 
-/* the waiting list · name, email and the plan; the plan buttons above choose the plan on the way down */
-function waitlist() {
-  const form = document.getElementById('waitlist-form'); if (!form) return;
-  document.querySelectorAll('[data-plan]').forEach(a => a.addEventListener('click', () => {
-    const r = form.querySelector(`input[name="intent"][value="${a.dataset.plan}"]`); if (r) r.checked = true;
-    setTimeout(() => { const n = form.querySelector('input[name="name"]'); if (n) n.focus({ preventScroll: true }); }, 900);
-  }));
-  const note = form.querySelector('.form-note');
-  /* when the form was first looked at · the server compares it with its own clock,
-     so a submission that lands in under three seconds is a script, not a person */
-  let opened = 0;
-  const markOpen = () => { if (!opened) opened = Date.now(); };
-  form.querySelectorAll('input, select, button').forEach(el => el.addEventListener('focus', markOpen, { once: true }));
-  ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
-
-  form.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    markOpen();
-    const stamp = form.querySelector('input[name="_t"]');
-    if (stamp) stamp.value = opened || Date.now();
-    const data = Object.fromEntries(new FormData(form).entries());
-    if (!String(data.name || '').trim() || !String(data.email || '').trim()) { note.textContent = 'Your name and email, please.'; note.className = 'form-note err'; return; }
-    note.textContent = 'Sending…'; note.className = 'form-note';
-    try {
-      const r = await fetch(form.dataset.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      if (!r.ok) throw new Error(r.status);
-      const plan = data.intent === 'enterprise' ? 'Enterprise' : 'Standard';
-      form.reset(); opened = 0; note.textContent = `You are on the list for ${plan}. The next email comes when your access is ready.`; note.className = 'form-note ok';
-    } catch (e) { note.textContent = 'That did not go through. Write to support@boasis.ae.'; note.className = 'form-note err'; }
-  });
-}
-
-/* the dialogs · Book a demo and Join early access.
-   The buttons that open them keep real hrefs: with no script they still go somewhere
-   honest (the contact page, the waiting list); with a script they become the dialog.
+/* the dialog · Book a demo.
+   The buttons that open it keep real hrefs: with no script they still go somewhere
+   honest (the contact page); with a script they become the dialog.
    The fields are the site's own, and the rules are the site's own: a stamp of when the
    visitor arrived, a honeypot no human can see, and a fault that lands under its field.
-   The demo dialog is two steps, one send: the fields first, the calendar second. The
+   The dialog is two steps, one send: the fields first, the calendar second. The
    calendar loads when its step is reached, not when the page is, so nobody who only
    reads the page pays for a Google round trip. */
 /* the same rules as lib/validate.js on the server, so what the dialog accepts is exactly
@@ -253,10 +220,6 @@ const DM_RULE = {
   phone: v => { const d = dmDigits(v); return !d ? 'Phone number is required.' : (d.length >= 7 && d.length <= 15 ? '' : 'Please enter a valid phone number.'); },
   who: v => (v ? '' : 'Please choose who you are.'),
   entity: v => (String(v || '').trim() ? '' : 'Please add the name of your company or authority.'),
-  have: v => (v ? '' : 'Please answer: do you have a company?'),
-  count: v => (v ? '' : 'Please choose how many.'),
-  authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
-  plans: v => (String(v || '').trim() ? '' : 'Describe it in a sentence — it helps us answer properly.'),
 };
 function modals() {
   const dialogs = [...document.querySelectorAll('.modal')]; if (!dialogs.length) return;
@@ -327,14 +290,8 @@ function modals() {
       const f = fields[n]; if (f) { const pill = f.closest('.mf-pill'); if (pill) pill.classList.toggle('bad', !!msg); }
     };
     /* a field can be off the form entirely: the entity field exists only once the visitor
-       has said who they are; in the list dialog the company fields exist only when they
-       have a company, and the sentence only when they don't */
-    const fieldOff = n => {
-      if (n === 'entity') return !!fields.who && !fields.who.value;
-      if (n === 'count' || n === 'authority') return !fields.have || fields.have.value !== 'yes';
-      if (n === 'plans') return !fields.have || fields.have.value !== 'no';
-      return false;
-    };
+       has said who they are */
+    const fieldOff = n => (n === 'entity' ? (!!fields.who && !fields.who.value) : false);
 
     /* when they started: the server compares this with its own clock. The listeners are
        armed one session at a time, so a dialog that is closed and reopened stamps its
@@ -382,18 +339,6 @@ function modals() {
           fields.entity.required = false;
           say('entity', '');
         }
-      });
-    }
-
-    /* the list dialog: "yes" counts the companies and names the one; "no" trades both
-       fields for a single sentence about the company being thought of */
-    if (fields.have) {
-      const show = (sel, on) => { const w = d.querySelector(sel); if (w) w.hidden = !on; };
-      fields.have.addEventListener('change', () => {
-        const v = fields.have.value;
-        show('.mf-count', v === 'yes');
-        show('.mf-auth', v === 'yes');
-        show('.mf-plans', v === 'no');
       });
     }
 
@@ -698,4 +643,4 @@ function talk() {
   addEventListener('resize', paint); paint();
 }
 
-smooth(); news(); reveals(); tabs(); waitlist(); modals(); intro(); setupScroll(); solve(); journey(); talk();
+smooth(); news(); reveals(); tabs(); modals(); intro(); setupScroll(); solve(); journey(); talk();

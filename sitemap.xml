@@ -3,11 +3,16 @@
      The legal pages joined the list on 19 September 2026, when their text was published and
      their <meta name="robots"> turned to index,follow: a sitemap and a page must always agree.
      The contact page is listed as /contact.html, which is the address its own canonical
-     names, so the same page is not offered twice as /contact and /contact.html. -->
+     names, so the same page is not offered twice as /contact and /contact.html. The
+     early-access page joined on 4 October 2026, listed the same way, as its own canonical. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://boasis.ae/</loc>
     <lastmod>2026-09-16</lastmod>
+  </url>
+  <url>
+    <loc>https://boasis.ae/early-access.html</loc>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://boasis.ae/contact.html</loc>

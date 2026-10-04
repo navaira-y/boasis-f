@@ -44,23 +44,25 @@ const formPayload = extra => ({ hp: '', ...HUMAN(),
 
 /* The 'Contact us' buttons were mailto: until 13 September; two were relabelled on 15
    September, and the header's button was removed on 16 September, on every page, because
-   the header is the same on each of them. What is left must point at the dialogs: set-up
-   visitors get "Book a demo", manage visitors get "Join early access". These tests are
-   what stops any of that quietly regressing. */
+   the header is the same on each of them. Set-up visitors get "Book a demo"; Manage
+   visitors get "Join early access", which since 4 October leads to the early-access page.
+   These tests are what stops any of that quietly regressing. */
 test('the header has no Contact us button, on any page', async () => {
   for (const p of ['/', '/contact.html', '/blog.html', '/privacy.html', '/terms.html']) {
     const html = await (await get(p)).text();
     assert.ok(!/nav-contact/.test(html), p + ' still carries the header button');
-    assert.match(html, /class="nav-wait"[^>]*data-open="manage"[^>]*>Join Early Access</, p + ' header button is Join Early Access and opens the dialog');
+    assert.match(html, /class="nav-wait"[^>]*>Join Early Access</, p + ' header button is Join Early Access');
+    assert.ok(!/class="nav-wait"[^>]*data-open/.test(html), p + ' header button opens no dialog: it is a link');
   }
 });
 
-test('the main page points set-up at the demo dialog and manage at the list dialog', async () => {
+test('the main page points set-up at the demo dialog and manage at the early-access page', async () => {
   const home = await (await get('/')).text();
   const demos = [...home.matchAll(/class="(?:act|btn btn-light)" href="\/contact\.html"[^>]*data-open="demo"[^>]*>Book a demo/g)];
   assert.equal(demos.length, 2, 'the Set up door and the free-zone CTA open the demo dialog, saw ' + demos.length);
-  const joins = [...home.matchAll(/href="#manage"[^>]*data-open="manage"[^>]*>Join early access/g)];
-  assert.equal(joins.length, 4, 'the Manage door and all three plans open the list dialog, saw ' + joins.length);
+  const joins = [...home.matchAll(/href="\/early-access">Join early access/g)];
+  assert.equal(joins.length, 4, 'the Manage door and all three plans lead to the early-access page, saw ' + joins.length);
+  assert.ok(!/data-open="manage"/.test(home), 'and nothing on the home page opens the old list dialog');
   /* the plans · the onboarding document prices two of them (1 company AED 30, up to 3 AED 90),
      so those numbers are pinned: a plan that loses its price is a promise the site cannot keep.
      It carries no list of what each plan includes, so the page states none — if a feature list
@@ -82,7 +84,7 @@ test('the main page points set-up at the demo dialog and manage at the list dial
   assert.match(home, /<a class="t" href="#setup">Set up<\/a>/, 'the Set up card goes to the Set up section');
   assert.match(home, /<a class="t" href="#manage">Manage<\/a>/, 'and the Manage card goes to Manage');
   assert.match(home, /<a class="act" href="\/contact\.html" data-open="demo">Book a demo<\/a>/, 'the Set up button still opens the demo dialog');
-  assert.match(home, /<a class="act" href="#manage" data-open="manage">Join early access<\/a>/, 'and the Manage button still opens the list dialog');
+  assert.match(home, /<a class="act" href="\/early-access">Join early access<\/a>/, 'and the Manage button leads to the early-access page');
   const js = await (await get('/js/site.js')).text();
   assert.match(js, /if \(!a \|\| a\.hasAttribute\('data-open'\)\) return;/, 'an opener is not an in-page anchor: no glide behind the dialog');
   assert.match(home, /<div class="foot-ask">\s*<h2>Any questions\?<\/h2>\s*<a class="btn btn-light" href="\/contact\.html">Contact us/, 'the footer question is the last Contact us');
@@ -93,26 +95,30 @@ test('the main page points set-up at the demo dialog and manage at the list dial
   assert.match(home, /href="mailto:/, 'but the footer address stays a mailto, on purpose');
 });
 
-test('the two dialogs are on the page, with their endpoints and the calendar', async () => {
+test('the demo dialog is on the home page, and the early-access form is a page of its own', async () => {
   const home = await (await get('/')).text();
   assert.match(home, /<div class="modal" id="modal-demo"/, 'the demo dialog');
-  assert.match(home, /<div class="modal" id="modal-manage"/, 'the early access dialog');
-  assert.match(home, /id="demo-form" data-endpoint="\/api\/demo"/, 'it posts to its own endpoint');
-  assert.match(home, /id="manage-form" data-endpoint="\/api\/manage"/, 'and so does the list');
+  assert.ok(!/id="modal-manage"/.test(home), 'the early access dialog is gone from the home page');
+  assert.match(home, /id="demo-form" data-endpoint="\/api\/demo"/, 'the dialog posts to its own endpoint');
   /* the embed form Google documents: the full schedule URL with gv=true. The short
      calendar.app.google link is refused inside a frame. */
   assert.match(home, /<iframe data-src="https:\/\/calendar\.google\.com\/calendar\/appointments\/schedules\/[\w-]+\?gv=true"/,
     'the demo step two carries the calendar, lazy-loaded, in the embeddable form');
   assert.match(home, /name="who"/, 'the demo asks who they are');
   assert.match(home, /name="entity"/, 'and, once answered, the name of the company or authority');
-  assert.match(home, /name="have"/, 'the list asks about the company');
-  assert.match(home, /name="count"/, 'and, for a company that exists, how many');
-  assert.match(home, /name="authority"/, 'and the authority it is registered in');
-  assert.match(home, /name="plans"/, 'and, for a company that does not, a sentence about the thought');
-  assert.ok(!/value="opening"/.test(home), '"thinking of opening" is not an answer to "how many companies"');
   assert.match(home, /<option value="" selected disabled>Who are you\?/);
-  assert.match(home, /<option value="" selected disabled>Do you have a company\?/);
-  assert.match(home, /<option value="" selected disabled>How many companies\?/);
+
+  /* the early-access page carries the fields the dialog carried, one to one, and the same
+     endpoint: the API, the rules and the mails are exactly what they were */
+  const early = await (await get('/early-access')).text();
+  assert.match(early, /id="join-form" data-endpoint="\/api\/manage"/, 'the page form posts to the manage endpoint');
+  for (const f of ['name', 'email', 'phone', 'have', 'count', 'authority', 'plans'])
+    assert.match(early, new RegExp(`name="${f}"`), 'the page form is missing ' + f);
+  assert.ok(!/value="opening"/.test(early), '"thinking of opening" is not an answer to "how many companies"');
+  assert.match(early, /<option value="" selected disabled>Do you have a company\?/);
+  assert.match(early, /<option value="" selected disabled>How many companies\?/);
+  assert.match(early, /<div class="captcha" data-captcha>/, 'and the box that keeps the cost of automation high');
+  assert.ok(!/pictures|images/i.test(early), 'the captcha is never explained with pictures');
   for (const f of ['/api/demo', '/api/manage']) {
     const r = await fetch(base + f, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
     assert.notEqual(r.status, 404, f + ' does not exist');
@@ -134,18 +140,21 @@ test('the form asks name, email, phone and message, and nothing it does not answ
    three, and the search box can never appear in one place and go missing in another. */
 test('the three phone fields carry one country picker, with one search box', async () => {
   const home = await (await get('/')).text();
+  const early = await (await get('/early-access')).text();
   const contact = await (await get('/contact.html')).text();
 
   const PICKER = /<span class="sr">Country code<\/span>[\s\S]*?<input type="hidden" name="country_code" value="\+971">/g;
   const norm = s => s.replace(/\s+/g, ' ').trim();
   const onHome = home.match(PICKER) || [];
+  const onEarly = early.match(PICKER) || [];
   const onContact = contact.match(PICKER) || [];
-  assert.equal(onHome.length, 2, 'the two dialogs each carry a picker, saw ' + onHome.length);
+  assert.equal(onHome.length, 1, 'the demo dialog carries a picker, saw ' + onHome.length);
+  assert.equal(onEarly.length, 1, 'the early-access form carries one, saw ' + onEarly.length);
   assert.equal(onContact.length, 1, 'and the contact form carries one, saw ' + onContact.length);
-  assert.equal(new Set(onHome.map(norm)).size, 1, 'the two dialogs must carry the identical picker');
+  assert.equal(norm(onHome[0]), norm(onEarly[0]), 'the early-access picker must be the same control');
   assert.equal(norm(onHome[0]), norm(onContact[0]), 'the contact picker must be that same control, not a second one');
 
-  for (const block of [...onHome, ...onContact]) {
+  for (const block of [...onHome, ...onEarly, ...onContact]) {
     assert.match(block, /class="cc-btn"[^>]*aria-haspopup="listbox"/, 'the closed control opens a listbox');
     assert.match(block, /<div class="cc-pop" hidden>/, 'the panel starts closed');
     assert.match(block, /class="cc-search"[^>]*placeholder="Search country"/, 'and it carries the search box');
@@ -155,10 +164,10 @@ test('the three phone fields carry one country picker, with one search box', asy
   assert.ok(!/<select name="country_code"/.test(contact), 'the native select on the contact page must not come back');
   assert.ok(!/<option value="\+971"/.test(contact), 'nor any of its sixty options');
 
-  for (const [page, html] of [['/', home], ['/contact.html', contact]]) {
+  for (const [page, html, own] of [['/', home, '/js/site.js'], ['/early-access', early, '/js/early-access.js'], ['/contact.html', contact, '/js/contact.js']]) {
     const script = /<script src="\/js\/countries\.js"><\/script>/.exec(html);
     assert.ok(script, page + ' must load the one picker script');
-    assert.ok(html.indexOf('/js/countries.js') < html.indexOf('/js/site.js') || html.indexOf('/js/countries.js') < html.indexOf('/js/contact.js'),
+    assert.ok(html.indexOf('/js/countries.js') < html.indexOf(own),
       page + ' must load the picker before the script that asks it for one');
   }
 });

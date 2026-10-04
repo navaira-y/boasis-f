@@ -28,7 +28,7 @@ same sentences. Both come from one template, so they cannot drift apart.
 
 ---
 
-## 2 · "Join early access" dialog — home page (`/api/manage`)
+## 2 · "Join early access" — the /early-access page (`/api/manage`)
 
 ### → To the team
 
@@ -73,7 +73,7 @@ same sentences. Both come from one template, so they cannot drift apart.
 ## 4 · Early-access sign-up form (`/api/waitlist`) — ⚠︎ no page posts to this any more
 
 The endpoint, its storage file and both of its emails still exist and are tested, but **no form
-on the site posts to it**: the two home-page dialogs (§1, §2) replaced it. So in practice these
+on the site posts to it**: the demo dialog (§1) and the /early-access page (§2) replaced it. So in practice these
 two emails never fire. Either delete the endpoint, or point a form back at it — do not leave it
 open and unused, because the guard still allows `POST /api/waitlist` to anyone who knows the URL.
 

@@ -8,7 +8,7 @@
 * Pressing reply writes straight to the visitor.
 * The visitor gets: "We have your demo request" and a thank you.
 
-## Join early access (home page)
+## Join early access (the /early-access page)
 
 * Your team gets: name, email, phone, company yes or no, then their plans or how many companies plus the authority.
 * The visitor gets: "You are on the early access list" and a thank you.
@@ -97,7 +97,8 @@
 
 * Pressing Join or Send before the box is ticked now says 'Please click the "I am not a robot" box first.' and puts the cursor on the box. Before, the form said "Sending" and then quietly refused the send.
 * The ticked box is the site's navy with a white check, written out in the stylesheet so no theme can wash it out.
-* smoke:dialogs now drives both forms: the homepage dialogs and the contact page. 92 checks, 0 failures.
+* smoke:dialogs now drives the forms that exist: the demo dialog, the early-access page and the
+  contact page. 106 checks, 0 failures.
 
 # What the link preview looks like now (17 September 2026)
 
@@ -105,6 +106,18 @@
 * The orb in the O is your own asset (`assets/logo/orb-512.png`), and the letters are the site's own font (Outfit Medium), so nothing is redrawn by hand.
 * The file went from 672 KB to 45 KB, which also helps: several chat apps skip or shrink heavy preview images.
 * Same address as before, so no page markup changed. If a chat app still shows the old one, it is holding a cached copy of the link — sharing it once with a small query (`boasis.ae/?2`) or using Facebook's Sharing Debugger forces a fresh read.
+
+# What the early-access page changed (4 October 2026)
+
+* "Join early access" is no longer a dialog on the home page. It is a page of its own at
+  /early-access, and every button that used to open the dialog now goes there.
+* The page explains Manage from the client's own onboarding document: the four things
+  (Know, Tell, Guide, Keep), the pattern every requirement follows, the nine steps, the three
+  hard limits ("never submits, never a fine amount, never guesses"), the plans with their
+  prices, and the form.
+* The form is the same form: same fields, same rules, same endpoint, same captcha, same emails
+  to the team and the visitor. Nothing in lib/mail-templates.js changed.
+* Access opens on 17 November 2026. The first year is free on the one-company plan.
 
 # Still to do
 
