@@ -61,15 +61,17 @@ test('the main page points set-up at the demo dialog and manage at the list dial
   assert.equal(demos.length, 2, 'the Set up door and the free-zone CTA open the demo dialog, saw ' + demos.length);
   const joins = [...home.matchAll(/href="#manage"[^>]*data-open="manage"[^>]*>Join early access/g)];
   assert.equal(joins.length, 4, 'the Manage door and all three plans open the list dialog, saw ' + joins.length);
-  /* the client asked for three priced tiers. Prices are published, so they are pinned here:
-     a plan that loses its price is a promise the site cannot keep. */
+  /* the plans · the onboarding document prices two of them (1 company AED 30, up to 3 AED 90),
+     so those numbers are pinned: a plan that loses its price is a promise the site cannot keep.
+     It carries no list of what each plan includes, so the page states none — if a feature list
+     ever comes back, the client's document has to come with it. */
   const plans = [...home.matchAll(/<p class="plan-name">([^<]+)<\/p>/g)].map(m => m[1]);
   assert.deepEqual(plans, ['One company', 'Up to three companies', 'Enterprise'], 'the three plans, in order, saw ' + JSON.stringify(plans));
   const amounts = [...home.matchAll(/<span class="plan-amount">([^<]+)<\/span>/g)].map(m => m[1]);
   assert.deepEqual(amounts, ['AED 30', 'AED 90', 'Custom'], 'each plan shows what it costs, saw ' + JSON.stringify(amounts));
   assert.match(home, /<span class="plan-free">Free for the first year<\/span>/, 'the launch offer rides on the first plan');
-  assert.match(home, /<li>One company included<\/li>/, 'the first plan is one company');
-  assert.match(home, /<li>Up to three companies included<\/li>/, 'the second is up to three');
+  assert.ok(!/class="plan-(list|lead|body)"/.test(home),
+    'no plan states what it includes: only what the client confirmed, and the document lists no per-plan features');
   assert.ok(!/id="waitlist"/.test(home), 'the waiting list section is gone from the page');
   /* 19 September: the owner asked for the two hero cards to go to their own sections, and
      for the button inside to be the only thing that opens a dialog. The title's link carries
