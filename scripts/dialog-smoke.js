@@ -254,8 +254,8 @@ const challenge = () => {
   ok(ef('#demo-form') && !ef('#demo-form').hidden, 'the form stays put');
   ok(posts.length === before, 'nothing was sent');
 
-  /* ── the early-access page: the whole form on its own page ─────────────── */
-  console.log('early access: the page, the branch, the send, the done');
+  /* ── the early-access page: the countdown, the line, the form on its own page ── */
+  console.log('early access: the countdown, the page, the branch, the send, the done');
   {
     const edom = await JSDOM.fromURL(BASE + '/early-access', {
       runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, beforeParse: ambient,
@@ -273,13 +273,29 @@ const challenge = () => {
     const form = eq('#join-form');
     ok(!!form, 'the page carries the form');
     ok(form.getAttribute('data-endpoint') === '/api/manage', 'and it posts to the manage endpoint');
-    /* the content comes from the client's own document, so the four things and the three
-       limits are pinned here: a rewrite that invents a feature fails this check */
-    for (const word of ['Know', 'Tell', 'Guide', 'Keep']) ok(!!eq('.ea-does') && eq('.ea-does').textContent.includes(word), 'the page keeps ' + word);
-    ok(ed.body.textContent.includes('Nothing is submitted to government or a zone'), 'the limits are on the page');
-    ok(ed.body.textContent.includes('17 November'), 'and the date the list is told');
+    /* the page is short on purpose: the date, one line, the countdown, the form. The line
+       counts, and the plans stay on the home page, so no price may appear back here. */
+    ok(ed.body.textContent.includes('17 November'), 'the page says the date the list is told');
+    ok(!/AED/.test(ed.body.textContent), 'no plan and no price is mentioned on this page');
+    const cd = eq('#count');
+    ok(!!cd, 'the countdown is on the page');
+    /* the truth is computed here from the machine's real clock — the same way only the
+       opening moment spelled out: 08:00 in Dubai on 17 November 2026 — and compared with
+       what the page shows. Then the page is watched for a second: the seconds cell must
+       go down, so the promise is alive, not painted. */
+    const openUTC = new Date('2026-11-17T08:00:00+04:00').getTime();
+    const want = Math.max(0, Math.floor((openUTC - Date.now()) / 1000));
+    const wantDays = Math.floor(want / 86400);
+    const wantHours = String(Math.floor(want / 3600) % 24).padStart(2, '0');
+    ok(wantDays > 0, 'the smoke is running before the opening, or this check means nothing');
+    ok(eq('#c-days') && Number(eq('#c-days').textContent) === wantDays, 'its day cell agrees with the date itself, saw ' + (eq('#c-days') || {}).textContent + ' want ' + wantDays);
+    ok(eq('#c-hours') && eq('#c-hours').textContent === wantHours, 'and the hour cell too, saw ' + (eq('#c-hours') || {}).textContent + ' want ' + wantHours);
+    const secsOnce = Number((eq('#c-secs') || {}).textContent);
+    await new Promise(r => setTimeout(r, 1600));
+    ok(Number(eq('#c-secs').textContent) !== secsOnce, 'and the seconds move on their own');
+    ok(eq('#c-tz') && !eq('#c-tz').hidden && eq('#c-tz').textContent.includes('+04:00'), 'the date carries its own Dubai offset, saw ' + (eq('#c-tz') || {}).textContent);
     const joins = [...ed.querySelectorAll('a[href="#join"]')];
-    ok(joins.length >= 3, 'the page leads to its own form from the top and the plans');
+    ok(joins.length >= 2, 'the page leads to its own form from the top and the heading');
     const cc = form.querySelector('[data-cc]');
     ok(!!cc && cc.querySelectorAll('.cc-list li').length === 59, 'the form carries the 59-country picker');
     const einput = (el, v) => { el.value = v; el.dispatchEvent(new ew.Event('input', { bubbles: true })); };

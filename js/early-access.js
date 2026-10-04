@@ -1,9 +1,12 @@
-/* BOASIS · the early-access page's form.
-   Same rules as lib/validate.js on the server and the same rules the dialog carried before
-   it, so what this page accepts is exactly what the API accepts: no second, looser truth.
-   The fields are the dialog's fields, one to one: name, email, phone, the company question,
-   and then the branch that follows the answer. The captcha box is the site's own, and the
-   note under it never mentions pictures. */
+/* BOASIS · the early-access page: its countdown, and its form.
+   The countdown reads its own time through Intl and Asia/Dubai, so a machine set to any
+   timezone sees the same moment the UAE does; until the opening passes it counts, after it
+   the words say so once and nothing ticks. The form keeps the same rules as lib/validate.js
+   on the server and the same rules the dialog carried before it, so what this page accepts
+   is exactly what the API accepts: no second, looser truth. The fields are the dialog's
+   fields, one to one: name, email, phone, the company question, and then the branch that
+   follows the answer. The captcha box is the site's own, and the note under it never
+   mentions pictures. */
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduce) document.documentElement.classList.add('reduce');
@@ -161,5 +164,50 @@ function reveal() {
   els.forEach((el, i) => { el.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(el); });
 }
 
+/* the countdown · the one date the page makes a promise about, and the only arithmetic
+   it does. 08:00 on 17 November 2026, in Dubai's clock whatever the machine's is set to:
+   the hour the UAE reads is taken from Intl, and the difference between that clock and the
+   machine's own is the one correction applied. Dubai keeps no summer time, so +04:00 is
+   always the answer; taking it from Intl rather than hard-coding it keeps the promise true
+   even if that ever changes. */
+function countdown() {
+  const vals = { days: document.getElementById('c-days'), hours: document.getElementById('c-hours'), mins: document.getElementById('c-mins'), secs: document.getElementById('c-secs') };
+  if (!vals.days) return;
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dubai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const dubaiParts = () => { const p = {}; for (const x of fmt.formatToParts(new Date())) p[x.type] = x.value; return p; };
+  const pad = n => String(n).padStart(2, '0');
+  /* what the wall clock in Dubai reads, minus the same instant read as UTC, is the offset;
+     the machine clock corrected by it is the Dubai clock, and that is what we count against */
+  const dubaiShift = () => {
+    const p = dubaiParts();
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Date.now();
+  };
+  const open = Date.UTC(2026, 10, 17, 8, 0, 0); /* 08:00 in Dubai, held as its UTC reading */
+  const tz = document.getElementById('c-tz');
+  if (tz) {
+    const off = Math.round(dubaiShift() / 60000);
+    tz.textContent = ' ' + (off < 0 ? '-' : '+') + pad(Math.floor(Math.abs(off) / 60)) + ':' + pad(Math.abs(off) % 60) + ' Dubai time';
+    tz.hidden = false;
+  }
+  const tick = () => {
+    const real = open - (Date.now() + dubaiShift());
+    if (real <= 0) {
+      const box = document.getElementById('count');
+      if (box) box.innerHTML = '<p class="ea-opens ea-open-now">Manage is open.</p>';
+      return true;
+    }
+    const sec = Math.floor(real / 1000);
+    vals.days.textContent = Math.floor(sec / 86400);
+    vals.hours.textContent = pad(Math.floor(sec / 3600) % 24);
+    vals.mins.textContent = pad(Math.floor(sec / 60) % 60);
+    vals.secs.textContent = pad(sec % 60);
+    return false;
+  };
+  /* tick once a second; when the moment passes, say so once and stop */
+  if (!tick()) {
+    const t = setInterval(() => { if (tick()) clearInterval(t); }, 1000);
+  }
+}
+
 const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
-joinForm(); reveal();
+countdown(); joinForm(); reveal();

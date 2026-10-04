@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Early access · BOASIS Manage</title>
-<meta name="description" content="Join early access to BOASIS Manage. One company, free for a year: every licence, visa, tax and bank date in one place, with reminders before each one.">
+<meta name="description" content="BOASIS Manage opens on 17 November 2026. The licence, visa, tax, bank and audit dates of one UAE company, kept in one place and sent to you before each one.">
 <!-- indexing · indexable, with the full-size preview and the whole snippet allowed.
      The canonical is /early-access.html, and /early-access — the same page, reached by the
      short path — names it too, so the two never compete in the index. -->
@@ -22,14 +22,14 @@
 <meta property="og:locale" content="en_AE">
 <meta property="og:url" content="https://boasis.ae/early-access.html">
 <meta property="og:title" content="Early access · BOASIS Manage">
-<meta property="og:description" content="Join early access to BOASIS Manage. One company, free for a year: every licence, visa, tax and bank date in one place, with reminders before each one.">
+<meta property="og:description" content="BOASIS Manage opens on 17 November 2026. The licence, visa, tax, bank and audit dates of one UAE company, kept in one place and sent to you before each one.">
 <meta property="og:image" content="https://boasis.ae/assets/icons/link-preview-1200x630-v3.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="BOASIS · early access to Manage">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Early access · BOASIS Manage">
-<meta name="twitter:description" content="Join early access to BOASIS Manage. One company, free for a year: every licence, visa, tax and bank date in one place, with reminders before each one.">
+<meta name="twitter:description" content="BOASIS Manage opens on 17 November 2026. The licence, visa, tax, bank and audit dates of one UAE company, kept in one place and sent to you before each one.">
 <meta name="twitter:image" content="https://boasis.ae/assets/icons/link-preview-1200x630-v3.png">
 <meta name="twitter:image:alt" content="BOASIS · early access to Manage">
 <meta name="theme-color" content="#0B0D12">
@@ -82,7 +82,7 @@
       "@id": "https://boasis.ae/early-access.html#webpage",
       "url": "https://boasis.ae/early-access.html",
       "name": "Early access · BOASIS Manage",
-      "description": "Join early access to BOASIS Manage. One company, free for a year: every licence, visa, tax and bank date in one place, with reminders before each one.",
+      "description": "BOASIS Manage opens on 17 November 2026. The licence, visa, tax, bank and audit dates of one UAE company, kept in one place and sent to you before each one.",
       "isPartOf": {
         "@id": "https://boasis.ae/#website"
       },
@@ -115,123 +115,30 @@
 </header>
 
 <main>
+<!-- the whole page, on purpose: the date, one line about what Manage is, the countdown,
+     and the form. What it does in detail is on the home page; the plans and their prices
+     stay there too. The form, its rules, the picker, the captcha and the two emails are
+     exactly the ones the dialog carried: nothing below the line has changed. -->
 
-<!-- the opening · one promise and one way in. Everything below it is the client's own
-     document, in the client's own words: what the portal does, what it will ask, and the
-     three things it will never do. -->
 <section class="ea-hero">
   <div class="wrap">
-    <p class="label light reveal">Early access</p>
-    <h1 class="reveal">Manage opens on <em>17 November.</em></h1>
-    <p class="ea-line reveal">Join the list and start with one company, free for a year. The first build opens to the people on this list, in the order they joined.</p>
+    <p class="label light reveal">Introducing BOASIS Manage</p>
+    <h1 class="reveal">From <em>17 November</em>, you won't have to keep a UAE company in your head.</h1>
+    <p class="ea-line reveal">Manage holds the licence, the visas, the cards, the tax and bank dates &mdash; and tells you what is due, in time. Join the list and your first company is free for a year.</p>
+
+    <div class="ea-count reveal" id="count" role="timer" aria-label="Time until Manage opens">
+      <div class="ea-cells">
+        <div class="ea-cell"><span class="ea-val" id="c-days">&mdash;</span><span class="ea-unit">days</span></div>
+        <div class="ea-cell"><span class="ea-val" id="c-hours">&mdash;</span><span class="ea-unit">hours</span></div>
+        <div class="ea-cell"><span class="ea-val" id="c-mins">&mdash;</span><span class="ea-unit">minutes</span></div>
+        <div class="ea-cell"><span class="ea-val" id="c-secs">&mdash;</span><span class="ea-unit">seconds</span></div>
+      </div>
+      <p class="ea-opens">Manage opens on 17 November 2026, 08:00<span class="ea-tz" id="c-tz" hidden></span></p>
+    </div>
+    <noscript><p class="ea-opens">Manage opens on 17 November 2026, 08:00 Dubai time.</p></noscript>
+
     <p class="ea-cta reveal"><a class="btn btn-light" href="#join">Join early access</a></p>
-    <p class="ea-small reveal">Two minutes to join. A confirmation arrives at once, and the next email comes when your access is ready.</p>
-  </div>
-</section>
-
-<!-- what the portal does · the document's four things, word for word -->
-<section class="ea-sec">
-  <div class="wrap">
-    <h2 class="reveal">What the portal does.</h2>
-    <p class="ea-line reveal">A self-service tool for founders and freelancers who run 1 to 3 free zone companies in the UAE. It does four things.</p>
-    <div class="does ea-does reveal">
-      <div class="do"><b>Know</b><span>Holds one company file: the licence, owners and managers, office, cards, tax details. Uses it to work out everything that applies.</span></div>
-      <div class="do"><b>Tell</b><span>Every date, rule and step that applies to this company, in time, by email, to the right person.</span></div>
-      <div class="do"><b>Guide</b><span>Plain explanations and step-by-step instructions for each requirement, specific to the company's free zone.</span></div>
-      <div class="do"><b>Keep</b><span>Stores every document with its dates, so it is ready when the bank, auditor, agent or zone asks.</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- the pattern · every requirement walks the same four beats -->
-<section class="ea-sec">
-  <div class="wrap">
-    <h2 class="reveal">One pattern for every requirement.</h2>
-    <ol class="ea-pattern reveal">
-      <li><b>Knowledge</b><span>What it is, and why it matters.</span></li>
-      <li><b>Choice</b><span>What you want to do.</span></li>
-      <li><b>Steps</b><span>Exactly what to do, and who does it.</span></li>
-      <li><b>Evidence</b><span>Proof it is done.</span></li>
-    </ol>
-    <p class="ea-small reveal">Nothing is saved until you confirm each value. Progress is saved after every step, and a skipped line becomes a task, not a dead end.</p>
-  </div>
-</section>
-
-<!-- what it will ask · the nine steps, one line each -->
-<section class="ea-sec">
-  <div class="wrap">
-    <h2 class="reveal">What it will ask you.</h2>
-    <p class="ea-line reveal">Under 10 minutes for a solo founder with the licence, passport and visa at hand. Every step can be finished later.</p>
-    <ol class="ea-steps reveal">
-      <li><b>Create your account</b><span>Name, email, password, and the plan you are on.</span></li>
-      <li><b>Add a company</b><span>Free zone or mainland, and your role in it.</span></li>
-      <li><b>Your licence</b><span>Facts, status, dates, incorporation date, agent.</span></li>
-      <li><b>People</b><span>Owners and managers, visa sponsor, passport, visa, Emirates ID.</span></li>
-      <li><b>Office</b><span>Type, lease end, and whether it renews with the licence.</span></li>
-      <li><b>Card and quota</b><span>Establishment card expiry, visas allowed and used.</span></li>
-      <li><b>Corporate tax</b><span>Registered? First period, year end, free zone status.</span></li>
-      <li><b>VAT</b><span>Registered? Period, or the two threshold questions.</span></li>
-      <li><b>Your year</b><span>The next three dates, the full year, what is still needed, reminders.</span></li>
-      <li><b>Employees</b><span>Optional, after the year: visa dates only.</span></li>
-    </ol>
-  </div>
-</section>
-
-<!-- the limits · the document's three hard ones, kept exact: this is the trust section -->
-<section class="ea-sec">
-  <div class="wrap">
-    <h2 class="reveal">Three things it will never do.</h2>
-    <div class="ea-limits reveal">
-      <div class="ea-limit"><b>Never submits</b><p>Nothing is submitted to government or a zone. You or your agent does.</p></div>
-      <div class="ea-limit"><b>Never a fine amount</b><p>No fines are shown or calculated. Consequences are explained in words with the official source.</p></div>
-      <div class="ea-limit"><b>Never guesses</b><p>If a rule has no source, it says unknown, and says who can answer.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- what it looks like · the same real screens the Manage section of the site shows -->
-<section class="ea-sec">
-  <div class="wrap">
-    <h2 class="reveal">Built around a real company's year.</h2>
-    <div class="ea-proof reveal">
-      <figure><img src="/assets/proof/manage/dial.webp" alt="The year on one dial: every company's dates around the ring, each company in its own colour" loading="lazy"><figcaption>Every company's dates on one dial, each in its own colour.</figcaption></figure>
-      <figure><img src="/assets/proof/manage/responsible.webp" alt="A residence visa renewal with the responsible person, who gets the reminders, and the steps already done" loading="lazy"><figcaption>Every requirement has a name on it, before the date.</figcaption></figure>
-      <figure><img src="/assets/proof/manage/reader.webp" alt="The values read from an uploaded licence, each one confirmed" loading="lazy"><figcaption>Upload the licence. It reads it, you check it.</figcaption></figure>
-    </div>
-  </div>
-</section>
-
-<!-- the plans · the same three cards and the same note as the site, so the two can never drift -->
-<section class="ea-sec ea-plans">
-  <div class="wrap">
-    <h2 class="reveal"><span class="q">One company</span> <em>or a whole group.</em></h2>
-    <div class="plan-grid">
-      <article class="plan reveal">
-        <div class="plan-top">
-          <p class="plan-name">One company</p>
-          <p class="plan-price"><span class="plan-amount">AED 30</span><span class="plan-per">a month</span><span class="plan-free">Free for the first year</span></p>
-          <p class="plan-for">For founders and freelancers with one company.</p>
-        </div>
-        <a class="btn btn-light" href="#join">Join early access</a>
-      </article>
-      <article class="plan reveal">
-        <div class="plan-top">
-          <p class="plan-name">Up to three companies</p>
-          <p class="plan-price"><span class="plan-amount">AED 90</span><span class="plan-per">a month</span></p>
-          <p class="plan-for">For founders and freelancers with up to three companies.</p>
-        </div>
-        <a class="btn btn-light" href="#join">Join early access</a>
-      </article>
-      <article class="plan plan-ent reveal">
-        <div class="plan-top">
-          <p class="plan-name">Enterprise</p>
-          <p class="plan-price"><span class="plan-amount">Custom</span><span class="plan-per">for your group</span></p>
-          <p class="plan-for">For groups beyond three companies.</p>
-        </div>
-        <a class="btn btn-light" href="#join">Join early access</a>
-      </article>
-    </div>
-    <p class="plan-note reveal">Prices are in UAE dirhams, a month. The first year is free on One company.</p>
+    <p class="ea-small reveal">Two minutes to join, and nothing to pay now. We never submit anything on your behalf &mdash; that stays yours or your agent's.</p>
   </div>
 </section>
 
@@ -242,7 +149,6 @@
     <p class="label light reveal">Join early access</p>
     <h2 class="reveal">Be first when Manage opens.</h2>
     <p class="ea-line reveal">Your place is saved, and the next email comes when your access is ready.</p>
-
     <form class="ea-form" id="join-form" data-endpoint="/api/manage" novalidate>
       <label class="sr" for="join-hp" aria-hidden="true">Website<input id="join-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></label>
       <input type="hidden" name="_t" value="">

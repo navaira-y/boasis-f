@@ -24,9 +24,10 @@ Key facts:
 
 - [Home](https://boasis.ae/): what BOASIS is, the six steps of a Set up application, what Manage
   does with a company's dates, the plans, and the questions owners ask before joining.
-- [Early access](https://boasis.ae/early-access.html): what Manage does, what it will ask, the
-  three things it never does, the plans, and the form that joins the list. Access opens on
-  17 November 2026, and the first year is free on the one-company plan.
+- [Early access](https://boasis.ae/early-access.html): the launch page for Manage — one line on
+  what it does, a countdown to the opening, and the form that joins the list. Access opens on
+  17 November 2026 at 08:00 Dubai time, and the first year is free on the one-company plan.
+  What Manage does in detail, and the plans with their prices, are on the home page.
 - [Contact](https://boasis.ae/contact.html): one form, read by a person, answered by email.
 - [Blog](https://boasis.ae/blog.html): news and updates, newest first.
 - [Privacy](https://boasis.ae/privacy.html): how information sent through the site is handled.

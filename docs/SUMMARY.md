@@ -113,8 +113,9 @@
   /early-access, and every button that used to open the dialog now goes there.
 * The page explains Manage from the client's own onboarding document: the four things
   (Know, Tell, Guide, Keep), the pattern every requirement follows, the nine steps, the three
-  hard limits ("never submits, never a fine amount, never guesses"), the plans with their
-  prices, and the form.
+  and the form only. On 5 October the owner asked for less: the page now carries the launch
+  line, a live countdown to 08:00 Dubai on 17 November, and the form. The feature blocks were
+  cut, and the plans with their prices stay on the home page alone.
 * The form is the same form: same fields, same rules, same endpoint, same captcha, same emails
   to the team and the visitor. Nothing in lib/mail-templates.js changed.
 * Access opens on 17 November 2026. The first year is free on the one-company plan.

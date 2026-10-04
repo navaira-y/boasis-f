@@ -4,7 +4,8 @@
      their <meta name="robots"> turned to index,follow: a sitemap and a page must always agree.
      The contact page is listed as /contact.html, which is the address its own canonical
      names, so the same page is not offered twice as /contact and /contact.html. The
-     early-access page joined on 4 October 2026, listed the same way, as its own canonical. -->
+     early-access page joined on 4 October 2026, listed the same way, as its own canonical; it
+    took its launch shape — the date, one line, a countdown, the form — the day after. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://boasis.ae/</loc>
