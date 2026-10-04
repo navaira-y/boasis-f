@@ -200,7 +200,7 @@ body[data-zone="end"] .sky i:nth-child(3){translate:-4vw -24vh;opacity:.55}
 .next-cta{margin-top:clamp(64px,6vw,96px)}
 .setup-after{margin:18px 0 0;font-size:15px;color:rgba(255,255,255,.58)}
 
-/* 03 · Manage · Night lit teal: the real portal, what it does, Standard or Enterprise, the waiting list */
+/* 03 · Manage · Night lit teal: the real portal, what it does, the three plans, the waiting list */
 .manage{position:relative;color:#fff;padding:clamp(40px,5vw,80px) 0 0;overflow:hidden;isolation:isolate}
 .manage h2{color:#fff;letter-spacing:-.03em;line-height:1.02;text-wrap:balance;margin:0 auto}
 .manage h2 em{font-style:normal;color:var(--bo-teal);text-shadow:0 0 40px rgba(95,211,232,.35)}
@@ -224,18 +224,23 @@ body[data-zone="end"] .sky i:nth-child(3){translate:-4vw -24vh;opacity:.55}
 .s-exp{color:#F2994A;background:rgba(242,153,74,.08)}
 .s-over{color:#FF6B6B;background:rgba(255,107,107,.08)}
 
-/* Standard or Enterprise */
-/* the plans · two tall cards on shared rows (name, price, what's covered, the button), so both line up whatever their length */
+/* the plans · three cards on shared rows (name, price, what's covered, the button), so all three line up whatever their length */
 .plans{margin-top:clamp(120px,12vw,180px);text-align:center;max-width:1040px}
 .plans h2{font-size:clamp(38px,4.6vw,68px);color:#fff}
 .plans h2 .q{color:rgba(255,255,255,.6)}
 .plans h2 em{font-style:normal;color:var(--bo-teal);text-shadow:0 0 40px rgba(95,211,232,.35)}
-.plan-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:clamp(18px,2vw,28px);row-gap:0;margin-top:clamp(44px,4.4vw,64px);text-align:left}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);column-gap:clamp(14px,1.6vw,22px);row-gap:0;margin-top:clamp(44px,4.4vw,64px);text-align:left}
 .plan{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:0;align-content:start;padding:0;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.11)}
 .plan-ent{background:linear-gradient(165deg,#0F4F78 0%,#15385F 42%,#0F1A2C 100%);border-color:rgba(95,211,232,.42);box-shadow:0 50px 110px -60px rgba(14,134,196,.8)}
 .plan-ent::before{content:"";position:absolute;right:-18%;top:-22%;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(95,211,232,.28),transparent 65%);z-index:-1;pointer-events:none}
 .plan-top{display:grid;gap:6px;align-content:start;padding:clamp(24px,2.6vw,32px) clamp(24px,2.6vw,36px) 18px}
-.plan-name{margin:0;font-family:var(--font-display);font-weight:500;font-size:clamp(28px,2.6vw,38px);line-height:1;letter-spacing:-.025em;color:#fff}
+.plan-name{margin:0;font-family:var(--font-display);font-weight:500;font-size:clamp(24px,2.1vw,31px);line-height:1.05;letter-spacing:-.025em;color:#fff}
+/* the price the client asked to publish: the amount, what it is per, and the launch offer */
+.plan-price{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;margin:10px 0 0}
+.plan-amount{font-family:var(--font-display);font-weight:500;font-size:clamp(21px,1.8vw,26px);line-height:1;letter-spacing:-.02em;color:#fff}
+.plan-per{font-size:14px;color:rgba(255,255,255,.62)}
+.plan-free{padding:4px 10px;border-radius:999px;background:rgba(95,211,232,.13);border:1px solid rgba(95,211,232,.45);color:var(--bo-teal);font-size:12px;font-weight:600;white-space:nowrap}
+.plan-note{margin:clamp(20px,2.2vw,28px) 0 0;font-size:14px;line-height:1.6;color:rgba(255,255,255,.55)}
 .plan-for{margin:0;max-width:34ch;color:rgba(255,255,255,.66);font-size:16px;line-height:1.45;text-wrap:pretty}
 .plan-body{display:grid;gap:16px;align-content:start;margin:0 clamp(24px,2.6vw,36px);padding:20px 0 4px;border-top:1px solid rgba(255,255,255,.12)}
 .plan-lead{margin:0;font-size:15px;color:rgba(255,255,255,.62)}

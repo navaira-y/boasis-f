@@ -10,8 +10,10 @@ const os = require('os');
    files a search engine fetches by name, and the structured data that a search engine or an
    AI assistant reads instead of guessing what the business is.
 
-   Two rules run through all of it. Nothing is invented: no review scores, no prices, no
-   addresses, no dates that are not already written on a page. And the sitemap may never
+   Two rules run through all of it. Nothing is invented: no review scores, no addresses,
+   no dates that are not already written on a page — and no price is ever put in the data,
+   even where the page states one in words, because an offer is a commitment: the plans
+   say what they cost, the machine layer stays out of it. And the sitemap may never
    offer a page that says noindex, or hide a page that says index — the two must agree, or
    Search Console reports the contradiction for months. */
 
@@ -266,7 +268,7 @@ test('the home page says what the product is, and answers the questions it shows
   assert.equal(soft.applicationCategory, 'BusinessApplication');
   assert.ok(soft.featureList.length >= 4, 'what it does, listed');
   assert.ok(!('offers' in soft) && !('aggregateRating' in soft),
-    'no price and no rating may be published: nothing on this site states either');
+    'the product is described in words: no machine-readable offer, and no rating');
 
   const faq = byType('FAQPage');
   assert.ok(faq, 'the questions the page answers must be structured too');

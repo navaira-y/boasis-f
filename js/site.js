@@ -552,7 +552,7 @@ function reveals() {
   const els = document.querySelectorAll('.reveal');
   if (reduce || !('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
-  // the delay counts within each group (the three steps, the four cards, the two plans), so they arrive left to right
+  // the delay counts within each group (the three steps, the four cards, the three plans), so they arrive left to right
   els.forEach(el => { const sib = [...el.parentElement.children].filter(c => c.classList.contains('reveal')); el.style.transitionDelay = Math.min(3, sib.indexOf(el)) * 90 + 'ms'; io.observe(el); });
 }
 

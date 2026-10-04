@@ -46,7 +46,8 @@ What is deliberately absent, because publishing it would be a lie:
 
 - No `aggregateRating` / `review` — the site publishes no scores, and invented ones are a
   Google spam-manual violation.
-- No `offers` / prices — the plans page says prices come at launch.
+- No `offers` — the plans are stated in words on the home page, with prices; putting an
+  offer in the data is a machine-readable commitment, and the plans are still moving.
 - No `sameAs` social profiles — the footer social links are still `data-soon`.
 - No street address — the footer says only "United Arab Emirates".
 

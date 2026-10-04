@@ -76,7 +76,7 @@
 * Every page has link preview tags, so a shared link looks correct in WhatsApp, X and Facebook.
 * The preview image is a real 1200 by 630 one.
 * Every page carries structured data, so Google understands the company, the software and the common questions.
-* Nothing is invented: no ratings, no prices, no street address, no social profiles.
+* Nothing is invented: no ratings, no street address, no social profiles.
 * sitemap.xml lists the 3 real pages only.
 * robots.txt allows the site and closes the API folder.
 * A wrong address now gives a real 404 page, not the home page. That was the soft 404 problem, and it is fixed.

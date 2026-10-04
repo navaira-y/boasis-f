@@ -164,7 +164,7 @@ const challenge = () => {
     ok(cc.querySelector('input[name="country_code"]').value === '+971' && cc.querySelector('.cc-cur').textContent === 'AE', 'and the shut dialog hands the picker back on the UAE');
   }
   ok($$('a[data-open="demo"]').length === 3, 'three demo openers (the Set up button, the free-zone CTA, and the one the journey builds)');
-  ok($$('a[data-open="manage"]').length === 4, 'four manage openers (the Manage button, two plans, the header button)');
+  ok($$('a[data-open="manage"]').length === 5, 'five manage openers (the Manage button, three plans, the header button)');
 
   /* ── the hero cards: the card goes to its section, the button opens the dialog ───── */
   console.log('hero cards');
