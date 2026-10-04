@@ -36,6 +36,8 @@ test('client scripts are served, server scripts are not', () => {
   assert.equal(ok('/api/contact'), true);
   assert.equal(ok('/api/demo'), true, 'the demo dialog posts here');
   assert.equal(ok('/api/manage'), true, 'the early access dialog posts here');
+  assert.equal(ok('/api/verify-email/send'), true, 'the mailbox code is asked for here');
+  assert.equal(ok('/api/verify-email/verify'), true, 'and checked here');
 });
 
 /* ── the ways people try to get around a path check ─────────────────────────── */
@@ -121,7 +123,7 @@ test('a bare page name is a page, and nothing else gets in with it', () => {
   }
   for (const p of ['/server.js', '/.env', '/config/env', '/lib/mailer', '/package.json',
                    '/js/site', '/css/site', '/assets/logo/orb-160', '/blog.html/x',
-                   '/blog\\u0000', '/api/unknown', '/api/health/extra', '/api/manage/x',
+                   '/blog\\u0000', '/api/unknown', '/api/health/extra', '/api/manage/x', '/api/verify-email/send/x',
                    '/nope.php', '/data/waitlist.json']) {
     assert.equal(ok(p), false, p + ' must stay closed');
   }

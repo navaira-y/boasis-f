@@ -1,12 +1,15 @@
-/* BOASIS · the early-access page: its countdown, and its form.
+/* BOASIS · the early-access page: its countdown, and its one-question-at-a-time form.
    The countdown reads its own time through Intl and Asia/Dubai, so a machine set to any
    timezone sees the same moment the UAE does; until the opening passes it counts, after it
-   the words say so once and nothing ticks. The form keeps the same rules as lib/validate.js
-   on the server and the same rules the dialog carried before it, so what this page accepts
-   is exactly what the API accepts: no second, looser truth. The fields are the dialog's
-   fields, one to one: name, email, phone, the company question, and then the branch that
-   follows the answer. The captcha box is the site's own, and the note under it never
-   mentions pictures. */
+   the words say so once and nothing ticks.
+
+   The form asks in order — name, email, the six-digit code, phone, the company question,
+   the box — because a question answered is a question nobody skims. The code is the new
+   heart of it: lib/email-verify.js on the server mints it, the mailbox proves itself, and
+   /api/manage refuses a signup whose address was never read. The rules on every field are
+   still exactly lib/validate.js's rules: no second, looser truth. The captcha box is the
+   site's own; this page clicks it for the visitor when the last step opens, and nothing
+   here ever mentions pictures. */
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduce) document.documentElement.classList.add('reduce');
@@ -25,151 +28,12 @@ const fullPhone = (code, number) => {
   return code + ' ' + d;
 };
 
-function joinForm() {
-  const form = document.getElementById('join-form'); if (!form) return;
-  const note = form.querySelector('.form-note');
-  const stamp = form.querySelector('input[name="_t"]');
-  const cc = form.querySelector('[data-cc]');
-  const codeSel = form.querySelector('input[name="country_code"]');
-  const picker = window.BoasisCountryPicker && cc ? window.BoasisCountryPicker.init(cc) : null;
-  const fields = {};
-  form.querySelectorAll('input[name], select[name]').forEach(el => {
-    if (['hp', '_t', 'country_code'].includes(el.name)) return;
-    fields[el.name] = el;
-  });
-
-  const say = (n, msg) => {
-    const p = form.querySelector(`[data-err="${n}"]`);
-    if (p) { p.textContent = msg || ''; p.hidden = !msg; }
-    const f = fields[n]; if (f) { const pill = f.closest('.mf-pill'); if (pill) pill.classList.toggle('bad', !!msg); }
-  };
-
-  /* a field that is off the form is not judged: the company fields exist only when they have
-     a company, and the sentence only when they don't */
-  const fieldOff = n => {
-    if (n === 'count' || n === 'authority') return !fields.have || fields.have.value !== 'yes';
-    if (n === 'plans') return !fields.have || fields.have.value !== 'no';
-    return false;
-  };
-
-  const rule = {
-    name: v => (String(v || '').trim().length >= 2 ? '' : 'Name is required.'),
-    email: v => { const e = String(v || '').trim(); return !e ? 'Email is required.' : (validEmail(e) ? '' : 'Please enter a valid email address.'); },
-    phone: v => { const d = digits(v); return !d ? 'Phone number is required.' : (d.length >= 7 && d.length <= 15 ? '' : 'Please enter a valid phone number.'); },
-    have: v => (v ? '' : 'Please answer: do you have a company?'),
-    count: v => (v ? '' : 'Please choose how many.'),
-    authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
-    plans: v => (String(v || '').trim() ? '' : 'Describe it in a sentence — it helps us answer properly.'),
-  };
-
-  /* when they started: the server compares this with its own clock, so a submission that
-     lands in under three seconds is a script, not a person */
-  let opened = 0;
-  const markOpen = () => { if (!opened) opened = Date.now(); };
-  form.querySelectorAll('input, select, button').forEach(el => el.addEventListener('focus', markOpen, { once: true }));
-  ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
-
-  /* the branch the answer opens: a company that exists is counted and named, one that is
-     still a thought is described in a sentence */
-  if (fields.have) fields.have.addEventListener('change', () => {
-    const v = fields.have.value;
-    const show = (sel, on) => { const w = form.querySelector(sel); if (w) w.hidden = !on; };
-    show('.mf-count', v === 'yes');
-    show('.mf-auth', v === 'yes');
-    show('.mf-plans', v === 'no');
-    ['count', 'authority', 'plans'].forEach(n => { if (fieldOff(n)) say(n, ''); });
-  });
-
-  /* while they write: a field that is wrong about itself is told so at once, and a field
-     that has righted itself goes quiet. An empty one waits for the send. */
-  if (fields.email) fields.email.addEventListener('input', () => {
-    const e = fields.email.value.trim();
-    say('email', e && !validEmail(e) ? 'Please enter a valid email address.' : '');
-  });
-  if (fields.phone) fields.phone.addEventListener('input', () => {
-    const raw = fields.phone.value, clean = digits(raw);
-    if (clean !== raw) fields.phone.value = clean;
-    say('phone', clean && (clean.length < 7 || clean.length > 15) ? 'Please enter a valid phone number.' : '');
-  });
-  if (fields.name) fields.name.addEventListener('input', () => { if (!rule.name(fields.name.value)) say('name', ''); });
-  if (fields.authority) fields.authority.addEventListener('input', () => { if (!rule.authority(fields.authority.value)) say('authority', ''); });
-  if (fields.plans) fields.plans.addEventListener('input', () => { if (!rule.plans(fields.plans.value)) say('plans', ''); });
-
-  form.addEventListener('submit', async ev => {
-    ev.preventDefault();
-    markOpen();
-    if (stamp) stamp.value = opened || Date.now();
-    const data = Object.fromEntries(new FormData(form).entries());
-
-    let firstBad = null;
-    for (const n of Object.keys(fields)) {
-      if (fieldOff(n)) { say(n, ''); continue; }
-      const msg = rule[n] ? rule[n](data[n] || '') : '';
-      say(n, msg);
-      if (msg && !firstBad) firstBad = n;
-    }
-    if (firstBad) { fields[firstBad].focus(); note.textContent = ''; note.className = 'form-note'; return; }
-
-    /* the number the owner reads: the code on the left, the number on the right, one string */
-    data.phone = fullPhone(codeSel ? codeSel.value : '+971', data.phone) || data.phone;
-    delete data.country_code;
-
-    /* the box is part of the form, so a send without it says so here rather than posting
-       something the server will refuse after the note has already said Sending */
-    if (!String(data.altcha || '').trim()) {
-      note.textContent = 'Please click the "I am not a robot" box first.';
-      note.className = 'form-note err';
-      const box = form.querySelector('[data-captcha-start]');
-      if (box) box.focus();
-      return;
-    }
-
-    note.textContent = 'Sending';
-    note.className = 'form-note';
-    try {
-      const r = await fetch(form.dataset.endpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || j.ok === false) {
-        const names = { name: 'your name', email: 'your email address', phone: 'your phone number', have: 'the company question', count: 'how many companies', authority: 'the authority name', plans: 'a sentence about the company', captcha: 'the verification box' };
-        const e = (j.errors || []).filter(x => names[x]);
-        e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
-        const tooMany = (j.errors || []).includes('too-many');
-        note.textContent = tooMany
-          ? 'That is a few too many in a row. Please wait a minute, then press Join again. Your answers are still here.'
-          : (e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.');
-        note.className = 'form-note err';
-        if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
-        return;
-      }
-      /* done · the form steps aside, and the page says what happens next in the same words
-         the dialog used */
-      form.hidden = true;
-      const done = document.querySelector('.ea-done');
-      if (done) { done.hidden = false; done.querySelector('p').focus?.(); done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }
-      if (window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
-    } catch (e) {
-      note.textContent = 'That did not send. Please try again, or write to support@boasis.ae.';
-      note.className = 'form-note err';
-    }
-  });
-}
-
-/* the sections arrive the way the cards do on the site, and never move on their own */
-function reveal() {
-  const els = [...document.querySelectorAll('.reveal')]; if (!els.length) return;
-  if (reduce || !('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
-  els.forEach((el, i) => { el.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(el); });
-}
-
 /* the countdown · the one date the page makes a promise about, and the only arithmetic
    it does. 08:00 on 17 November 2026, in Dubai's clock whatever the machine's is set to:
-   the hour the UAE reads is taken from Intl, and the difference between that clock and the
-   machine's own is the one correction applied. Dubai keeps no summer time, so +04:00 is
-   always the answer; taking it from Intl rather than hard-coding it keeps the promise true
-   even if that ever changes. */
+   the hour the UAE reads is taken from Intl, and the difference between that clock and
+   the machine's own is the one correction applied. Dubai keeps no summer time, so +04:00
+   is always the answer; taking it from Intl rather than hard-coding it keeps the promise
+   true even if that ever changes. */
 function countdown() {
   const vals = { days: document.getElementById('c-days'), hours: document.getElementById('c-hours'), mins: document.getElementById('c-mins'), secs: document.getElementById('c-secs') };
   if (!vals.days) return;
@@ -207,6 +71,363 @@ function countdown() {
   if (!tick()) {
     const t = setInterval(() => { if (tick()) clearInterval(t); }, 1000);
   }
+}
+
+function joinForm() {
+  const form = document.getElementById('join-form'); if (!form) return;
+  const note = form.querySelector('.form-note');
+  const stamp = form.querySelector('input[name="_t"]');
+  const cc = form.querySelector('[data-cc]');
+  const codeSel = form.querySelector('input[name="country_code"]');
+  const picker = window.BoasisCountryPicker && cc ? window.BoasisCountryPicker.init(cc) : null;
+  const fields = {};
+  form.querySelectorAll('input[name], select[name]').forEach(el => {
+    if (['hp', '_t', 'country_code', 'emailv'].includes(el.name)) return;
+    fields[el.name] = el;
+  });
+
+  const say = (n, msg) => {
+    const p = form.querySelector(`[data-err="${n}"]`);
+    if (p) { p.textContent = msg || ''; p.hidden = !msg; }
+    const f = fields[n]; if (f) { const pill = f.closest('.mf-pill'); if (pill) pill.classList.toggle('bad', !!msg); }
+  };
+
+  const rule = {
+    name: v => (String(v || '').trim().length >= 2 ? '' : 'Name is required.'),
+    email: v => { const e = String(v || '').trim(); return !e ? 'Email is required.' : (validEmail(e) ? '' : 'Please enter a valid email address.'); },
+    phone: v => { const d = digits(v); return !d ? 'Phone number is required.' : (d.length >= 7 && d.length <= 15 ? '' : 'Please enter a valid phone number.'); },
+    have: v => (v ? '' : 'Please answer: do you have a company?'),
+    count: v => (v ? '' : 'Please choose how many.'),
+    authority: v => (String(v || '').trim() ? '' : 'Please write the name of the authority.'),
+    plans: v => (String(v || '').trim() ? '' : 'Describe it in a sentence — it helps us answer properly.'),
+    code: v => (/^\d{6}$/.test(String(v || '').trim()) ? '' : 'The code is six digits.'),
+  };
+  const STEP_FIELDS = { 0: ['name'], 1: ['email'], 2: ['code'], 3: ['phone'], 4: ['have', 'count', 'authority', 'plans'] };
+
+  /* when they started: the server compares this with its own clock, so a submission that
+     lands in under three seconds is a script, not a person */
+  let opened = 0;
+  const markOpen = () => { if (!opened) opened = Date.now(); };
+  form.querySelectorAll('input, select, button').forEach(el => el.addEventListener('focus', markOpen, { once: true }));
+  ['touchstart', 'pointerdown', 'keydown'].forEach(ev => form.addEventListener(ev, markOpen, { once: true, passive: true }));
+
+  /* ── the steps ────────────────────────────────────────────────────────────────
+     A step that is answered collapses to one line with an Edit on it — the visitor can
+     always look back and change an answer; the field underneath never disappears, so a
+     scriptless browser still sees the whole form, and so does the browser's autofill. */
+  const stepEls = ['name', 'email', 'code', 'phone', 'have', 'last']
+    .map(n => form.querySelector(`[data-step="${n}"]`)).filter(Boolean);
+  const pips = [...document.querySelectorAll('.ea-pips i')];
+  let cur = 0;
+  const summarise = step => {
+    const name = step.getAttribute('data-step');
+    if (name === 'name') return fields.name ? fields.name.value.trim() : '';
+    if (name === 'email') return fields.email ? fields.email.value.trim() : '';
+    if (name === 'code') return 'Email verified';
+    if (name === 'phone') {
+      const p = fields.phone ? fields.phone.value.trim() : '';
+      return (codeSel ? codeSel.value + ' ' : '') + p;
+    }
+    if (name === 'have') {
+      const v = fields.have ? fields.have.value : '';
+      if (v === 'yes') return 'A company' + (fields.count && fields.count.value ? ' · ' + fields.count.value : '');
+      if (v === 'no') return 'Still deciding';
+      return '';
+    }
+    return '';
+  };
+  const stepDone = (step, on) => {
+    if (!step) return;
+    const q = step.querySelector('.ea-q'), go = step.querySelector('.ea-go'), sum = step.querySelector('.ea-sum');
+    if (q) q.hidden = on; if (go) go.hidden = on;
+    if (sum) { sum.hidden = !on; const sv = sum.querySelector('[data-sum]'); if (sv && on) sv.textContent = summarise(step); }
+    step.classList.toggle('is-done', on);
+  };
+  const paint = () => pips.forEach((p, i) => p.classList.toggle('on', i <= cur));
+  function checkStep(i) {
+    const names = STEP_FIELDS[i] || [];
+    let firstBad = null;
+    for (const n of names) {
+      const f = fields[n]; if (!f) continue;
+      const branchOff = (n === 'count' || n === 'authority') && fields.have && fields.have.value !== 'yes';
+      const plansOff = n === 'plans' && fields.have && fields.have.value !== 'no';
+      if (branchOff || plansOff) { say(n, ''); continue; }
+      const msg = rule[n] ? rule[n](f.value) : '';
+      say(n, msg);
+      if (msg && !firstBad) firstBad = n;
+    }
+    if (firstBad) fields[firstBad].focus();
+    return !firstBad;
+  }
+  /* the box: clicked for the visitor when the last step opens, once per page */
+  let boxClicks = 0;
+  function autoBox() {
+    const btn = form.querySelector('[data-captcha-start]');
+    if (!btn || boxClicks >= 2 || btn.disabled) return;
+    const wrapEl = form.querySelector('[data-captcha]');
+    if (wrapEl && wrapEl.classList.contains('is-done')) return;
+    boxClicks += 1;
+    btn.click();
+  }
+  function openStep(i) {
+    stepEls.forEach((el, k) => { el.hidden = k !== i; });
+    paint();
+    const el = stepEls[i]; if (!el) return;
+    const f = el.querySelector('input:not([type=hidden]), select'); if (f) f.focus({ preventScroll: true });
+    /* the last step's box solves itself while they read the question: the contract — a
+       click, a puzzle, a tick — is untouched, the visitor just never waits on it */
+    if (el.getAttribute('data-step') === 'last') autoBox();
+    const panel = form.closest('.ea-panel');
+    if (panel && window.innerWidth < 1080 && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  if (stepEls.length) {
+    stepEls.forEach((el, i) => { if (i) el.hidden = true; stepDone(el, false); });
+    stepEls.forEach(el => {
+      const sum = document.createElement('p');
+      sum.className = 'ea-sum'; sum.hidden = true;
+      sum.innerHTML = '<span data-sum></span> <button type="button" class="ea-link" data-edit>Edit</button>';
+      el.appendChild(sum);
+      sum.querySelector('[data-edit]').addEventListener('click', () => {
+        const i = stepEls.indexOf(el);
+        for (let k = i; k < stepEls.length; k++) stepDone(stepEls[k], false);
+        cur = i; openStep(i);
+      });
+    });
+    stepEls.forEach((el, i) => {
+      const b = el.querySelector('[data-next]'); if (!b) return;
+      b.addEventListener('click', () => {
+        if (!checkStep(i)) return;
+        stepDone(el, true);
+        cur = Math.min(i + 1, stepEls.length - 1);
+        openStep(cur);
+      });
+    });
+  }
+  if (stepEls.length) openStep(0);   /* after every helper above exists — openStep reaches for all of them */
+
+  /* the company answer opens its own branch, right there under the question: a company
+     that exists is counted and named; one that is still a thought is described */
+  if (fields.have) fields.have.addEventListener('change', () => {
+    const v = fields.have.value;
+    const show = (sel, on) => { const w = form.querySelector(sel); if (w) w.hidden = !on; };
+    show('.mf-count', v === 'yes');
+    show('.mf-auth', v === 'yes');
+    show('.mf-plans', v === 'no');
+    ['count', 'authority', 'plans'].forEach(n => { if (!v || (v === 'yes' ? n === 'plans' : n !== 'plans')) say(n, ''); });
+  });
+
+  /* while they write: a field that is wrong about itself is told so at once, and a field
+     that has righted itself goes quiet. An empty one waits for Continue. */
+  if (fields.email) fields.email.addEventListener('input', () => {
+    const e = fields.email.value.trim();
+    say('email', e && !validEmail(e) ? 'Please enter a valid email address.' : '');
+  });
+  if (fields.phone) fields.phone.addEventListener('input', () => {
+    const raw = fields.phone.value, clean = digits(raw);
+    if (clean !== raw) fields.phone.value = clean;
+    say('phone', clean && (clean.length < 7 || clean.length > 15) ? 'Please enter a valid phone number.' : '');
+  });
+  if (fields.name) fields.name.addEventListener('input', () => { if (!rule.name(fields.name.value)) say('name', ''); });
+  if (fields.authority) fields.authority.addEventListener('input', () => { if (!rule.authority(fields.authority.value)) say('authority', ''); });
+  if (fields.plans) fields.plans.addEventListener('input', () => { if (!rule.plans(fields.plans.value)) say('plans', ''); });
+  if (fields.code) fields.code.addEventListener('input', () => {
+    const raw = fields.code.value, clean = digits(raw).slice(0, 6);
+    if (clean !== raw) fields.code.value = clean;
+    if (!rule.code(clean)) say('code', '');
+  });
+
+  /* ── the code · sent, counted down, checked ───────────────────────────────
+     The messages are ours, not the server's: the API answers with words like too-soon
+     and attempts, and none of them should reach a visitor's eyes untranslated. */
+  const sentLine = form.querySelector('[data-code-sent]');
+  const emailStep = form.querySelector('[data-step="email"]');
+  const codeStep = form.querySelector('[data-step="code"]');
+  const sendBtn = form.querySelector('[data-sendcode]');
+  const verifyBtn = form.querySelector('[data-verifycode]');
+  const resendBtn = form.querySelector('[data-resend]');
+  const backBtn = form.querySelector('[data-backemail]');
+  const tokenField = form.querySelector('input[name="emailv"]');
+  let timer = null;
+
+  const sayCode = msg => { if (sentLine) { sentLine.textContent = msg || ''; sentLine.hidden = !msg; } };
+  const startCountdown = (secs = 60) => {
+    if (timer) clearInterval(timer);
+    if (!resendBtn) return;
+    let left = secs;
+    resendBtn.disabled = true;
+    const label = () => { resendBtn.textContent = left > 0 ? 'Send another · ' + left + 's' : 'Send another'; };
+    label();
+    timer = setInterval(() => { left -= 1; label(); if (left <= 0) { clearInterval(timer); timer = null; resendBtn.disabled = false; } }, 1000);
+  };
+  async function requestCode(btn) {
+    markOpen();
+    if (fields.email && rule.email(fields.email.value)) { say('email', rule.email(fields.email.value)); fields.email.focus(); return; }
+    const was = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Sending';
+    let j = null;
+    try {
+      const r = await fetch('/api/verify-email/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: (fields.email ? fields.email.value.trim() : ''), _t: opened || Date.now() }),
+      });
+      j = await r.json().catch(() => null);
+      if (!r.ok || !j || !j.ok) {
+        btn.disabled = false; btn.textContent = was;
+        sayCode(j && j.errors && j.errors[0] === 'too-soon' && j.retryIn
+          ? 'A code is already on its way. You can ask for another in ' + j.retryIn + ' seconds.'
+          : 'That did not send. Please try once more, or write to support@boasis.ae.');
+        return;
+      }
+    } catch (e) {
+      btn.disabled = false; btn.textContent = was;
+      sayCode('That did not send. Check the connection and try once more.');
+      return;
+    }
+    btn.disabled = false; btn.textContent = was;
+    if (fields.code) fields.code.value = '';
+    say('code', ''); sayCode('');
+    if (codeStep) {
+      const shown = codeStep.querySelector('[data-shown-email]');
+      if (shown) shown.textContent = fields.email.value.trim();
+    }
+    stepDone(emailStep, true);
+    cur = Math.max(cur, stepEls.indexOf(codeStep));
+    openStep(stepEls.indexOf(codeStep));
+    startCountdown();
+    /* only a box that is really not sending anything shows its code on screen — the page
+       asks the visitor to read their mail everywhere the mail is real */
+    if (j.devCode) sayCode('Nothing is being sent right now, so here it is: ' + j.devCode);
+  }
+  if (sendBtn) sendBtn.addEventListener('click', () => requestCode(sendBtn));
+  if (resendBtn) resendBtn.addEventListener('click', () => requestCode(resendBtn));
+  if (backBtn) backBtn.addEventListener('click', () => {
+    stepDone(emailStep, false);
+    cur = stepEls.indexOf(emailStep);
+    openStep(cur);
+  });
+  if (verifyBtn) verifyBtn.addEventListener('click', async () => {
+    if (fields.code && rule.code(fields.code.value)) { say('code', rule.code(fields.code.value)); fields.code.focus(); return; }
+    const was = verifyBtn.textContent;
+    verifyBtn.disabled = true; verifyBtn.textContent = 'Checking';
+    let j = null;
+    try {
+      const r = await fetch('/api/verify-email/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: (fields.email ? fields.email.value.trim() : ''), code: fields.code ? fields.code.value.trim() : '' }),
+      });
+      j = await r.json().catch(() => null);
+    } catch (e) { j = null; }
+    verifyBtn.disabled = false; verifyBtn.textContent = was;
+    if (!j || !j.ok) {
+      const why = j && j.errors ? j.errors[0] : '';
+      say('code', why === 'attempts'
+        ? 'Too many tries with that code. Ask for a new one.'
+        : why === 'none' ? 'That code has expired. Ask for a new one.'
+        : 'That is not the code. Three tries, then a new one is needed.');
+      sayCode('');
+      return;
+    }
+    if (tokenField) tokenField.value = j.token || '';
+    if (timer) { clearInterval(timer); timer = null; }
+    stepDone(codeStep, true);
+    cur = Math.max(cur, stepEls.indexOf(codeStep) + 1);
+    openStep(cur);
+  });
+
+  form.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    markOpen();
+    if (stamp) stamp.value = opened || Date.now();
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    let firstBad = null;
+    for (const n of Object.keys(fields)) {
+      if (n === 'code') continue;          /* judged by the code step itself; it is not part of the signup */
+      const branchOff = (n === 'count' || n === 'authority') && fields.have && fields.have.value !== 'yes';
+      const plansOff = n === 'plans' && fields.have && fields.have.value !== 'no';
+      if (branchOff || plansOff) { say(n, ''); continue; }
+      const msg = rule[n] ? rule[n](data[n] || '') : '';
+      say(n, msg);
+      if (msg && !firstBad) firstBad = n;
+    }
+    if (firstBad) {
+      const i = stepEls.findIndex(el => el.contains(fields[firstBad]));
+      if (i >= 0) { cur = i; openStep(i); }
+      fields[firstBad].focus(); note.textContent = ''; note.className = 'form-note'; return;
+    }
+
+    /* the number the owner reads: the code on the left, the number on the right, one string */
+    data.phone = fullPhone(codeSel ? codeSel.value : '+971', data.phone) || data.phone;
+    delete data.country_code;
+    delete data.code;                       /* the typed code is never stored; its proof is the token */
+
+    /* the box is part of the form: a send without it still says so here rather than posting
+       something the server will refuse after the note has already said Sending */
+    if (!String(data.altcha || '').trim()) {
+      note.textContent = 'Please click the "I am not a robot" box first.';
+      note.className = 'form-note err';
+      const boxBtn = form.querySelector('[data-captcha-start]');
+      if (boxBtn) boxBtn.focus();
+      return;
+    }
+
+    /* the mailbox proof, held to the same rule the server holds it: no token, no post.
+       The visitor is put back at the code — everything typed stays where it is. */
+    if (tokenField && !String(tokenField.value || '').trim()) {
+      note.textContent = 'We need the code at your email before this can go through.';
+      note.className = 'form-note err';
+      if (codeStep) { stepDone(codeStep, false); if (emailStep) stepDone(emailStep, false); cur = stepEls.indexOf(codeStep); openStep(cur); }
+      return;
+    }
+
+    note.textContent = 'Sending';
+    note.className = 'form-note';
+    try {
+      const r = await fetch(form.dataset.endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.ok === false) {
+        if ((j.errors || []).includes('emailv')) {
+          /* the token is for the address in the body; if it ran out, the honest way back is
+             the email question, not a shrug — everything typed stays where it is */
+          note.textContent = 'The email check has run out. Please check the code again from there.';
+          note.className = 'form-note err';
+          if (tokenField) tokenField.value = '';
+          if (codeStep) { stepDone(codeStep, false); if (emailStep) stepDone(emailStep, false); cur = stepEls.indexOf(codeStep); openStep(cur); }
+          return;
+        }
+        const names = { name: 'your name', email: 'your email address', phone: 'your phone number', have: 'the company question', count: 'how many companies', authority: 'the authority name', plans: 'a sentence about the company', captcha: 'the verification box' };
+        const e = (j.errors || []).filter(x => names[x]);
+        e.forEach(x => say(x, 'Please check ' + names[x] + '.'));
+        const tooMany = (j.errors || []).includes('too-many');
+        note.textContent = tooMany
+          ? 'That is a few too many in a row. Please wait a minute, then press Join again. Your answers are still here.'
+          : (e.length ? 'Please check the fields marked above.' : 'Please try again, or write to support@boasis.ae.');
+        note.className = 'form-note err';
+        if ((j.errors || []).includes('captcha') && window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
+        return;
+      }
+      /* done · the form steps aside, and the page says what happens next in the same words
+         the dialog used */
+      form.hidden = true;
+      const done = document.querySelector('.ea-done');
+      if (done) { done.hidden = false; done.querySelector('p').focus?.(); if (typeof done.scrollIntoView === 'function') done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }
+      if (window.BoasisCaptcha) window.BoasisCaptcha.reset(form);
+    } catch (e) {
+      note.textContent = 'That did not send. Please try again, or write to support@boasis.ae.';
+      note.className = 'form-note err';
+    }
+  });
+}
+
+/* the sections arrive the way the cards do on the site, and never move on their own */
+function reveal() {
+  const els = [...document.querySelectorAll('.reveal')]; if (!els.length) return;
+  if (reduce || !('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
+  els.forEach((el, i) => { el.style.transitionDelay = (i % 3) * 90 + 'ms'; io.observe(el); });
 }
 
 const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();

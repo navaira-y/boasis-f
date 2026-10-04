@@ -30,6 +30,12 @@ same sentences. Both come from one template, so they cannot drift apart.
 
 ## 2 · "Join early access" — the /early-access page (`/api/manage`)
 
+> Since 5 October the page also sends one more mail, before any of this: a six-digit
+> verification code, subject `Your BOASIS code is 248153`, to the visitor only, no owner
+> copy, minted by `lib/email-verify.js` and never written to disk. Three tries, one use,
+> fifteen minutes, one ask per address per minute. The answer you are about to read is
+> what the code unlocks.
+
 ### → To the team
 
 - **Subject** `Early access · Amina Al Mazroui`

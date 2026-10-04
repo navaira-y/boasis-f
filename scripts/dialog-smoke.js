@@ -254,8 +254,8 @@ const challenge = () => {
   ok(ef('#demo-form') && !ef('#demo-form').hidden, 'the form stays put');
   ok(posts.length === before, 'nothing was sent');
 
-  /* ── the early-access page: the countdown, the line, the form on its own page ── */
-  console.log('early access: the countdown, the page, the branch, the send, the done');
+  /* ── the early-access page: the countdown, the one-question-at-a-time form, the code ── */
+  console.log('early access: the countdown, the steps, the code, the send, the done');
   {
     const edom = await JSDOM.fromURL(BASE + '/early-access', {
       runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, beforeParse: ambient,
@@ -265,7 +265,15 @@ const challenge = () => {
     await new Promise(r => setTimeout(r, 400));
     const eposts = [];
     ew.fetch = async (url, opts) => {
-      if (String(url).includes('/api/captcha')) return { ok: true, status: 200, json: async () => challenge() };
+      const u = String(url);
+      if (u.includes('/api/captcha')) return { ok: true, status: 200, json: async () => challenge() };
+      if (u.includes('/api/verify-email/send')) { eposts.push({ url: u, body: JSON.parse(opts.body) }); return { ok: true, status: 200, json: async () => ({ ok: true, devCode: '248153' }) }; }
+      if (u.includes('/api/verify-email/verify')) {
+        eposts.push({ url: u, body: JSON.parse(opts.body) });
+        const good = JSON.parse(opts.body).code === '248153';
+        return good ? { ok: true, status: 200, json: async () => ({ ok: true, token: 'TESTTOKEN' }) }
+                    : { ok: false, status: 400, json: async () => ({ ok: false, errors: ['code'] }) };
+      }
       eposts.push({ url, body: JSON.parse(opts.body) });
       return { ok: true, status: 200, json: async () => ({ ok: true, confirmed: true }) };
     };
@@ -273,16 +281,10 @@ const challenge = () => {
     const form = eq('#join-form');
     ok(!!form, 'the page carries the form');
     ok(form.getAttribute('data-endpoint') === '/api/manage', 'and it posts to the manage endpoint');
-    /* the page is short on purpose: the date, one line, the countdown, the form. The line
-       counts, and the plans stay on the home page, so no price may appear back here. */
     ok(ed.body.textContent.includes('17 November'), 'the page says the date the list is told');
     ok(!/AED/.test(ed.body.textContent), 'no plan and no price is mentioned on this page');
     const cd = eq('#count');
     ok(!!cd, 'the countdown is on the page');
-    /* the truth is computed here from the machine's real clock — the same way only the
-       opening moment spelled out: 08:00 in Dubai on 17 November 2026 — and compared with
-       what the page shows. Then the page is watched for a second: the seconds cell must
-       go down, so the promise is alive, not painted. */
     const openUTC = new Date('2026-11-17T08:00:00+04:00').getTime();
     const want = Math.max(0, Math.floor((openUTC - Date.now()) / 1000));
     const wantDays = Math.floor(want / 86400);
@@ -290,19 +292,57 @@ const challenge = () => {
     ok(wantDays > 0, 'the smoke is running before the opening, or this check means nothing');
     ok(eq('#c-days') && Number(eq('#c-days').textContent) === wantDays, 'its day cell agrees with the date itself, saw ' + (eq('#c-days') || {}).textContent + ' want ' + wantDays);
     ok(eq('#c-hours') && eq('#c-hours').textContent === wantHours, 'and the hour cell too, saw ' + (eq('#c-hours') || {}).textContent + ' want ' + wantHours);
+    ok(eq('#c-tz') && !eq('#c-tz').hidden && eq('#c-tz').textContent.includes('+04:00'), 'the date carries its own Dubai offset, saw ' + (eq('#c-tz') || {}).textContent);
     const secsOnce = Number((eq('#c-secs') || {}).textContent);
     await new Promise(r => setTimeout(r, 1600));
     ok(Number(eq('#c-secs').textContent) !== secsOnce, 'and the seconds move on their own');
-    ok(eq('#c-tz') && !eq('#c-tz').hidden && eq('#c-tz').textContent.includes('+04:00'), 'the date carries its own Dubai offset, saw ' + (eq('#c-tz') || {}).textContent);
     const joins = [...ed.querySelectorAll('a[href="#join"]')];
-    ok(joins.length >= 2, 'the page leads to its own form from the top and the heading');
-    const cc = form.querySelector('[data-cc]');
-    ok(!!cc && cc.querySelectorAll('.cc-list li').length === 59, 'the form carries the 59-country picker');
+    ok(joins.length >= 1, 'the header leads to the form beside the words, saw ' + joins.length);
+
+    /* one question at a time: only the name is open, and Continue refuses an empty one */
+    const steps = ['name', 'email', 'code', 'phone', 'have', 'last'].map(n => eq('[data-step="' + n + '"]'));
+    ok(steps.every(Boolean), 'all six steps are in the page');
+    ok(!steps[0].hidden && steps.slice(1).every(st => st.hidden), 'the page opens on the name alone');
+    const click = el => el.dispatchEvent(new ew.MouseEvent('click', { bubbles: true, cancelable: true }));
     const einput = (el, v) => { el.value = v; el.dispatchEvent(new ew.Event('input', { bubbles: true })); };
     const esubmit = () => form.dispatchEvent(new ew.Event('submit', { bubbles: true, cancelable: true }));
+    click(steps[0].querySelector('[data-next]'));
+    ok(!form.querySelector('[data-err="name"]').hidden, 'an empty name is answered before moving on');
+    ok(!steps[0].hidden, 'and the step stays open');
     einput(form.querySelector('input[name="name"]'), 'Lena Karim');
+    click(steps[0].querySelector('[data-next]'));
+    ok(steps[0].hidden && !steps[1].hidden, 'answered, the name collapses and the email is asked');
+    ok(steps[0].classList.contains('is-done') && steps[0].querySelector('.ea-sum span').textContent === 'Lena Karim', 'it leaves its summary line behind, and an Edit');
+    ok(!!steps[0].querySelector('[data-edit]'), 'the edit control is on it');
+
+    /* the code: asked for, checked, and only then does the form go on */
     einput(form.querySelector('input[name="email"]'), 'lena@corp.com');
+    click(steps[1].querySelector('[data-sendcode]'));
+    await new Promise(r => setTimeout(r, 60));
+    const sendPost = eposts.find(x => x.url.includes('/api/verify-email/send'));
+    ok(!!sendPost, 'the page asked the server for a code');
+    ok(!!sendPost && sendPost.body.email === 'lena@corp.com', 'and it carried the typed address, saw ' + (sendPost && sendPost.body.email));
+    ok(steps[1].hidden && !steps[2].hidden, 'and the code step opened');
+    einput(form.querySelector('input[name="code"]'), '2481');
+    click(steps[2].querySelector('[data-verifycode]'));
+    await new Promise(r => setTimeout(r, 60));
+    ok(!form.querySelector('[data-err="code"]').hidden, 'four digits is not six, and it says so');
+    einput(form.querySelector('input[name="code"]'), '999999');
+    click(steps[2].querySelector('[data-verifycode]'));
+    await new Promise(r => setTimeout(r, 60));
+    ok(!form.querySelector('[data-err="code"]').hidden, 'a wrong code is refused by the server, and the step stays');
+    einput(form.querySelector('input[name="code"]'), '248153');
+    click(steps[2].querySelector('[data-verifycode]'));
+    await new Promise(r => setTimeout(r, 60));
+    ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'the right code brings the signed proof into the form');
+    ok(steps[2].hidden && !steps[3].hidden, 'and only then: the phone');
+
+    /* the rest, as it was: the picker, the branch, the box that solves itself */
+    const cc = form.querySelector('[data-cc]');
+    ok(!!cc && cc.querySelectorAll('.cc-list li').length === 59, 'the form carries the 59-country picker');
     einput(form.querySelector('input[name="phone"]'), '0551112222');
+    click(steps[3].querySelector('[data-next]'));
+    ok(steps[3].hidden && !steps[4].hidden, 'then the company question');
     const haveSel = form.querySelector('select[name="have"]');
     const change = el => el.dispatchEvent(new ew.Event('change', { bubbles: true }));
     haveSel.value = 'yes'; change(haveSel);
@@ -313,23 +353,27 @@ const challenge = () => {
     haveSel.value = 'yes'; change(haveSel);
     form.querySelector('select[name="count"]').value = '1-3';
     einput(form.querySelector('input[name="authority"]'), 'SPARK Free Zone');
-    /* the box is part of the form: pressing Join without it says so on the spot and posts nothing */
+    click(steps[4].querySelector('[data-next]'));
+    ok(steps[4].hidden && !steps[5].hidden, 'and the last step opens');
+    await new Promise(r => { let i = 0; const w = setInterval(() => { if (form.querySelector('input[name="altcha"]').value || ++i > 120) { clearInterval(w); r(); } }, 50); });
+    ok(form.querySelector('input[name="altcha"]').value.length > 40, 'the page clicked the box itself, and it really solved');
+    form.querySelector('input[name="emailv"]').value = '';
     esubmit();
-    await new Promise(r => setTimeout(r, 50));
-    ok(form.querySelector('.form-note').textContent === 'Please click the "I am not a robot" box first.', 'Join without the box says what to do: ' + form.querySelector('.form-note').textContent);
-    ok(eposts.length === 0, 'and nothing was posted');
+    await new Promise(r => setTimeout(r, 60));
+    ok(form.querySelector('.form-note').textContent.length > 0, 'a send without the proof is stopped, and said: ' + form.querySelector('.form-note').textContent);
     ok(eq('.ea-done').hidden, 'and the done step stayed shut');
-    await tick(form);
-    ok(form.querySelector('input[name="altcha"]').value.length > 40, 'the box is ticked and carries its solved answer');
+    ok(!form.querySelector('[data-step="code"]').hidden, 'and the page walks them back to the code, not to a dead end');
+    einput(form.querySelector('input[name="code"]'), '248153');
+    form.querySelector('input[name="emailv"]').value = 'TESTTOKEN';
     esubmit();
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 80));
     ok(!eq('.ea-done').hidden, 'the done step is showing');
     ok(form.hidden, 'and the form stepped aside');
     const mpost = eposts[eposts.length - 1];
     ok(mpost.url === '/api/manage', 'it posted to the manage endpoint');
     ok(mpost.body.phone === '+971 551112222' && mpost.body.have === 'yes' && mpost.body.count === '1-3' && mpost.body.authority === 'SPARK Free Zone', 'its fields went out');
+    ok(mpost.body.emailv === 'TESTTOKEN', 'and the mailbox proof rode along');
   }
-
   /* ── the journey builds its own "Book a demo" after the page has wired up:
        the delegated handler must still open the dialog for it ───────────────── */
   console.log('journey opener (built late) also opens the dialog');

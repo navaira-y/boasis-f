@@ -13,9 +13,10 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const config = require('./config/env');
-const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject } = require('./lib/validate');
+const { waitlistInput, contactInput, demoInput, manageInput, spamCheck, plainObject, validEmail, cleanEmail } = require('./lib/validate');
 const { guard, securityHeaders, formGateLimit, globalGate, noteTrap } = require('./lib/protect');
 const captcha = require('./lib/captcha');
+const emailVerify = require('./lib/email-verify');
 const mail = require('./lib/mailer');
 
 const app = express();
@@ -172,6 +173,36 @@ app.get('/api/captcha', capCaptcha, (req, res) => {
   }));
 });
 
+/* ── the mailbox code · send and check, for the early-access page ───────────────
+   The send is NOT behind the captcha on purpose: making the visitor solve a puzzle twice
+   (once for a code, once for the form) is friction a bot happily pays and a person
+   resents. What it does cost: the rate buckets, the per-address limits in
+   lib/email-verify.js (one a minute, three a ten minutes, six an hour), the site-wide
+   mail budget, and the fact that the code is only useful to someone who can read the
+   mailbox — which is exactly what we are checking. */
+app.post('/api/verify-email/send', gateForms, async (req, res) => {
+  const b = req.body;
+  if (!plainObject(b)) return res.status(400).json({ ok: false, errors: ['body'] });
+  if (String(b.hp || '').trim()) { emailVerify.blocked(cleanEmail(b.email), true); return res.json({ ok: true }); }   // a robot, by its own hand
+  const t0 = Number(b._t);
+  if (!(Number.isFinite(t0) && Date.now() - t0 >= 1000)) { emailVerify.blocked(cleanEmail(b.email), true); return res.json({ ok: true }); }   // posted without reading the page
+  const email = cleanEmail(b.email);
+  if (!validEmail(email)) return res.status(400).json({ ok: false, errors: ['email'] });
+  const r = await emailVerify.sendCode(email, mail);
+  if (!r.ok) return res.status(429).json({ ok: false, errors: [r.why], retryIn: r.retryIn || 0 });
+  res.set('Cache-Control', 'no-store').json({ ok: true, devCode: r.devCode || undefined });
+});
+
+app.post('/api/verify-email/verify', gateForms, async (req, res) => {
+  const b = req.body;
+  if (!plainObject(b)) return res.status(400).json({ ok: false, errors: ['body'] });
+  const email = cleanEmail(b.email);
+  if (!validEmail(email)) return res.status(400).json({ ok: false, errors: ['email'] });
+  const v = emailVerify.verifyCode(email, String(b.code || '').trim());
+  if (!v.ok) return res.status(400).json({ ok: false, errors: [v.why === 'attempts' ? 'attempts' : 'code'] });
+  res.set('Cache-Control', 'no-store').json({ ok: true, token: v.token });
+});
+
 /* both endpoints share the same door: right shape, then the bot traps, then the fields */
 const formGate = async (req, res, next) => {
   if (!plainObject(req.body)) return res.status(400).json({ ok: false, errors: ['body'] });
@@ -272,6 +303,12 @@ app.post('/api/demo', gateForms, formGate, async (req, res) => {
 app.post('/api/manage', gateForms, formGate, async (req, res) => {
   const in_ = manageInput(req.body);
   if (!in_.ok) return res.status(400).json({ ok: false, errors: in_.errors });
+  /* the mailbox proof. Checked after the captcha and burned only once the signup is
+     really stored, so a visitor who trips one of the two gates never loses their code
+     and never has to wait a minute for a new one. */
+  if (config.verify.require && !emailVerify.peek(in_.email, req.body.emailv)) {
+    return res.status(400).json({ ok: false, errors: ['emailv'] });
+  }
   spendCaptcha(req);
 
   const record = {
@@ -283,6 +320,7 @@ app.post('/api/manage', gateForms, formGate, async (req, res) => {
   list.push(record);
   writeJson(manageFile, list);
 
+  if (config.verify.require) emailVerify.consume(in_.email, req.body.emailv);   // one token, one signup
   const r = await mail.notifyManage(record);
   res.json({ ok: true, confirmed: r.sent > 0 });
 });

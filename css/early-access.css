@@ -1,49 +1,78 @@
 /* BOASIS · the early-access page · the same Night as the rest of the site, kept short on
-   purpose: the opening line, the countdown, the form. It adds nothing to site.css and borrows
-   the site's own blocks: .wrap, .label, .btn and the whole .mf-* form, so the form here is
-   the form the dialog carried. Nothing in this file may contradict what is on the home page;
-   if it drifts, the page looks wrong. */
+   purpose: the opening line, the countdown, the form — split across the page, one question
+   at a time. It adds nothing to site.css and borrows the site's own blocks: .wrap, .label,
+   .btn and the whole .mf-* form, so the fields here are the fields the dialog carried.
+   Nothing in this file may contradict what is on the home page; if it drifts, the page
+   looks wrong. */
 
 .page-early main{padding-top:100px}
+.ea-page{position:relative;isolation:isolate;overflow:hidden}
+/* one lit screen behind the whole split, the same glow as the contact page, centred where
+   the two columns meet */
+.ea-page::before{content:"";position:absolute;left:50%;top:38%;width:min(140vw,1700px);height:120%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(23,54,94,.8),rgba(95,211,232,.12) 55%,rgba(11,13,18,0));pointer-events:none;z-index:-1}
 
-/* the opening · one lit screen, the same glow as the contact page */
-.ea-hero{position:relative;padding:clamp(56px,6vw,96px) 0 clamp(20px,3vw,40px);text-align:center;isolation:isolate;overflow:hidden}
-.ea-hero::before{content:"";position:absolute;left:50%;top:50%;width:min(140vw,1700px);height:120%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(23,54,94,.8),rgba(95,211,232,.12) 55%,rgba(11,13,18,0));pointer-events:none;z-index:-1}
-.ea-hero h1{font-size:clamp(40px,5.6vw,80px);line-height:1.02;letter-spacing:-.03em;color:#fff;margin:0;text-wrap:balance}
-.ea-hero h1 em{font-style:normal;color:var(--bo-teal);text-shadow:0 0 40px rgba(95,211,232,.35)}
-.ea-line{color:rgba(255,255,255,.72);margin:20px auto 0;font-size:clamp(17px,1.5vw,21px);line-height:1.55;max-width:52ch;text-wrap:pretty}
-.ea-cta{margin:30px auto 0}
-.ea-cta .btn{padding:16px 34px;font-size:16px}
-.ea-small{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6;margin:16px auto 0;max-width:52ch}
+/* the split · the promise on one side, the questions on the other. Below 1080 the panel
+   simply comes after the words, in order, as it always did. */
+.ea-split{display:grid;gap:clamp(34px,4vw,64px);align-items:start;padding:clamp(30px,4vw,56px) 0 clamp(64px,7vw,100px)}
+@media (min-width:1080px){
+  .ea-split{grid-template-columns:1.05fr .95fr;gap:clamp(44px,4.5vw,80px);padding-top:clamp(44px,5vw,72px)}
+}
+.ea-left{text-align:left}
+.ea-left h1{font-size:clamp(38px,3.9vw,58px);line-height:1.04;letter-spacing:-.03em;color:#fff;margin:0;text-wrap:balance}
+.ea-left h1 em{font-style:normal;color:var(--bo-teal);text-shadow:0 0 40px rgba(95,211,232,.35)}
+.ea-line{color:rgba(255,255,255,.72);margin:20px 0 0;font-size:clamp(16.5px,1.4vw,20px);line-height:1.55;max-width:52ch;text-wrap:pretty}
+.ea-small{color:rgba(255,255,255,.5);font-size:14px;line-height:1.6;margin:18px 0 0;max-width:52ch}
 
 /* the countdown · four glass cells, the numbers in the brand's mono, the date kept under
-   them in words. It is the whole reason this page exists, so it is the loudest thing on it;
-   before the site's own script runs it says a dash, never a lie. */
-.ea-count{display:grid;justify-items:center;gap:14px;margin-top:clamp(34px,4vw,54px)}
-.ea-cells{display:flex;gap:clamp(10px,1.4vw,16px);justify-content:center}
+   them in words. It is the loudest thing on the left, and before the site's own script
+   runs it says a dash, never a lie. */
+.ea-count{display:grid;justify-items:start;gap:14px;margin-top:clamp(26px,3vw,40px)}
+.ea-cells{display:flex;gap:clamp(10px,1.4vw,16px);justify-content:flex-start}
 .ea-cell{min-width:clamp(68px,8vw,116px);padding:clamp(14px,1.8vw,24px) clamp(10px,1.4vw,18px);border-radius:20px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);text-align:center}
 .ea-val{display:block;font-family:var(--font-mono);font-weight:500;font-size:clamp(30px,4.2vw,52px);line-height:1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .ea-unit{display:block;margin-top:9px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.5)}
 .ea-opens{margin:0;color:rgba(255,255,255,.62);font-size:14px}
 .ea-opens .ea-tz{color:rgba(255,255,255,.4)}
+.ea-open-now{font-family:var(--font-display);font-size:clamp(20px,2vw,26px);color:var(--bo-teal)}
 
-/* the form · one column, a soft card, and the site's own pill fields */
-.ea-join{position:relative;padding:clamp(70px,7vw,110px) 0 clamp(90px,9vw,140px);text-align:center;isolation:isolate;overflow:hidden;margin-top:clamp(10px,1vw,20px)}
-.ea-join::before{content:"";position:absolute;left:50%;top:50%;width:min(140vw,1700px);height:100%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(23,54,94,.85),rgba(95,211,232,.1) 55%,rgba(11,13,18,0));pointer-events:none;z-index:-1}
-.ea-join h2{font-size:clamp(34px,4vw,60px);line-height:1.04;letter-spacing:-.03em;color:#fff;margin:0;text-wrap:balance}
-.ea-form{display:grid;gap:18px;margin:clamp(34px,3.6vw,48px) auto 0;max-width:640px;text-align:left}
-.ea-foot{display:grid;justify-items:center;gap:12px;margin-top:6px;text-align:center}
-.ea-foot .btn{padding:15px 34px;font-size:16px}
-.ea-form .form-note{max-width:46ch;margin:0 auto;text-align:center}
+/* the panel · a soft card the width of a column: the form is the loudest thing it holds */
+.ea-panel{position:relative;padding:clamp(24px,2.6vw,38px);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);text-align:left}
+.ea-panel h2{font-size:clamp(24px,2.4vw,32px);line-height:1.08;letter-spacing:-.025em;color:#fff;margin:6px 0 0;text-wrap:balance}
+.ea-panel-line{margin:12px 0 0;color:rgba(255,255,255,.66);font-size:15.5px;line-height:1.55}
+.ea-pips{display:flex;gap:6px;margin:18px 0 0}
+.ea-pips i{width:22px;height:3px;border-radius:99px;background:rgba(255,255,255,.16);transition:background .4s ease}
+.ea-pips i.on{background:var(--bo-teal)}
 
-/* the moment after · the dialog's own words, kept */
-.ea-done{margin:clamp(34px,3.6vw,48px) auto 0;max-width:560px;padding:clamp(26px,3vw,38px);border-radius:22px;background:rgba(255,255,255,.05);border:1px solid rgba(95,211,232,.3)}
-.ea-done h3{font-family:var(--font-display);font-weight:500;font-size:clamp(24px,2.4vw,32px);color:#fff;margin:0}
-.ea-done p{margin:12px 0 0;color:rgba(255,255,255,.72);font-size:16px;line-height:1.6}
+/* one question at a time · without a script every step is simply here, all at once; the
+   script hides what is not asked yet, and an answered step collapses to its summary line,
+   with Edit to open it again. The fields never leave the DOM — that is the point. */
+.ea-form{display:grid;gap:16px;margin:clamp(20px,2.2vw,28px) 0 0;text-align:left}
+.ea-step{display:grid;gap:12px}
+.ea-step[hidden]{display:none}
+.ea-q{margin:0;font-family:var(--font-display);font-weight:500;font-size:clamp(19px,1.7vw,23px);line-height:1.2;color:#fff;letter-spacing:-.01em}
+.ea-step.is-done .ea-q,.ea-step.is-done .ea-go,.ea-step.is-done .mf-field,.ea-step.is-done .captcha,.ea-step.is-done .form-noscript,.ea-step.is-done .ea-code-to,.ea-step.is-done .ea-code-sent{display:none}
+.ea-step.is-done .mf-pill{display:none}
+.ea-sum{margin:0;display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.72);font-size:15px;min-width:0}
+.ea-sum span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ea-link{appearance:none;background:none;border:0;padding:0;color:var(--bo-teal);font:inherit;font-size:14px;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(95,211,232,.45);text-underline-offset:3px}
+.ea-link:hover{text-decoration-color:var(--bo-teal)}
+.ea-link:disabled{opacity:.45;cursor:default;text-decoration:none}
+.ea-go{margin:2px 0 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ea-go .btn{padding:13px 28px;font-size:15.5px}
+.ea-code-to{margin:0;color:rgba(255,255,255,.6);font-size:14px;line-height:1.55}
+.ea-code-to b{color:rgba(255,255,255,.85);font-weight:500}
+.ea-code-sent{margin:0;color:var(--bo-teal);font-size:14px;line-height:1.5}
+.ea-panel .captcha{justify-self:start}
+.ea-form .form-note{margin:4px 0 0;text-align:left}
+
+/* the moment after · the dialog's own words, kept, inside the same card */
+.ea-done{margin:clamp(22px,2.4vw,30px) 0 0;padding:clamp(22px,2.4vw,30px);border-radius:22px;background:rgba(255,255,255,.05);border:1px solid rgba(95,211,232,.3)}
+.ea-done h3{font-family:var(--font-display);font-weight:500;font-size:clamp(22px,2.2vw,28px);color:#fff;margin:0}
+.ea-done p{margin:12px 0 0;color:rgba(255,255,255,.72);font-size:15.5px;line-height:1.6}
 
 @media (max-width:640px){
   .page-early main{padding-top:84px}
-  .ea-hero{padding-top:clamp(40px,8vw,60px)}
+  .ea-split{padding-top:clamp(28px,7vw,44px)}
   .ea-cells{flex-wrap:wrap;max-width:320px}
   .ea-cell{min-width:calc(50% - 8px);flex:1}
 }

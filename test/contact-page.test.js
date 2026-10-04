@@ -118,6 +118,14 @@ test('the demo dialog is on the home page, and the early-access form is a page o
   assert.match(early, /<option value="" selected disabled>Do you have a company\?/);
   assert.match(early, /<option value="" selected disabled>How many companies\?/);
   assert.match(early, /<div class="captcha" data-captcha>/, 'and the box that keeps the cost of automation high');
+  /* the mailbox proof: the code field a visitor types, and the hidden field the signed
+     token rides in. Both are in the DOM from the first pixel, hidden one step at a time. */
+  assert.match(early, /name="code"/, 'the page asks for the six-digit code');
+  assert.match(early, /<input type="hidden" name="emailv"/, 'and carries its proof to the endpoint');
+  for (const b of ['data-sendcode', 'data-verifycode', 'data-resend', 'data-backemail']) {
+    assert.match(early, new RegExp(b), 'the code step needs its ' + b + ' control');
+  }
+  assert.ok(!/data-open/.test(early), 'nothing on the page opens a dialog');
   assert.ok(!/pictures|images/i.test(early), 'the captcha is never explained with pictures');
   for (const f of ['/api/demo', '/api/manage']) {
     const r = await fetch(base + f, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });

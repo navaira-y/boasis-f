@@ -116,8 +116,13 @@
   and the form only. On 5 October the owner asked for less: the page now carries the launch
   line, a live countdown to 08:00 Dubai on 17 November, and the form. The feature blocks were
   cut, and the plans with their prices stay on the home page alone.
-* The form is the same form: same fields, same rules, same endpoint, same captcha, same emails
-  to the team and the visitor. Nothing in lib/mail-templates.js changed.
+* The form kept its fields, rules, endpoint, captcha and both emails — the reviewed copy in
+  lib/mail-templates.js was not reworded, only extended (see the next line).
+* The same day, the page became a split: the words on one side, the form on the other, and
+  the form asks one question at a time — name, email, a six-digit code mailed to that
+  address, phone, the company question, the box. /api/manage now refuses a signup whose
+  mailbox never spoke (lib/email-verify.js; test/verify-email.test.js drives the whole
+  thing, including the three-tries rule and the one-minute gap between codes).
 * Access opens on 17 November 2026. The first year is free on the one-company plan.
 
 # Still to do

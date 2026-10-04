@@ -48,6 +48,17 @@ const rawPost = (p, body) => fetch(base + p, {
   body: typeof body === 'string' ? body : JSON.stringify(body),
 });
 const HUMAN = () => ({ _t: Date.now() - 12000 });
+/* the code path the early-access page takes before /api/manage can be answered at all:
+   ask, read (dry-run hands the code back), verify, take the token. Every test that joins
+   the list now walks it, because the endpoint really does refuse everything else. */
+const verifyEmail = async email => {
+  const s = await rawPost('/api/verify-email/send', { email, _t: Date.now() - 60000 });
+  const sj = await s.json();
+  const v = await rawPost('/api/verify-email/verify', { email, code: sj.devCode });
+  const vj = await v.json();
+  if (!sj.ok || !vj.ok) throw new Error('verification failed in the harness: ' + JSON.stringify(sj) + ' ' + JSON.stringify(vj));
+  return vj.token;
+};
 const read = f => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
 
 before(async () => { await up(); });
@@ -139,7 +150,8 @@ test('a demo request from the dialog is stored, and both mails are prepared', as
 });
 
 test('an early access request from the dialog is stored, and both mails are prepared', async () => {
-  const r = await post('/api/manage', { name: 'Lena', email: 'lena@example.com', phone: '+971 55 111 2222', have: 'yes', count: '1-3', authority: 'SPARK Free Zone', ...HUMAN() });
+  const emailv = await verifyEmail('lena@example.com');
+  const r = await post('/api/manage', { name: 'Lena', email: 'lena@example.com', phone: '+971 55 111 2222', have: 'yes', count: '1-3', authority: 'SPARK Free Zone', emailv, ...HUMAN() });
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.ok, true);
@@ -160,7 +172,8 @@ test('an early access request from the dialog is stored, and both mails are prep
 });
 
 test('an early access request without a company describes the thought instead', async () => {
-  const r = await post('/api/manage', { name: 'Omar Haddad', email: 'omar@example.com', phone: '+971 56 000 1111', have: 'no', plans: 'A small import business, still deciding the authority.', ...HUMAN() });
+  const emailv = await verifyEmail('omar@example.com');
+  const r = await post('/api/manage', { name: 'Omar Haddad', email: 'omar@example.com', phone: '+971 56 000 1111', have: 'no', plans: 'A small import business, still deciding the authority.', emailv, ...HUMAN() });
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.ok, true);

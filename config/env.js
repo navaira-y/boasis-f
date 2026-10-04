@@ -107,6 +107,20 @@ const config = {
     disabled: bool('CAPTCHA_DISABLED', false),
   },
 
+  /* ── the mailbox code · see lib/email-verify.js ──
+     The secret signs the tokens. It falls back to CAPTCHA_SECRET, then to VISITOR_SALT,
+     so a fresh clone works and a production box that followed docs/CAPTCHA.md already has
+     a private one of these without a new variable to remember. */
+  verify: {
+    secret: str('VERIFY_SECRET', '') || str('CAPTCHA_SECRET', '') || str('VISITOR_SALT', '') || 'boasis-dev-only',
+    codeTtlMin: num('VERIFY_CODE_TTL_MIN', 15),
+    tokenTtlMin: num('VERIFY_TOKEN_TTL_MIN', 5),
+    maxWrong: num('VERIFY_MAX_WRONG', 3),
+    /* 1 = /api/manage refuses a signup whose email never saw a code. It is on by default;
+       it goes off only as an emergency measure, exactly like the captcha's kill switch. */
+    require: bool('VERIFY_REQUIRE_FOR_MANAGE', true),
+  },
+
   /* ── how many proxies sit in front of us ──
      Express trusts X-Forwarded-For only up to this many hops, and it is what makes a
      forged header useless. 1 means "one proxy, and it appends the real client", which is
