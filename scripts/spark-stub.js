@@ -97,16 +97,18 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': MIME['.html'], 'X-Robots-Tag': 'noindex, nofollow' });
     return res.end(BRAIN_PAGE);
   }
-  const from = url.pathname === '/' || url.pathname.startsWith('/spark')
-    ? path.join(ROOT, 'demo/spark', url.pathname === '/' ? 'index.html' : url.pathname)
-    : path.join(ROOT, url.pathname);
-  const file = path.normalize(from);
-  if (!file.startsWith(path.join(ROOT, 'demo')) && !file.startsWith(path.join(ROOT, 'assets'))) { res.writeHead(404); return res.end('not in the bundle'); }
+  /* the real addresses, so a rehearsal is not a different site: /try-mira is served as
+     boasis.ae serves it, with its css, its script and the site's own orb assets */
+  const SERVED = /^\/(?:try-mira(?:\.html)?|css\/.+|js\/.+|assets\/.+)$/.test(url.pathname);
+  if (!SERVED) { res.writeHead(404); return res.end('not part of the demo'); }
+  const want = url.pathname === '/' ? '/try-mira' : url.pathname;
+  const file = path.normalize(path.join(ROOT, want));
+  if (!file.startsWith(ROOT + path.sep)) { res.writeHead(404); return res.end('not part of the demo'); }
   fs.readFile(file, (e, buf) => {
-    if (e) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('missing: ' + path.relative(ROOT, file) + '  ·  run the copy step in docs/SPARK.md'); }
-    /* the shipped page keeps its endpoint empty on purpose; the stub is the one that says
-       "post here", so nothing about running a demo locally ever reaches the bundle */
-    const out = /\.html$/.test(file)
+    if (e) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('missing: ' + path.relative(ROOT, file)); }
+    /* the shipped file keeps its endpoint empty on purpose; the stub is the one that says
+       "post here", so nothing about running a demo locally ever reaches the deploy */
+    const out = /js[\/]try-mira\.js$/.test(file)
       ? Buffer.from(String(buf).replace("endpoint: '',", "endpoint: '/functions/v1/create-pass',"))
       : buf;
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'X-Robots-Tag': 'noindex, nofollow' });
@@ -122,5 +124,5 @@ function readBody(req, done) {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('SPARK demo stub on http://localhost:' + PORT + '  (bucket: ' + DIR + ')');
-  console.log('  the offer page is the real one; the two endpoints are the real rules, in ' + path.relative(ROOT, path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')));
+  console.log('  the page at /try-mira is the real one, served as boasis.ae serves it; the two endpoints are the real rules, in ' + path.relative(ROOT, path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')));
 });

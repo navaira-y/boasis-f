@@ -10,20 +10,33 @@ clicks a developer has to make tonight.
 ## What is in the repo
 
 ```
-demo/spark/index.html                 the offer page, as designed, assets by relative path
-demo/spark/spark.css                  its styles, the site's own tokens
-demo/spark/spark.js                   the form: validation, the pass, the handoff
-demo/spark/yara-orb.js               a byte copy of js/yara-orb.js (test-pinned, do not edit here)
-demo/spark/robots.txt                 Disallow: / for the entrance host
-demo/supabase/functions/create-pass   the function the form posts to
+try-mira.html                         the page, at boasis.ae/try-mira
+css/try-mira.css                        its styles, the site's own tokens
+js/try-mira.js                          the form: validation, the pass, the handoff, and the two
+                                        addresses a developer pastes in at the top
+demo/supabase/functions/create-pass     the function the form posts to
 demo/supabase/functions/save-step     the function the Brain UI posts to after every step
 demo/supabase/functions/_shared/spark-core.js
                                       every rule, pure and testable in Node
 scripts/spark-stub.js                 the same rules on a laptop, no Supabase needed
 ```
 
-Nothing here is served by boasis.ae. `server.js` refuses `/demo` outright, because merging to
-main deploys this repo and an offer page found by accident is the one thing the plan forbids.
+The three demo files sit where the site's own files sit, so there is nothing to assemble and
+nothing to copy: the orb, its video and the logo are the site's `/assets/` and `/js/` files, used
+in place. The `demo/` folder holds only the two functions and the shared rules, and `server.js`
+refuses it outright, because nothing in it is a page.
+
+**What living on boasis.ae costs, said plainly.** Merging to main deploys the page, so the moment
+to open the demo is a merge and the moment to close it is a delete. The page is invisible apart
+from the QR: no link anywhere on the site, no sitemap entry, `noindex` in the header and the
+meta tag, and a `Disallow` line in robots.txt (a test asserts all of it). The header is
+`X-Robots-Tag: noindex, nofollow`, set by `server.js` for this one path, so the Nginx header the
+plan asked for is already done. And because the POST
+goes from the browser to Supabase directly, the plan's per-address Nginx limit cannot sit in
+front of it: what stands between a flood and a hundred duplicate leads is Supabase's own limits,
+plus the rules in the function, which are a honeypot, a too-fast refuse, and one pass per address
+per day. A separate host would have had the Nginx counter as well. Say so if the stand is
+expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
 ## The one file per person
 
@@ -117,54 +130,54 @@ pass is the whole credential: no account, no token, and the pass shape is checke
    URLs off, file size limit 1 MB.
 2. **Functions.** Deploy `demo/supabase/functions` with the CLI. Secrets on both functions:
    `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EMAIL_SALT` (any long random string),
-   `BUCKET=leads`, `ALLOW_ORIGIN=https://spark.boasis.ae`. On `create-pass` also
-   `BRAIN_URL`, the Brain address with the demo route, e.g. `https://brain.boasis.ae/demo`.
+   `BUCKET=leads`, `ALLOW_ORIGIN=https://boasis.ae`. On `create-pass` also `BRAIN_URL`, the Brain
+   address with the demo route, e.g. `https://brain.boasis.ae/demo`.
    The service key lives only in the functions. It is never in the page, and the page never
    needs the anon key either: the browser talks to a function, the function holds the write.
-3. **The page config.** In `demo/spark/index.html`, the `window.SPARK` block:
+   `ALLOW_ORIGIN` has to name the site, because the page and the function are different origins.
+3. **The page config.** At the top of `js/try-mira.js`:
    `endpoint` = the `create-pass` URL, `brainUrl` = the same `BRAIN_URL` you set above. Empty
-   means not connected, and the page then says so out loud rather than pretending.
-4. **The bundle.** The page carries its assets by relative path, so fill them before the copy:
+   means not connected, and the page then says so out loud rather than pretending. This is an
+   external file and not an inline block, because the site's content policy forbids inline script
+   on every page; `server.js` gives `/try-mira` its own copy of that policy with `connect-src`
+   widened to `https://*.supabase.co` and nothing else. Pin it to one project by replacing the
+   wildcard with `https://<project-ref>.supabase.co`.
+4. **Merge, and the page is live.** There is no DNS to wait for and no certificate to issue, which
+   is what the shared domain buys. Check it once on a phone on the venue wifi: open
+   `boasis.ae/try-mira`, submit, and the Brain opens with `?pass=` in the address bar.
+5. **Optional, for a busy stand:** one line in Nginx in front of boasis.ae, and the log to read
+   afterwards.
 
    ```
-   mkdir -p demo/spark/assets/orb demo/spark/assets/logo
-   cp assets/orb/orb.mp4 demo/spark/assets/orb/
-   cp assets/logo/orb-160.png assets/logo/orb-512.png demo/spark/assets/logo/
+   limit_req_zone $binary_remote_addr zone=spark:2m rate=12r/m;
+   location = /try-mira { limit_req zone=spark burst=12 nodelay; try_files $uri =404; access_log /var/log/nginx/spark-demo.log; }
    ```
-
-5. **The VPS.** Put `demo/spark` at the root of the demo entrance (`spark.boasis.ae`, or a path
-   on brain.boasis.ae, whichever is confirmed), and in Nginx:
-
-   ```
-   limit_req_zone $binary_remote_addr zone=spark:2m rate=6r/m;
-   server {
-     add_header X-Robots-Tag "noindex, nofollow" always;    # the page says it too
-     location / { try_files $uri $uri/ =404; }
-     location = /functions/v1/create-pass { limit_req zone=spark burst=6 nodelay; proxy_pass …; }
-     access_log /var/log/nginx/spark-demo.log;
-   }
-   ```
-6. **DNS and SSL** for the entrance, then test on a phone on the venue wifi: submit, and the
-   Brain opens with `?pass=` in the address bar.
-7. **Rehearse without any of it:** `node scripts/spark-stub.js`, open
-   `http://localhost:8090`. Same page, same rules, files in a temp folder, plus a one-step stub
-   Brain so the handoff can be walked through and the JSON seen on disk.
+6. **Rehearse without any of it:** `node scripts/spark-stub.js`, open
+   `http://localhost:8090`. Same page at the same address, same rules, files in a temp folder,
+   plus a one-step stub Brain so the handoff can be walked through and the JSON seen on disk.
 
 ## Closing it
 
-The plan's last line, kept true: remove the server block on the VPS and the entrance is gone.
-No entry in boasis.ae's sitemap, llms.txt or robots.txt points at it, and nothing on the site
-links to it, so there is nothing to unpublish. The lead files stay in the bucket for the owner
-to keep or delete.
+Four files, and it is gone: `try-mira.html`, `css/try-mira.css`, `js/try-mira.js`, and the
+`Disallow: /try-mira` lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap
+entry mentions it, so there is nothing to unpublish and no redirect to leave behind. The Supabase
+functions are on their own host, so deleting the page is enough to stop new passes; the bucket
+stays for the owner to read, keep or empty.
 
-## Open, from the plan's last page
+## Open, and who owes what
 
-- the name of the entrance, `spark.boasis.ae` or a path on brain.boasis.ae. The page works with
-  either; `ALLOW_ORIGIN` and `BRAIN_URL` are the only places the answer is written down.
-- the Supabase project, and the bucket name. Built for a new project and `leads`.
-- pass length 24 hours, built as `MAX_AGE_HOURS = 24` in `spark-core.js`. One line if the event
-  runs longer than that.
-- the optional thank you email: **not built**, because the plan keeps the visitor's path free of
-  email. If it is wanted, it belongs on the `package` step in `save-step`, never on the form.
-- the offer page text and the email text: placeholder from the design file, the content team
-  replaces the words in `index.html` and nothing else changes.
+- **the Brain address.** The client has not given the Mira link yet, so `brainUrl` is empty and
+  the function has no `BRAIN_URL`. Until one of them is filled in, a visitor gets their pass,
+  the page tells them plainly that Mira is not open yet, and nothing is lost: the lead file
+  exists and the pass works the moment the address appears. This is the one thing that must be
+  set before the doors open.
+- **the Supabase project, and the bucket name.** Built for a new project and `leads`.
+- **how long a pass lives.** 24 hours, `MAX_AGE_HOURS = 24` in `spark-core.js`, one line to
+  change. To be confirmed with the client, since it only matters if someone fills the form on
+  day one and opens Mira on day two.
+- **the email after the answers.** Wanted by the owner, and **not built**, because it can only be
+  sent at the end of the journey in the Brain, and there is no Brain link to end yet. It belongs
+  on the `package` step in `save-step`, never on the form, so the visitor's path keeps its one
+  rule: nothing waits, nothing is confirmed by email.
+- **the words on the page.** Placeholder from the design file. The content team replaces them in
+  `try-mira.html` and nothing else changes.

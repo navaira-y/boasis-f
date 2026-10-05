@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /
-
-# The whole entrance is closed to crawlers, not only the page.
-# A QR code is how people find it, and the pass is one use.

@@ -1,9 +1,10 @@
 /* The SPARK demo entrance · task 1 of the plan
  *
- * Two things matter about this folder and nothing else: it must be reachable from the demo
- * host and it must never be reachable from boasis.ae. The first is a contract with the Supabase
- * functions; the second is a property of this repo, because merging to main deploys the site,
- * and an offer page that Google finds by accident is the one thing the plan forbids.
+ * The page lives on boasis.ae itself, at /try-mira, because that was the owner's call: same
+ * domain, own path, nothing to issue a certificate for the night before. Two properties have to
+ * stay true, and both are only checkable against the running server: it is reachable at that
+ * address, and it is invisible to everything else on the site, so being found by Google stays
+ * the accident it must never become.
  */
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -13,7 +14,10 @@ const path = require('path');
 const os = require('os');
 
 const ROOT = path.resolve(__dirname, '..');
-const SPARK = f => fs.readFileSync(path.join(ROOT, 'demo/spark', f), 'utf8');
+const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const HTML = () => read('try-mira.html');
+const JS = () => read('js/try-mira.js');
+const { inspect } = require('../lib/protect');
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-spark-'));
 let proc, base;
 
@@ -35,37 +39,67 @@ after(() => { proc.kill('SIGTERM'); try { fs.rmSync(DATA, { recursive: true, for
 
 const get = p => fetch(base + p);
 
-test('the site never serves the demo entrance, whatever the folder is called', async () => {
-  for (const p of ['/demo/', '/demo/spark/', '/demo/spark/index.html', '/demo/spark/spark.js', '/demo/spark/spark.css']) {
+test('the entrance answers at its own address, with its own headers', async () => {
+  for (const p of ['/try-mira', '/try-mira/', '/try-mira.html']) {
     const r = await get(p);
     const body = await r.text();
-    assert.equal(r.status, 404, p + ' must not be served by boasis.ae, saw ' + r.status);
-    assert.ok(!/id="eventForm"/.test(body), p + ' must not hand out the offer page');
+    assert.equal(r.status, 200, p + ' is where the QR points, saw ' + r.status);
+    assert.match(body, /id="eventForm"/, p + ' hands out the form itself');
+    assert.equal(r.headers.get('x-robots-tag'), 'noindex, nofollow', p + ' is refused to the index in the header too');
+    const csp = r.headers.get('content-security-policy') || '';
+    assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post to the function, and that is the only widening');
+    assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script is still forbidden, so nothing about the demo loosens it');
+  }
+  for (const p of ['/css/try-mira.css', '/js/try-mira.js', '/js/yara-orb.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
+    const r = await get(p);
+    assert.equal(r.status, 200, p + ' has to be reachable or the page loads half dressed');
   }
 });
 
-test('nothing on boasis.ae links to the entrance', async () => {
-  for (const f of ['index.html', 'contact.html', 'early-access.html', 'blog.html', 'privacy.html', 'terms.html', '404.html', 'sitemap.xml', 'llms.txt', 'robots.txt']) {
-    const s = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    assert.ok(!/demo\/spark|spark\.boasis\.ae|href="\/demo/.test(s), f + ' must not point at the demo entrance');
+test('the guard still owns the door: the folder the functions live in is not a page', async () => {
+  for (const p of ['/demo/', '/demo/spark/index.html', '/demo/supabase/functions/create-pass/index.ts', '/demo/supabase/functions/_shared/spark-core.js']) {
+    const r = await get(p);
+    assert.equal(r.status, 404, p + ' must never be served, saw ' + r.status);
+  }
+  const cases = [
+    ['/try-mira', true], ['/try-mira.html', true], ['/css/try-mira.css', true], ['/js/try-mira.js', true],
+    ['/demo/spark/index.html', false], ['/try-mira/../server.js', false], ['/try-mira.json', false],
+  ];
+  for (const [p, ok] of cases) {
+    assert.equal(inspect(p).ok === true, ok, 'the guard reads ' + p + ' as ' + (ok ? 'a page or an asset' : 'nothing'));
   }
 });
 
-test('the entrance page is built to stay out of the index', () => {
-  const html = SPARK('index.html');
-  assert.match(html, /<meta name="robots" content="noindex, nofollow">/, 'the page says it plainly');
-  assert.match(html, /<link rel="stylesheet" href="spark\.css">/, 'and it carries its own css, relative');
-  assert.match(html, /<script src="spark\.js"><\/script>/, 'and its own script, relative');
-  const robots = SPARK('robots.txt');
-  assert.match(robots, /User-agent: \*/);
-  assert.match(robots, /Disallow: \//);
+test('nothing on the site leads a crawler to it, and robots.txt is the one that says so', () => {
+  const site = ['index.html', 'contact.html', 'early-access.html', 'blog.html', 'privacy.html', 'terms.html', '404.html', 'sitemap.xml', 'llms.txt'];
+  for (const f of site) {
+    assert.ok(!/try-mira/.test(read(f)), f + ' must not link the demo entrance');
+  }
+  const robots = read('robots.txt');
+  assert.ok((robots.match(/Disallow: \/try-mira/g) || []).length >= 5, 'every block that is allowed in must be told the one path to leave out');
+  assert.ok(!/Sitemap:[^\n]*try-mira/.test(robots), 'and it is in no sitemap');
+});
+
+test('the page is built the way this site is built', () => {
+  const html = HTML();
+  assert.match(html, /<meta name="robots" content="noindex, nofollow">/, 'the page says it plainly to anything that reads the file');
+  assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'no inline script, because the policy of this site forbids it');
+  assert.match(html, /<link rel="stylesheet" href="\/css\/try-mira\.css">/, 'its css sits with the rest of the site css');
+  assert.match(html, /<script src="\/js\/try-mira\.js"><\/script>/, 'and its script with the rest of the site js');
+  assert.match(html, /<script src="\/js\/yara-orb\.js"><\/script>/, 'the orb is the site orb, not a copy that can drift');
+  for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
+    assert.ok(fs.existsSync(path.join(ROOT, m[1])), 'and ' + m[1] + ' is a file the site really has');
+  }
+  assert.ok(!/demo\/spark|\.\.\//.test(html), 'no bundle to assemble and no path that walks out of it');
 });
 
 test('the form asks only what the plan says it may ask', () => {
-  const html = SPARK('index.html');
+  const html = HTML();
   for (const n of ['full_name', 'email', 'phone', 'country_code', 'residence', 'consent', 'hp']) {
     assert.match(html, new RegExp('name="' + n + '"'), 'the form carries ' + n);
   }
+  assert.match(html, /<label for="full_name">Full name<\/label>/, 'one name field, as the owner asked');
+  assert.ok(!/name="(first|last)_name"/.test(html), 'and not two');
   /* the plan is explicit that the application part is not shown, so the fields that would
      start it must not be here in any form, hidden or otherwise */
   for (const bad of ['passport', 'emirates_id', 'kyc', 'video', 'upload', 'file"']) {
@@ -75,28 +109,13 @@ test('the form asks only what the plan says it may ask', () => {
   assert.match(html, /<p class="err" data-note><\/p>/, 'and one place for a sentence the fields cannot carry');
 });
 
-test('the config a person has to set is empty on purpose, and says so', () => {
-  const html = SPARK('index.html');
-  const cfg = /window\.SPARK = \{([\s\S]*?)\};/.exec(html);
-  assert.ok(cfg, 'the page declares its config in one block');
+test('the two addresses a person has to paste are empty on purpose', () => {
+  const cfg = /var CFG = window\.SPARK = \{([\s\S]*?)\};/.exec(JS());
+  assert.ok(cfg, 'the script declares its config in one block, at the top');
   assert.match(cfg[1], /endpoint: ''/, 'the Supabase function url is left blank, not guessed');
-  assert.match(cfg[1], /brainUrl: ''/, 'and so is the Brain address');
+  assert.match(cfg[1], /brainUrl: ''/, 'and so is the Brain address, which the client still owes');
   assert.match(cfg[1], /source: 'ai-everything-2026'/, 'while the source is fixed, because that is what the reports are cut by');
-});
-
-test('the orb is the site orb, copied and not forked', () => {
-  const a = fs.readFileSync(path.join(ROOT, 'js/yara-orb.js'), 'utf8');
-  const b = SPARK('yara-orb.js');
-  assert.equal(b, a, 'the copy in demo/spark must be byte for byte the site file, or the two drift');
-});
-
-test('the page reaches for bundle paths that the copy step can actually fill', () => {
-  const html = SPARK('index.html');
-  const paths = [...html.matchAll(/(?:src|href)="(assets\/[^"]+)"/g)].map(m => m[1]);
-  assert.ok(paths.length >= 3, 'the brand mark, the fallback and the video, saw ' + paths.length);
-  for (const p of new Set(paths)) {
-    assert.ok(fs.existsSync(path.join(ROOT, p)), 'the site has to carry ' + p + ' for the bundle copy to work');
-  }
+  assert.ok(!/https?:\/\/(?!fonts)/.test(cfg[1]), 'and neither one is filled in by a developer guessing later');
 });
 
 test('the rules the whole demo stands on, in one module', async () => {
@@ -105,6 +124,8 @@ test('the rules the whole demo stands on, in one module', async () => {
 
   const good = c.readForm(ok);
   assert.equal(good.ok, true, 'a normal person passes');
+  assert.equal(good.contact.full_name, 'Lena Bisht', 'one name, kept as one string');
+  assert.equal(c.readForm({ ...ok, full_name: '  Ravi   Menon ' }).contact.full_name, 'Ravi Menon', 'stray spaces tidied, no other change');
   assert.equal(good.contact.email, 'lena@corp.com', 'and the address is written the way it will be searched');
   assert.equal(good.contact.phone, '+971 551112222', 'the local trunk zero is dropped, as on the site forms');
   assert.equal(c.readForm({ ...ok, country_code: '+1' }).contact.phone, '+1 0551112222', 'except where the zero belongs to the number');
@@ -137,7 +158,7 @@ test('the rules the whole demo stands on, in one module', async () => {
 test('the lead file grows and never shrinks', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const now = Date.UTC(2026, 9, 5, 8);
-  let lead = c.buildLead({ pass: 'PASSABCDEFGH', contact: { full_name: 'L B', email: 'l@corp.com', phone: '+971 5', consent: true }, now });
+  let lead = c.buildLead({ pass: 'PASSABCDEFGH', contact: { full_name: 'Lena Bisht', email: 'l@corp.com', phone: '+971 5', consent: true }, now });
   assert.equal(lead.brain.steps_reached.length, 0, 'it starts empty');
   assert.equal(lead.version, 1);
   assert.match(lead.expires_at, /^2026-10-06/, 'and it is good for a day, at midnight plus the hours');
@@ -167,9 +188,11 @@ test('the lead file grows and never shrinks', async () => {
 });
 
 test('the handover says what to click, and the contract is in it', () => {
-  const doc = fs.readFileSync(path.join(ROOT, 'docs/SPARK.md'), 'utf8');
-  for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'limit_req', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY', 'X-Robots-Tag']) {
+  const doc = read('docs/SPARK.md');
+  for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY',
+    'X-Robots-Tag', 'connect-src', 'full_name', 'try-mira.html', 'js/try-mira.js']) {
     assert.ok(doc.includes(need), 'docs/SPARK.md must name ' + need);
   }
   assert.ok(!/service_role[^]{0,120}browser|page[^]{0,40}service_role/.test(doc), 'the doc must never put the service key in the page');
+  assert.ok(!/spark\.boasis\.ae/.test(doc), 'and it no longer sends anyone to a host that was never bought');
 });

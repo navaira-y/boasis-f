@@ -5,18 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mira · SPARK · AI Everything</title>
 <meta name="description" content="Try Mira, the AI trained on SPARK data. A few details, then you talk to her.">
-<!-- This page is the demo entrance, not part of boasis.ae. It must never be indexed and
-     never be linked from the site: search engines and people both find it by the QR code
-     at the stand alone. -->
+<!-- This page is the SPARK demo entrance. It is a page of this site, but it is on no menu,
+     in no sitemap and in no link anywhere: the QR code at the stand is how a person arrives.
+     It stays out of the index by this tag, by the Disallow line in robots.txt, and by the
+     X-Robots-Tag the server puts on it, because being found by Google is the one thing the
+     plan does not want. After the event the answer is to delete this file. -->
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="spark.css">
+<link rel="stylesheet" href="/css/try-mira.css">
 </head>
 <header class="hero">
   <div class="nav">
-    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="assets/logo/orb-160.png" alt="O">ASIS</a>
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
 
   </div>
   <div class="hero-in">
@@ -25,7 +27,7 @@
       <p class="sub">The AI trained on SPARK data. Describe your business, and she guides you all the way to your licence application.</p>
       <div class="facts"><span>100% ownership</span><span>Activities, package, estimate</span><span>In a few minutes</span></div>
     </div>
-    <div class="orbwrap"><img class="fallback" src="assets/logo/orb-512.png" alt=""><div id="orb"></div><div class="mira"><div><b>Mira</b><span>by Boasis</span></div></div></div>
+    <div class="orbwrap"><img class="fallback" src="/assets/logo/orb-512.png" alt=""><div id="orb"></div><div class="mira"><div><b>Mira</b><span>by Boasis</span></div></div></div>
   </div>
 </header>
 
@@ -85,22 +87,9 @@
   </aside>
 </main>
 
-<footer><a class="brand" href="https://boasis.ae/">B<img src="assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
+<footer><a class="brand" href="https://boasis.ae/">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
 
-<script src="yara-orb.js"></script>
-<script>
-/* ── what a person has to set before the doors open ─────────────────────────
-   endpoint  the Supabase edge function that mints a pass and starts the lead file
-   brainUrl  where the Brain UI lives. Only used if the function does not answer with
-             a url of its own, which is the usual case once task 3 is deployed.
-   Both are deliberately empty here. An empty endpoint is refused out loud on the page,
-   so a half-wired demo cannot look like a working one. */
-window.SPARK = {
-  endpoint: '',
-  brainUrl: '',
-  source: 'ai-everything-2026',
-};
-</script>
-<script src="spark.js"></script>
+<script src="/js/yara-orb.js"></script>
+<script src="/js/try-mira.js"></script>
 </body>
 </html>

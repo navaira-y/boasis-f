@@ -1,4 +1,4 @@
-/* SPARK demo · the offer page
+/* SPARK demo · the entrance page at boasis.ae/try-mira
  *
  * One job: turn four fields into a pass, then send the person to the Brain with it.
  * Nothing here saves the journey. The pass is created by the Supabase function named in
@@ -13,9 +13,21 @@
 (function () {
   'use strict';
 
-  /* The one configuration, written in index.html. An empty endpoint is a page that is not
-     connected, and it says so when pressed rather than posting to something guessed. */
-  var CFG = window.SPARK || {};
+  /* ── the two addresses, written here and nowhere else ───────────────────────
+     endpoint  the Supabase function that mints the pass and starts the lead file
+     brainUrl  where the Brain lives. The client still owes this link; until it is pasted,
+               a pass is handed out and the page says Mira is not open yet, rather than
+               sending a person to a blank address.
+     They live in this file and not in an inline script, because every page on this site is
+     served under a policy that forbids inline script, and the demo should not be the reason
+     to loosen it for the others. server.js gives /try-mira its own copy of that header with
+     the function host added to it. An empty endpoint is a page that is not connected, and it
+     says so out loud when pressed rather than posting at something guessed. */
+  var CFG = window.SPARK = {
+    endpoint: '',
+    brainUrl: '',
+    source: 'ai-everything-2026'
+  };
   var form = document.getElementById('eventForm');
   var btn = form && form.querySelector('.cta');
   var note = form && form.querySelector('[data-note]');
@@ -32,7 +44,7 @@
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
     try {
-      window.YaraOrb.create({ host: host, size: 340, src: 'assets/orb/orb.mp4', color: [90, 170, 255] });
+      window.YaraOrb.create({ host: host, size: 340, src: '/assets/orb/orb.mp4', color: [90, 170, 255] });
       if (wrap) wrap.classList.add('live');
     } catch (e) { /* the fallback image is already on screen */ }
   })();

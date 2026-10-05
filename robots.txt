@@ -13,16 +13,21 @@
 # operator named below honours it. For the legal layer, see /terms.html.
 
 # ── search engines ──────────────────────────────────────────────────────────
+# /try-mira appears in every block below and is refused in all of them. It is the two day
+# demo entrance: printed on a QR at a stand, linked from nothing on this site, and the page
+# itself carries noindex. A crawler that finds it by accident has no reason to keep it.
 # Googlebot and Bingbot are allowed because both now answer questions on their own
 # results pages, and those answers cite the sites they read. Blocking them would remove
 # BOASIS from AI Overviews and Copilot while changing nothing about training.
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 # ── the answer engines: allowed, because being cited is the point ───────────
 # OpenAI splits the two: OAI-SearchBot builds the index ChatGPT cites, GPTBot collects
@@ -32,6 +37,7 @@ User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 # Anthropic's three: Claude-SearchBot indexes for citations, Claude-User fetches on a
 # person's request, ClaudeBot crawls for training. The first two are welcome.
@@ -39,12 +45,14 @@ User-agent: Claude-SearchBot
 User-agent: Claude-User
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 # Perplexity answers with links to what it read: that is exactly the deal BOASIS wants.
 User-agent: PerplexityBot
 User-agent: Perplexity-User
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 # ── the training crawlers: refused by name ──────────────────────────────────
 User-agent: GPTBot
@@ -89,5 +97,6 @@ Disallow: /
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /try-mira
 
 Sitemap: https://boasis.ae/sitemap.xml

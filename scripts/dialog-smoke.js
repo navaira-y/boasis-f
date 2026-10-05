@@ -528,17 +528,17 @@ const challenge = () => {
   }
 
   /* ── the SPARK demo entrance: the form, the pass, and the handoff ──────────── */
-  console.log('spark demo: the offer page, on its own host, against a stubbed function');
+  console.log('spark demo: the entrance page on boasis.ae, against a stubbed function');
   {
-    const dir = spath.resolve(__dirname, '..', 'demo/spark');
-    const page = fs.readFileSync(spath.join(dir, 'index.html'), 'utf8')
-      .replace('<link rel="stylesheet" href="spark.css">', '<style>' + fs.readFileSync(spath.join(dir, 'spark.css'), 'utf8') + '</style>')
-      .replace('<script src="spark.js"></script>', '<script>' + fs.readFileSync(spath.join(dir, 'spark.js'), 'utf8') + '</script>');
+    const R = spath.resolve(__dirname, '..');
+    const page = fs.readFileSync(spath.join(R, 'try-mira.html'), 'utf8')
+      .replace('<link rel="stylesheet" href="/css/try-mira.css">', '<style>' + fs.readFileSync(spath.join(R, 'css/try-mira.css'), 'utf8') + '</style>')
+      .replace('<script src="/js/try-mira.js"></script>', '<script>' + fs.readFileSync(spath.join(R, 'js/try-mira.js'), 'utf8') + '</script>');
     const SPARK_URL = 'https://supabase.test/functions/v1/create-pass';
     const spark = async (send, opts) => {
       const o = opts || {};
       const dom = new JSDOM(page, {
-        runScripts: 'dangerously', url: 'https://spark.boasis.ae/', pretendToBeVisual: true,
+        runScripts: 'dangerously', url: 'https://boasis.ae/try-mira', pretendToBeVisual: true,
         beforeParse: w => {
           ambient(w);
           /* the pass a returning visitor was already given, seeded before the page's own

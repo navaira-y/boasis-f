@@ -344,10 +344,30 @@ app.use((req, res, next) => {
   next();
 });
 
-/* The SPARK demo entrance is built in demo/ and deployed to its own host, never here.
-   Merging to main deploys this repo, so the folder is closed off by name: an offer page
-   sitting at boasis.ae/demo/spark would be found by Google, and staying out of the index is
-   the one thing the demo plan is strict about. */
+/* The SPARK demo entrance: one page of this site, at /try-mira, reached from the QR code at
+   the stand and from no link anywhere. After the event, closing it is deleting
+   try-mira.html, css/try-mira.css, js/try-mira.js and the Disallow line in robots.txt.
+
+   It is answered with its own content policy rather than the site's, because the site's
+   forbids exactly the one thing this page has to do: a POST to the Supabase function that
+   mints the pass. Loosening every page for a two day demo is the wrong way round, so the
+   widening is confined to this address, to connect-src, and to Supabase's own host. Pin it to
+   one project by replacing the wildcard with https://<project-ref>.supabase.co.
+
+   The demo/ folder itself stays closed to the browser: it is where the two functions are
+   written, and nothing in it is a page. */
+const DEMO_PAGE = /^\/try-mira(?:\.html)?\/?$/;   // the printed address, its file name, and a trailing slash
+app.use((req, res, next) => {
+  if (!DEMO_PAGE.test(req.path)) return next();
+  if (req.path === '/try-mira/') return res.redirect(301, '/try-mira');   // a typed slash is the same page
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
+    + " font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self';"
+    + " connect-src 'self' https://*.supabase.co;"
+    + " frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');   // said twice: in the header, and in the page's own meta tag
+  next();
+});
 app.use('/demo', (req, res) => res.status(404).sendFile(path.join(SITE, '404.html')));
 
 app.use(express.static(SITE, { extensions: ['html'], dotfiles: 'deny', index: 'index.html' }));
