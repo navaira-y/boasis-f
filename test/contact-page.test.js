@@ -128,6 +128,31 @@ test('the demo dialog is on the home page, and the early-access form is a page o
   assert.equal((early.match(/<\/main>/g) || []).length, 1, 'and it closes once');
   assert.equal((early.match(/data-back>Back/g) || []).length, 4, 'four steps carry a way back, and the code step asks its own question instead');
   assert.match(early, /class="ea-verified" data-verified hidden>/, 'the verified address gets a line under the field');
+  {
+    /* every element this page hides with the hidden attribute, if it is also given a display
+       by class name, needs its own [hidden] rule: the browser puts the author rule first, so
+       the attribute alone does not hide it. This is the check that catches "Verified as,"
+       sitting on a form where nothing has been verified yet, and it catches the next one. */
+    const css = fs.readFileSync(path.join(ROOT, 'css/early-access.css'), 'utf8');
+    const js = fs.readFileSync(path.join(ROOT, 'js/early-access.js'), 'utf8');
+    const shownBy = new Map();
+    for (const m of css.matchAll(/([^{}\n]+)\{([^{}]*)\}/g)) {
+      const sel = m[1], body = m[2];
+      const d = (body.match(/display:\s*([a-z-]+)/) || [])[1];
+      if (!d) continue;
+      for (const cls of sel.match(/\.[A-Za-z0-9_-]+/g) || []) {
+        const name = cls.slice(1);
+        if (sel.includes('[hidden]')) shownBy.set(name, 'guarded');
+        else if (shownBy.get(name) !== 'guarded' && d !== 'none') shownBy.set(name, d);
+      }
+    }
+    /* which classes this page puts away: the elements are found by selector, so a class is
+       counted as toggled when the script hides something it reaches by that name */
+    const reached = [...js.matchAll(/querySelector\(\S{0,40}?[.#]([a-z][a-z0-9-]*)[^\n]{0,120}?\.hidden\s*=|\.hidden\s*=[\s\S]{0,60}?closest\('\.([a-z][a-z0-9-]*)'\)/g)].map(m => m[1] || m[2]);
+    const toggled = new Set([...reached, 'ea-verified', 'ea-sum', 'ea-go', 'ea-code-sent', 'ea-step']);
+    const loose = [...shownBy].filter(([name, v]) => v !== 'guarded' && toggled.has(name) && name !== 'ea-step');
+    assert.deepEqual(loose, [], 'no element this page hides by attribute is left open by a display rule: ' + loose.map(x => x[0]).join(', '));
+  }
   assert.match(early, /so it cannot be changed\.<\/p>/, 'the line says the fact and stops, without naming where');
   assert.ok(!/data-unlock/.test(early), 'and it is not a menu: no link under a verified address');
   assert.match(early, /<input type="hidden" name="emailv"/, 'and carries its proof to the endpoint');

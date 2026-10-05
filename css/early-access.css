@@ -51,6 +51,11 @@
 .ea-form{display:grid;gap:16px;margin:clamp(20px,2.2vw,28px) 0 0;text-align:left}
 .ea-step{display:grid;gap:12px}
 .ea-step[hidden]{display:none}
+/* the trap site.css spells out: a rule that sets display by class name outranks the
+   [hidden] attribute in every browser, so anything this page hides by setting that
+   attribute has to be closed off by name as well. Without these three, the verified line
+   and the answered-step line sit there empty, visible before they have anything to say. */
+.ea-verified[hidden],.ea-sum[hidden],.ea-go[hidden]{display:none}
 .ea-q{margin:0;font-family:var(--font-display);font-weight:500;font-size:clamp(19px,1.7vw,23px);line-height:1.2;color:#fff;letter-spacing:-.01em}
 .ea-step.is-done .ea-q,.ea-step.is-done .ea-go,.ea-step.is-done .mf-field,.ea-step.is-done .captcha,.ea-step.is-done .form-noscript,.ea-step.is-done .ea-code-to,.ea-step.is-done .ea-code-sent{display:none}
 .ea-step.is-done .mf-pill{display:none}
