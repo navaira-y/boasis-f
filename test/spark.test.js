@@ -118,6 +118,50 @@ test('the two addresses a person has to paste are empty on purpose', () => {
   assert.ok(!/https?:\/\/(?!fonts)/.test(cfg[1]), 'and neither one is filled in by a developer guessing later');
 });
 
+test('the local rehearsal serves what the site serves, at the same address', async () => {
+  /* this is the command the owner runs tonight, so it is tested rather than trusted */
+  const stub = spawn(process.execPath, [path.join(ROOT, 'scripts/spark-stub.js')], {
+    cwd: ROOT, env: { ...process.env, PORT: '0', SPARK_BUCKET_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-stub-')) },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let log = '';
+  try {
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('stub did not start: ' + log)), 12000);
+      stub.stdout.on('data', d => { log += d; if (/localhost:(\d+)/.test(log)) { clearTimeout(t); res(); } });
+      stub.on('exit', c => rej(new Error('stub exited ' + c + ': ' + log)));
+    });
+    const at = p => fetch('http://127.0.0.1:' + /localhost:(\d+)/.exec(log)[1] + p).then(async r => ({ s: r.status, b: await r.text() }));
+    const printed = await at('/try-mira');
+    const bare = await at('/');
+    assert.equal(printed.s, 200, 'the printed address answers, saw ' + log);
+    assert.equal(bare.s, 200, 'and so does the root of the stub');
+    assert.match(printed.b, /id="eventForm"/);
+    for (const p of ['/css/try-mira.css', '/js/try-mira.js', '/js/yara-orb.js', '/assets/logo/orb-512.png']) {
+      assert.equal((await at(p)).s, 200, p + ' has to be there for the page to look like the page');
+    }
+    /* the stub is the one that fills the endpoint in, so the rehearsal posts at itself */
+    assert.match((await at('/js/try-mira.js')).b, /endpoint: '\/functions\/v1\/create-pass'/, 'the rehearsal is wired, the shipped file is not');
+
+    const sent = await fetch('http://127.0.0.1:' + /localhost:(\d+)/.exec(log)[1] + '/functions/v1/create-pass', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ full_name: 'Lena Bisht', email: 'lena+' + Date.now() + '@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 }),
+    }).then(r => r.json());
+    assert.match(sent.pass, /^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/, 'a form filled through the stub earns a real pass');
+    const saved = await fetch('http://127.0.0.1:' + /localhost:(\d+)/.exec(log)[1] + '/functions/v1/save-step', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pass: sent.pass, step: 'package', data: { price_aed: 15750, confirmed: true } }),
+    }).then(r => r.json());
+    assert.equal(saved.ok, true, 'and the step lands in the same file');
+    const lead = JSON.parse((await at('/file?pass=' + sent.pass)).b);
+    assert.equal(lead.contact.full_name, 'Lena Bisht', 'the name the form asked for, as one string');
+    assert.equal(lead.brain.package.price_aed, 15750, 'the estimate from the Brain, in the same object');
+    assert.equal(lead.version, 2, 'two writes, counted');
+  } finally {
+    stub.kill('SIGTERM');
+  }
+});
+
 test('the rules the whole demo stands on, in one module', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };

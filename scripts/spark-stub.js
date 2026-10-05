@@ -99,10 +99,12 @@ const server = http.createServer(async (req, res) => {
   }
   /* the real addresses, so a rehearsal is not a different site: /try-mira is served as
      boasis.ae serves it, with its css, its script and the site's own orb assets */
-  const SERVED = /^\/(?:try-mira(?:\.html)?|css\/.+|js\/.+|assets\/.+)$/.test(url.pathname);
+  const p0 = url.pathname.replace(/\/+$/, '') || '/';
+  const SERVED = p0 === '/' || /^\/(?:try-mira(?:\.html)?|css\/.+|js\/.+|assets\/.+)$/.test(p0);
   if (!SERVED) { res.writeHead(404); return res.end('not part of the demo'); }
-  const want = url.pathname === '/' ? '/try-mira' : url.pathname;
-  const file = path.normalize(path.join(ROOT, want));
+  const want = p0 === '/' ? '/try-mira' : p0;
+  /* boasis.ae answers /try-mira from try-mira.html, so the rehearsal resolves the same way */
+  const file = path.normalize(path.join(ROOT, path.extname(want) ? want : want + '.html'));
   if (!file.startsWith(ROOT + path.sep)) { res.writeHead(404); return res.end('not part of the demo'); }
   fs.readFile(file, (e, buf) => {
     if (e) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('missing: ' + path.relative(ROOT, file)); }
@@ -123,6 +125,7 @@ function readBody(req, done) {
 }
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('SPARK demo stub on http://localhost:' + PORT + '  (bucket: ' + DIR + ')');
+  // the real bound port, so PORT=0 works and a busy 8090 is not a dead end
+  console.log('SPARK demo stub on http://localhost:' + server.address().port + '  (bucket: ' + DIR + ')');
   console.log('  the page at /try-mira is the real one, served as boasis.ae serves it; the two endpoints are the real rules, in ' + path.relative(ROOT, path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')));
 });
