@@ -41,3 +41,9 @@ create index if not exists spark_leads_updated_at_idx  on public.spark_leads (up
 -- That is why there is no `create policy` line below, and why adding one is the wrong fix when a
 -- query in the dashboard comes back empty: use the service key, or read the table in the editor.
 alter table public.spark_leads enable row level security;
+
+-- and take the table away from those two roles altogether. Row level security already gives them
+-- nothing, so this is the same lock with one fewer place to trust: it names the two browser roles,
+-- never service_role, which is what the three functions connect with.
+revoke all on table public.spark_leads from anon, authenticated;
+grant select, insert, update on table public.spark_leads to service_role;

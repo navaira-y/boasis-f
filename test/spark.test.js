@@ -610,7 +610,10 @@ test('the three Supabase doors, the one table, and the generator all agree', () 
   assert.match(sql, /alter table public\.[a-z_]+ enable row level security;/, 'row level security is turned on');
   const live = sql.split('\n').filter(l => !/^\s*--/.test(l)).join('\n');   // the file explains the choice, so read past the prose
   assert.ok(!/create\s+policy/i.test(live), 'and no policy is created, so anon and authenticated get zero rows');
-  assert.ok(!/service_role/.test(sql), 'the SQL never mentions the service key, because it never needs it');
+  assert.ok(!/eyJ[A-Za-z0-9_-]{20,}/.test(sql), 'no key is ever pasted into the SQL, only a role name is used');
+  assert.ok(!/supabase\.co/.test(sql), 'and no project host either, so the one file is pasteable into any project');
+  assert.match(sql, /revoke all on table public\.[a-z_]+ from anon, authenticated;/, 'the two browser roles are named and given nothing, grants as well as rows');
+  assert.match(sql, /grant select, insert, update on table public\.[a-z_]+ to service_role;/, 'and the write is given to the one role the functions connect with, by name');
 });
 
 test('the handover says what to click, and the contract is in it', () => {

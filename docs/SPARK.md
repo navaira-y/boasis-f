@@ -426,11 +426,18 @@ about a person is split over two places.
    ```
 
 **Why a browser key cannot read that table.** Supabase grants `anon` and `authenticated` on new
-tables in `public/`, so the SQL also runs `enable row level security` and then stops. No policy, so
-those two roles read zero rows and write nothing, and only the functions, holding the service key,
-can move a row. There is deliberately no `create policy` line in that file, and if a query typed in
-the dashboard comes back empty the fix is the editor or the service key, never a policy that opens
-the table to the web.
+tables in `public/`, so the SQL does three things about it: `enable row level security`, which with
+no policy means those roles see zero rows; `revoke all ... from anon, authenticated`, so they do not
+even hold the permission; and `grant select, insert, update ... to service_role`, which is the role
+the three functions connect with. Two locks instead of one, because a table of names and phone
+numbers is not the place to trust a default. There is deliberately no `create policy` line in the
+file, and if a query typed in the dashboard comes back empty the fix is the editor or the service
+key, never a policy that opens the table to the web.
+
+The box on that screen worth ticking is **Enable automatic RLS**, and the one worth unticking is
+**Automatically expose new tables**: with it off, a table is reachable by a browser key only if
+someone grants it later, and this SQL grants what it needs by name. If you leave it on, nothing is
+wrong either, since the revoke line and the empty policy set do the work anyway.
 
 For two days at a stand the folder on the web server is still the honest answer: wired, tested,
 and it needs nothing from anyone on the night. Supabase buys the grid, the sorting, the CSV and a
