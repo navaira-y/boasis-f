@@ -50,6 +50,16 @@
     } catch (e) { /* the fallback image is already on screen */ }
   })();
 
+  /* ── the country code: the site's own picker, the site's own list ────────────
+     js/countries.js is the one file the home page dialogs, /early-access and /contact all
+     call, and it carries the sixty codes, the search and the keyboard. Nothing is copied into
+     this script: the markup is the site's markup, and the hidden input named country_code is
+     what the form posts, exactly as it did with a select. */
+  (function picker() {
+    var cc = document.querySelector('[data-cc]');
+    if (cc && window.BoasisCountryPicker) window.BoasisCountryPicker.init(cc);
+  })();
+
   function say(k, msg) {
     var p = form.querySelector('[data-err="' + k + '"]');
     if (p) p.textContent = msg || '';

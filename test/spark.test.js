@@ -50,7 +50,7 @@ test('the entrance answers at its own address, with its own headers', async () =
     assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post to the function, and that is the only widening');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script is still forbidden, so nothing about the demo loosens it');
   }
-  for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
+  for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/js/countries.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
     const r = await get(p);
     assert.equal(r.status, 200, p + ' has to be reachable or the page loads half dressed');
   }
@@ -106,19 +106,25 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.match(rule('.top'), /position:sticky/, 'it stays at the top as you scroll, the way the site bar does');
 
   /* one background for the whole page: the sky, fixed, the three lights of the home page */
-  assert.match(html, /<div class="sky" aria-hidden="true"><i><\/i><i><\/i><i><\/i><\/div>/, 'the same three lights the home page drifts behind its sections');
+  assert.match(html, /<div class="sky" aria-hidden="true"><i><\/i><i><\/i><i><\/i><i><\/i><\/div>/, 'the three lights the home page drifts, plus the wash behind /early-access');
   assert.match(rule('.sky'), /position:fixed[\s\S]*z-index:-1[\s\S]*pointer-events:none/, 'behind everything, and it never takes a click');
   const site = read('css/site.css');
   const skyRules = (site.match(/^\.sky i:nth-child\(\d\)\{.*$/gm) || []);
   assert.equal(skyRules.length, 3, 'the home page drifts three lights, so the sky rule is read three times');
+  const ea = read('css/early-access.css');
+  const wash = /\.ea-page::before\{[^}]*background:radial-gradient\(([^;]*)\);/.exec(ea);
+  assert.ok(wash, 'the registration page mixes two colours behind its panel, and that rule is read here, not remembered');
+  assert.ok(tight(css).includes(tight('radial-gradient(' + wash[1] + ')')), 'the fourth light is that same mix of navy into teal');
   for (const line of skyRules) {
     const glow2 = /radial-gradient\((.*?)\)(?=[;}])/.exec(line);
     const want = glow2[0];
     assert.ok(tight(css).includes(tight(want)), 'and the light is copied, not invented: ' + want);
   }
+  assert.ok(!/^html[ ,]/m.test(css) && !/html\{[^}]*background/.test(css), 'nothing is painted behind the sky: a background on html too would stop the body\'s from reaching the canvas, and the page would read flat black');
+  assert.match(rule('body'), /background:var\(--bg\)/, 'the night is the body\'s own, the way the site writes it');
   assert.ok(!/background/.test(rule('.hero')), 'the hero paints no plate of its own');
   assert.ok(!/background/.test(rule('.main')), 'nor does the section the form stands in: one page, one background');
-  for (const m of css.match(/\.hero-in\{[^}]*\}|\.main\{[^}]*\}/g) || []) {
+  for (const m of css.match(/\.hero-in\{[^}]*\}|\.main\{[^}]*\}/g) || []) {  /* same check, both section wrappers */
     assert.ok(!/background/.test(m), 'and that holds for ' + m.slice(0, m.indexOf('{')));
   }
 
@@ -136,8 +142,13 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.ok(!/margin:-\d/.test(rule('.orbwrap') + rule('.main') + rule('.orbwrap')), 'and nothing is pulled up or down out of its section any more');
   assert.match(rule('.hero-in'), /align-items:center/, 'the two halves of the hero meet in the middle');
 
-  /* the box that breathes: one line of light, round the frame, forever, and its glow lifts the
-     text where it passes. Pure CSS, no scroll, no script, and still on a machine that asks for less movement */
+  /* the scan sits on the How it works box, not on the form: a line of light round the frame,
+     forever, its glow lifting the four points as it crosses them. Pure CSS, no scroll, no script,
+     and it still behaves on a machine that asks for less movement */
+  assert.match(html, /<div class="card beam" data-scan>\s*<div class="beam-in">\s*<div class="eyebrow">How it works<\/div>/, 'the light belongs to the How it works panel');
+  assert.ok(!/class="[^"]*beam[^"]*" id="start"/.test(html), 'and the form is a plain panel: nothing runs round the box a person types into');
+  const plate = /\.beam > \.beam-in\{[^}]*\}/.exec(css)[0];
+  assert.match(plate, /rgba\(11,13,18,\.[45]/, 'the plate over the words stays thin, so the light reads through it rather than being painted out');
   assert.match(rule('.beam'), /padding:1px; overflow:hidden/, 'the frame is one pixel wide, so the line is a line');
   for (const pseudo of ['.beam::before', '.beam::after']) {
     assert.match(css, new RegExp(pseudo.replace(/[.:*]/g, '\\$&') + '[^}]*animation:sweep 7s linear infinite'), pseudo + ' is on the same clock as the other');
@@ -149,7 +160,12 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.ok(rm && /\.beam::before,\.beam::after\{animation:none\}/.test(rm[1]), 'asked for less movement the light stands still instead of stopping dark');
 
   /* the fields, still the design own, and still only what the plan may ask */
-  assert.match(css, /select\{appearance:none;[\s\S]{0,40}background-image:url\("data:image\/svg\+xml/, 'the design own arrow on the select, kept');
+  assert.ok(!/<select/.test(html), 'the native country select is gone from this page, as it is from the other three');
+  for (const sel of ['.sr', '.mf-pill', '.mf-pill input', '.mf-phone', '.mf-phone .mf-code', '.cc-btn', '.cc-pop', '.cc-find', '.cc-list', '.cc-list li', '.cc-none']) {
+    const line = site.split('\n').find(l => l.startsWith(sel + '{'));
+    assert.ok(line, 'css/site.css has a ' + sel + ' rule to copy');
+    assert.ok(tight(css).includes(tight(line)), 'and this page carries it as written there, not retuned: ' + sel);
+  }
   assert.match(css, /input:-webkit-autofill[^}]*-webkit-box-shadow:0 0 0 1000px/, 'and the night stays the night when the browser remembers a name for you');
 
   /* what the page is allowed to carry, unchanged by any of the above */
@@ -157,7 +173,8 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.ok(!/<img[^>]*src="data:/.test(html), 'no picture carried as text');
   assert.ok(!/orbvid/.test(html), 'and the video is streamed from /assets rather than carried as text in the page');
   assert.ok(!/data-endpoint/.test(html), 'no address in the markup for the form to post at: it is in the script, where it can be read');
-  assert.equal((html.match(/<script src="\/js\//g) || []).length, 2, 'two external scripts, because a policy of this site forbids inline script on every page');
+  assert.equal((html.match(/<script src="\/js\//g) || []).length, 3, 'three external scripts and no inline one, because a policy of this site forbids inline script on every page');
+  assert.ok(html.indexOf('/js/countries.js') < html.indexOf('/js/try-mira.js'), 'the shared picker loads before the page script that calls it');
   assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script: the light above is css, so it needs none');
   assert.match(html, /<p class="err" data-note><\/p>/, 'one empty line for a sentence the fields cannot carry, hidden while empty');
   assert.match(html, /<link rel="icon" href="\/assets\/icons\/favicon\.ico" sizes="any">\s*<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/icons\/favicon-32\.png">\s*<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/, 'the site own three icons in the head, so the tab is not blank');
@@ -212,7 +229,7 @@ test('the local rehearsal serves what the site serves, at the same address', asy
     assert.equal(printed.s, 200, 'the printed address answers, saw ' + log);
     assert.equal(bare.s, 200, 'and so does the root of the stub');
     assert.match(printed.b, /id="eventForm"/);
-    for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/assets/logo/orb-512.png']) {
+    for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/js/countries.js', '/assets/logo/orb-512.png']) {
       assert.equal((await at(p)).s, 200, p + ' has to be there for the page to look like the page');
     }
     /* the stub is the one that fills the endpoint in, so the rehearsal posts at itself */

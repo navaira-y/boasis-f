@@ -1,8 +1,8 @@
 <!doctype html>
-<!-- The look of this page is boasis.ae's own: the night of the brand, the three drifting lights
-     behind everything, and glass panels on top of them. One background for the whole page, no
-     second plate behind the form. The light that runs round the form box is the site's teal,
-     and it is pure CSS: no script, nothing on scroll. -->
+<!-- The look of this page is boasis.ae's own: the night of the brand, the drifting lights of
+     the home page and the wash behind /early-access, and glass panels on top of them. One
+     background for the whole page, no second plate behind the form. The light that scans the How
+     it works box is the site's teal, and it is pure CSS: no script, nothing on scroll. -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
@@ -37,8 +37,10 @@
   --glass:rgba(255,255,255,.04); --hair:rgba(255,255,255,.16);
 }
 *{box-sizing:border-box}
-html,body{background:var(--bg)}
-body{margin:0; overflow-x:clip; color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
+/* the night goes on the body, and on the body alone, exactly as boasis.ae does it. Put a
+   background on html too and the browser stops carrying the body's to the canvas: it paints it
+   as a box over the sky instead, and the whole page reads black with the lights hidden under it. */
+body{margin:0; overflow-x:clip; background:var(--bg); color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:var(--display); font-weight:500; margin:0; color:var(--heading); letter-spacing:-.01em; text-wrap:balance}
 p{margin:0}
 a{color:var(--bo-teal)}
@@ -52,6 +54,8 @@ a{color:var(--bo-teal)}
 .sky i:nth-child(1){width:70vw; height:70vw; left:-15vw; top:-20vw; background:radial-gradient(circle, rgba(23,54,94,.9), transparent 62%)}
 .sky i:nth-child(2){width:60vw; height:60vw; right:-20vw; top:10vh; background:radial-gradient(circle, rgba(14,134,196,.55), transparent 60%); animation-duration:36s; animation-direction:alternate-reverse}
 .sky i:nth-child(3){width:50vw; height:50vw; left:30vw; bottom:-30vw; background:radial-gradient(circle, rgba(95,211,232,.32), transparent 60%); animation-duration:44s}
+/* and the wash behind the panel on /early-access: navy into teal, one mix of two colours */
+.sky i:nth-child(4){width:min(140vw,1700px); height:120%; left:50%; top:38%; translate:-50% -50%; filter:blur(40px); opacity:.9; background:radial-gradient(closest-side, rgba(23,54,94,.8), rgba(95,211,232,.12) 55%, rgba(11,13,18,0)); animation:none}
 @keyframes drift{to{transform:translate(8vw,6vh) scale(1.1)}}
 
 /* header · the logo, alone, on the same light as everything under it. No bar, no capsule */
@@ -87,15 +91,14 @@ form{display:grid; gap:14px; margin-top:22px}
 .field label{font-size:14px; font-weight:600}
 .field label small{font-weight:400; color:var(--muted)}
 
-/* Champs, on glass */
-input[type=text],input[type=email],input[type=tel],select,textarea{font:inherit; color:var(--text); background-color:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.14); border-radius:12px; padding:12px 14px; width:100%; transition:border-color .2s, box-shadow .2s, background-color .2s}
-input::placeholder,textarea::placeholder{color:#7E93AC}
-textarea{min-height:84px; resize:vertical}
-input:hover,select:hover,textarea:hover{border-color:rgba(255,255,255,.3)}
-input:focus,select:focus,textarea:focus{outline:none; border-color:var(--bo-teal); background-color:rgba(95,211,232,.05); box-shadow:0 0 0 3px rgba(95,211,232,.16)}
-select{appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230E86C4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:14px; padding-right:34px; cursor:pointer; font-weight:500}
+/* The typed fields, in the pill the site's own forms use. Direct children only, so the phone
+   row keeps the site's rules below untouched, and nothing here has to out argue them. */
+.field > input{font:inherit; font-size:16px; color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:0 20px; width:100%; height:50px; transition:border-color .2s, box-shadow .2s, background .2s}
+.field > input::placeholder{color:rgba(255,255,255,.45)}
+.field > input:hover{border-color:rgba(255,255,255,.3)}
+.field > input:focus{outline:none; border-color:var(--bo-teal); background:rgba(255,255,255,.07); box-shadow:0 0 0 3px rgba(95,211,232,.16)}
 /* what Chrome paints over a field it remembers, kept in the page's own night */
-input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:#fff; -webkit-box-shadow:0 0 0 1000px #0F1B27 inset; border-color:rgba(95,211,232,.4)}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:#fff; -webkit-box-shadow:0 0 0 1000px #101A28 inset}
 .choice{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 .choice label{position:relative; cursor:pointer}
 .choice input{position:absolute; opacity:0; inset:0; cursor:pointer}
@@ -109,7 +112,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 .two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 @media (max-width:480px){.two{grid-template-columns:1fr}}
-.phone{display:grid; grid-template-columns:118px 1fr; gap:8px}
 .consent{display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--muted)}
 .consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-teal)}
 .err{color:var(--err); font-size:13px; min-height:0}
@@ -126,13 +128,51 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .done .ok{width:56px; height:56px; border-radius:50%; background:rgba(95,211,232,.14); border:1px solid rgba(95,211,232,.4); color:var(--bo-teal); display:grid; place-items:center; font-size:26px; margin:0 auto}
 .done a.cta{text-decoration:none}
 
-/* The box that breathes: one line of light runs round the frame, its glow lifts the text
-   a little where it passes, and it never stops and never waits for the scroll. */
+/* The country code, and the pill the phone sits in: every rule below is copied out of
+   css/site.css as it is written there, and the control is driven by the site's own
+   js/countries.js, the one file the home page dialogs, /early-access and /contact share. A test
+   compares the two, so this page cannot drift from the rest of the site on the one control
+   a visitor from the stand will actually touch. */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mf-pill{display:grid;padding:7px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+.mf-pill label{display:block;min-width:0}
+.mf-pill input{width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;padding:0 20px;font:inherit;font-size:16px}
+.mf-pill input::placeholder{color:rgba(255,255,255,.45)}
+.mf-pill input:focus{outline:none;background:rgba(255,255,255,.07)}
+.mf-phone{grid-template-columns:auto 1fr}
+.mf-phone .mf-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
+.mf-phone .mf-code:focus-within{background:rgba(255,255,255,.07)}
+.cc-btn{display:flex;align-items:center;gap:8px;width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;font:inherit;font-size:16px;padding:0;cursor:pointer;white-space:nowrap}
+.cc-btn:focus-visible{outline:2px solid var(--bo-teal);outline-offset:3px}
+.cc-btn .cc-code{color:rgba(255,255,255,.55)}
+.cc-pop{position:absolute;top:calc(100% + 8px);left:0;width:252px;padding:6px;border-radius:14px;background:#0F1523;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 64px -28px rgba(0,0,0,.85);z-index:5}
+.cc-pop[hidden]{display:none}
+.cc-find{display:block;padding:2px 2px 6px}
+.cc-pop .cc-search{display:block;width:100%;height:38px;border:0;border-radius:10px;background:rgba(255,255,255,.07);color:#fff;padding:0 12px;font:inherit;font-size:15px}
+.cc-pop .cc-search::placeholder{color:rgba(255,255,255,.45)}
+.cc-pop .cc-search:focus{outline:none;background:rgba(255,255,255,.1)}
+.cc-pop .cc-search:focus-visible{outline:2px solid var(--bo-teal);outline-offset:2px}
+.cc-list{margin:0;padding:0;list-style:none;max-height:230px;overflow-y:auto;overscroll-behavior:contain}
+.cc-list li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 12px;border-radius:9px;color:#fff;font-size:15px;cursor:pointer}
+.cc-list li .cc-li-code{color:rgba(255,255,255,.55)}
+.cc-list li:hover,.cc-list li:focus{background:rgba(255,255,255,.08);outline:none}
+.cc-list li[aria-selected="true"]{color:var(--bo-teal)}
+.cc-list li[aria-selected="true"] .cc-li-code{color:var(--bo-teal)}
+.cc-none{margin:0;padding:10px 12px;color:rgba(255,255,255,.55);font-size:14.5px}
+.cc-none[hidden]{display:none}
+.mf-phone .mf-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
+.mf-phone > label input{border-left:1px solid rgba(255,255,255,.14)}
+
+/* The How it works box, scanning: one line of light runs round the frame, the blurred one
+   crosses the four points inside it and lifts the words where it passes, and it never stops and
+   never waits for the scroll. The plate over the words is thin on purpose, so the light reads
+   through it instead of being painted out. */
 .beam{padding:1px; overflow:hidden; isolation:isolate; background:rgba(255,255,255,.1)}
 .beam::before,.beam::after{content:""; position:absolute; left:50%; top:50%; width:250%; height:250%; translate:-50% -50%; pointer-events:none; will-change:rotate; animation:sweep 7s linear infinite}
 .beam::before{z-index:0; background:conic-gradient(from 90deg, transparent 0 56%, rgba(14,134,196,.45) 64%, rgba(95,211,232,.9) 72%, #fff 74.5%, rgba(95,211,232,.9) 77%, rgba(14,134,196,.45) 85%, transparent 92%)}
 .beam::after{z-index:2; filter:blur(30px); opacity:.34; mix-blend-mode:plus-lighter; background:conic-gradient(from 90deg, transparent 0 62%, rgba(95,211,232,.85) 74%, transparent 88%)}
-.beam > .beam-in{position:relative; z-index:1; border-radius:21px; padding:28px; background:linear-gradient(180deg, rgba(16,25,37,.86), rgba(11,13,18,.9))}
+.beam > .beam-in{position:relative; z-index:1; border-radius:21px; padding:28px; background:linear-gradient(180deg, rgba(11,13,18,.42), rgba(11,13,18,.58))}
 /* 250% in both axes, so the cone is wider and taller than the box at every angle. A square
    sized on the width alone stops short of the top and bottom of a tall card on a phone. */
 @keyframes sweep{to{rotate:360deg}}
@@ -176,8 +216,8 @@ footer .brand{font-size:16px; color:var(--heading)}
 }
 /* Écrans tactiles : champs plus grands, pas de zoom automatique */
 @media (pointer:coarse){
-  input[type=text],input[type=email],input[type=tel],select,textarea{font-size:17px; min-height:52px; padding:14px 16px}
-  select{padding-right:36px}
+  .field > input,.mf-pill input{font-size:17px; height:54px}
+  .cc-btn{height:54px}
   .choice span{min-height:54px; font-size:16px}
   .consent{font-size:15px}
   .consent input{width:22px; height:22px; margin-top:1px}
@@ -194,7 +234,7 @@ footer .brand{font-size:16px; color:var(--heading)}
 </head>
 <body>
 
-<div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
 <header class="top">
   <div class="bar">
@@ -215,13 +255,15 @@ footer .brand{font-size:16px; color:var(--heading)}
 
 <main class="main">
   <aside class="side">
-    <div class="card">
+    <div class="card beam" data-scan>
+      <div class="beam-in">
       <div class="eyebrow">How it works</div>
       <div class="steps" style="margin-top:14px">
         <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
         <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
         <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
         <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
+      </div>
       </div>
     </div>
     <div class="offer gift" data-offer="boasis-year">
@@ -237,8 +279,7 @@ footer .brand{font-size:16px; color:var(--heading)}
     </div>
   </aside>
 
-  <section class="card beam" id="start">
-    <div class="beam-in">
+  <section class="card" id="start">
     <div id="formView">
       <h2>Start here</h2>
       <p class="lead">A few details, then you talk to Mira.</p>
@@ -247,11 +288,18 @@ footer .brand{font-size:16px; color:var(--heading)}
         <div class="field"><label for="full_name">Full name</label><input id="full_name" name="full_name" type="text" autocomplete="name" required><p class="err" data-err="full_name"></p></div>
         <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><p class="err" data-err="email"></p></div>
         <div class="field"><label for="phone">Phone <small>(WhatsApp preferred)</small></label>
-          <div class="phone">
-            <select name="country_code" aria-label="Country code">
-              <option value="+971">🇦🇪 +971</option><option value="+966">🇸🇦 +966</option><option value="+974">🇶🇦 +974</option><option value="+965">🇰🇼 +965</option><option value="+973">🇧🇭 +973</option><option value="+968">🇴🇲 +968</option><option value="+20">🇪🇬 +20</option><option value="+212">🇲🇦 +212</option><option value="+216">🇹🇳 +216</option><option value="+33">🇫🇷 +33</option><option value="+32">🇧🇪 +32</option><option value="+41">🇨🇭 +41</option><option value="+44">🇬🇧 +44</option><option value="+49">🇩🇪 +49</option><option value="+1">🇺🇸 +1</option><option value="+91">🇮🇳 +91</option><option value="+92">🇵🇰 +92</option><option value="+86">🇨🇳 +86</option>
-            </select>
-            <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+          <div class="mf-pill mf-phone">
+            <div class="mf-code" data-cc>
+              <span class="sr">Country code</span>
+              <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
+              <div class="cc-pop" hidden>
+                <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
+                <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
+                <p class="cc-none" hidden>No country found.</p>
+              </div>
+              <input type="hidden" name="country_code" value="+971">
+            </div>
+            <label><span class="sr">Phone</span><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
           </div><p class="err" data-err="phone"></p></div>
         <div class="field"><span style="font-size:14px;font-weight:600">Do you live in the UAE?</span><div class="choice" role="radiogroup" aria-label="Do you live in the UAE?"><label><input type="radio" name="residence" value="uae"><span>Yes, I live here</span></label><label><input type="radio" name="residence" value="abroad"><span>No, I live abroad</span></label></div></div>
         <label class="consent"><input type="checkbox" name="consent" required><span>I agree that Boasis and SPARK may contact me about my project.</span></label>
@@ -267,13 +315,13 @@ footer .brand{font-size:16px; color:var(--heading)}
       <p class="lead">If she didn't open automatically, click below.</p>
       <a class="cta" id="miraLink" href="#"><span class="dot"></span>Open Mira</a>
     </div>
-    </div>
   </section>
 </main>
 
 <footer><a class="brand" href="https://boasis.ae/">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
 
 <script src="/js/yara-orb.js"></script>
+<script src="/js/countries.js"></script>
 <script src="/js/try-mira.js"></script>
 </body>
 </html>

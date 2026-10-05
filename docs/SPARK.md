@@ -38,18 +38,20 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
-## What the page is, and the ten things that differ from the design file
+## What the page is, and the eleven things that differ from the design file
 
 `try-mira.html` carries `Page salon Mira - EN.html`: its markup, its copy, its four points, its
 two offers, its form fields and its footer, with the styles inline in the one file. A test reads
-the page and refuses anything else. Ten differences, each for a reason that is not taste:
+the page and refuses anything else. Eleven differences, each for a reason that is not taste:
 
 1. the two base64 pictures are the site's own files, `/assets/logo/orb-160.png` for the mark and
    `/assets/logo/orb-512.png` for the still behind the orb, the same artwork at a usable size;
 2. the video is `/assets/orb/orb.mp4` rather than 627 KB of text in the page, which is the same
    file the home page already streams;
-3. the orb script is `/js/yara-orb.js`, the site's own, and the form script is `/js/try-mira.js`:
-   a content policy of this site refuses inline script on every page, so script has to be a file;
+3. three scripts, all of them files under `/js/`, because a content policy of this site refuses
+   inline script on every page: `/js/yara-orb.js` for the orb, `/js/countries.js` for the country
+   code (the site's own picker, shared with the dialogs, `/early-access` and `/contact`), and
+   `/js/try-mira.js` for this form;
 4. the form's `data-endpoint="/api/event"` is gone. Nothing lives at that address. The function url
    is set in `js/try-mira.js`, where a person can see it and change it;
 5. `First name` and `Last name` are one `Full name` field, because the owner asked for one;
@@ -64,14 +66,25 @@ the page and refuses anything else. Ten differences, each for a reason that is n
 10. the paint is boasis.ae's own, which the owner asked for on 5 October 2026, in these words:
     the header with only the logo and not the capsule, the orb in the middle of its space, no
     second background behind the form, one gradient across the whole page, the glass of the site,
-    the form on the right and the other things on the left, and a box whose line of light keeps
-    moving. `css/site.css` is where the sky and the glass numbers came from. The test reads the
-    three `radial-gradient` values out of `css/site.css` and requires them here, so the light
-    stays the site's light and cannot quietly become someone's taste.
+    the form on the right and the other things on the left, and the box whose line of light keeps
+    moving, which is the How it works panel and not the form. The light is `css/site.css`'s own
+    `.sky` (three drifting lights) plus `css/early-access.css`'s wash behind that panel, the mix
+    of navy into teal the registration page uses. The test reads those four values out of the two
+    site stylesheets and requires them here, so the light stays the site's light and cannot
+    quietly become someone's taste;
+11. the country code is not a `<select>`. The owner asked for the picker the other forms use, so
+    the markup is `/early-access`'s word for word, the `.cc-*` and `.mf-*` rules are copied out of
+    `css/site.css` as written there, and the behaviour is the shared `js/countries.js`: a closed
+    control that says `AE +971`, a panel with a search box, the list of dial codes in the file,
+    alphabetical, and the hidden `country_code` input that the form posts.
 
-Three things from the file are deliberately overridden by point 10: its light skin, its dark plate
-behind the hero and its form on the left. Everything a person reads is still the file's words, and
-the fields are still the ones the plan allows.
+Four things from the file are deliberately overridden by points 10 and 11: its light skin, its dark
+plate behind the hero, its form on the left, and its native select. Everything a person reads is
+still the file's words, and the fields are still the ones the plan allows.
+
+One trap, because it cost an hour: the page's night goes on `body` and nowhere else. Put a
+background on `html` too and the browser stops carrying the body's to the canvas, paints it as a
+box over the sky, and the whole page reads flat black with the lights hidden underneath.
 
 The light on the form box is `@keyframes sweep` on two conic gradients inside one pixel of frame,
 with the blurred one set to `plus-lighter` so it lifts the text as it passes. It is CSS only: no
@@ -205,6 +218,9 @@ lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap
 entry mentions it, so there is nothing to unpublish and no redirect to leave behind. The Supabase
 functions are on their own host, so deleting the page is enough to stop new passes; the bucket
 stays for the owner to read, keep or empty.
+
+`js/countries.js` and `js/yara-orb.js` are not part of the demo and stay: the home page dialogs,
+`/early-access` and `/contact` all use them. Only the two files named above belong to this page.
 
 ## Open, and who owes what
 

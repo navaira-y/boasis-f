@@ -180,23 +180,29 @@ test('the form asks name, email, phone and message, and nothing it does not answ
    become the dialogs' own picker. One script drives all three (js/countries.js), so the
    markup is asserted byte for byte: if a country is added to one picker it is added to all
    three, and the search box can never appear in one place and go missing in another. */
-test('the three phone fields carry one country picker, with one search box', async () => {
+test('the four phone fields carry one country picker, with one search box', async () => {
   const home = await (await get('/')).text();
   const early = await (await get('/early-access')).text();
   const contact = await (await get('/contact.html')).text();
+  /* the demo entrance came later, and it asks the same question, so it is in the count: the
+     owner asked for its dropdown to be the site's own control rather than a fourth design */
+  const demo = await (await get('/try-mira')).text();
 
   const PICKER = /<span class="sr">Country code<\/span>[\s\S]*?<input type="hidden" name="country_code" value="\+971">/g;
   const norm = s => s.replace(/\s+/g, ' ').trim();
   const onHome = home.match(PICKER) || [];
   const onEarly = early.match(PICKER) || [];
   const onContact = contact.match(PICKER) || [];
+  const onDemo = demo.match(PICKER) || [];
   assert.equal(onHome.length, 1, 'the demo dialog carries a picker, saw ' + onHome.length);
   assert.equal(onEarly.length, 1, 'the early-access form carries one, saw ' + onEarly.length);
   assert.equal(onContact.length, 1, 'and the contact form carries one, saw ' + onContact.length);
+  assert.equal(onDemo.length, 1, 'and the stand form carries one, saw ' + onDemo.length);
   assert.equal(norm(onHome[0]), norm(onEarly[0]), 'the early-access picker must be the same control');
   assert.equal(norm(onHome[0]), norm(onContact[0]), 'the contact picker must be that same control, not a second one');
+  assert.equal(norm(onHome[0]), norm(onDemo[0]), 'and so must the one on /try-mira, down to the order of the tags');
 
-  for (const block of [...onHome, ...onEarly, ...onContact]) {
+  for (const block of [...onHome, ...onEarly, ...onContact, ...onDemo]) {
     assert.match(block, /class="cc-btn"[^>]*aria-haspopup="listbox"/, 'the closed control opens a listbox');
     assert.match(block, /<div class="cc-pop" hidden>/, 'the panel starts closed');
     assert.match(block, /class="cc-search"[^>]*placeholder="Search country"/, 'and it carries the search box');
@@ -205,8 +211,11 @@ test('the three phone fields carry one country picker, with one search box', asy
   }
   assert.ok(!/<select name="country_code"/.test(contact), 'the native select on the contact page must not come back');
   assert.ok(!/<option value="\+971"/.test(contact), 'nor any of its sixty options');
+  assert.ok(!/<select/.test(demo), 'and the stand form keeps no native select either');
+  assert.ok(/window\.BoasisCountryPicker\.init/.test(fs.readFileSync(path.join(__dirname, '..', 'js', 'try-mira.js'), 'utf8')),
+    'and its own script is the one that asks the shared picker to run');
 
-  for (const [page, html, own] of [['/', home, '/js/site.js'], ['/early-access', early, '/js/early-access.js'], ['/contact.html', contact, '/js/contact.js']]) {
+  for (const [page, html, own] of [['/', home, '/js/site.js'], ['/early-access', early, '/js/early-access.js'], ['/contact.html', contact, '/js/contact.js'], ['/try-mira', demo, '/js/try-mira.js']]) {
     const script = /<script src="\/js\/countries\.js"><\/script>/.exec(html);
     assert.ok(script, page + ' must load the one picker script');
     assert.ok(html.indexOf('/js/countries.js') < html.indexOf(own),
