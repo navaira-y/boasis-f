@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mira · SPARK · AI Everything</title>
+<meta name="description" content="Try Mira, the AI trained on SPARK data. A few details, then you talk to her.">
+<!-- This page is the demo entrance, not part of boasis.ae. It must never be indexed and
+     never be linked from the site: search engines and people both find it by the QR code
+     at the stand alone. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="spark.css">
+</head>
+<header class="hero">
+  <div class="nav">
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="assets/logo/orb-160.png" alt="O">ASIS</a>
+
+  </div>
+  <div class="hero-in">
+    <div>
+      <h1>Be the first to try <em>Mira</em></h1>
+      <p class="sub">The AI trained on SPARK data. Describe your business, and she guides you all the way to your licence application.</p>
+      <div class="facts"><span>100% ownership</span><span>Activities, package, estimate</span><span>In a few minutes</span></div>
+    </div>
+    <div class="orbwrap"><img class="fallback" src="assets/logo/orb-512.png" alt=""><div id="orb"></div><div class="mira"><div><b>Mira</b><span>by Boasis</span></div></div></div>
+  </div>
+</header>
+
+<main class="main">
+  <section class="card" id="start">
+    <div id="formView">
+      <h2>Start here</h2>
+      <p class="lead">A few details, then you talk to Mira.</p>
+      <form id="eventForm" novalidate>
+        <div class="hp" aria-hidden="true"><label>Website<input name="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
+        <div class="two"><div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" type="text" autocomplete="given-name" required><p class="err" data-err="first_name"></p></div><div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" type="text" autocomplete="family-name" required><p class="err" data-err="last_name"></p></div></div>
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><p class="err" data-err="email"></p></div>
+        <div class="field"><label for="phone">Phone <small>(WhatsApp preferred)</small></label>
+          <div class="phone">
+            <select name="country_code" aria-label="Country code">
+              <option value="+971">🇦🇪 +971</option><option value="+966">🇸🇦 +966</option><option value="+974">🇶🇦 +974</option><option value="+965">🇰🇼 +965</option><option value="+973">🇧🇭 +973</option><option value="+968">🇴🇲 +968</option><option value="+20">🇪🇬 +20</option><option value="+212">🇲🇦 +212</option><option value="+216">🇹🇳 +216</option><option value="+33">🇫🇷 +33</option><option value="+32">🇧🇪 +32</option><option value="+41">🇨🇭 +41</option><option value="+44">🇬🇧 +44</option><option value="+49">🇩🇪 +49</option><option value="+1">🇺🇸 +1</option><option value="+91">🇮🇳 +91</option><option value="+92">🇵🇰 +92</option><option value="+86">🇨🇳 +86</option>
+            </select>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+          </div><p class="err" data-err="phone"></p></div>
+        <div class="field"><span style="font-size:14px;font-weight:600">Do you live in the UAE?</span><div class="choice" role="radiogroup" aria-label="Do you live in the UAE?"><label><input type="radio" name="residence" value="uae"><span>Yes, I live here</span></label><label><input type="radio" name="residence" value="abroad"><span>No, I live abroad</span></label></div></div>
+        <label class="consent"><input type="checkbox" name="consent" required><span>I agree that Boasis and SPARK may contact me about my project.</span></label>
+        <p class="err" data-err="consent"></p>
+        <p class="err" data-note></p>
+        <button class="cta" type="submit"><span class="dot"></span>Talk to Mira</button>
+        <p class="fine">Your details are only used to contact you about your project.</p>
+      </form>
+    </div>
+    <div class="done" id="doneView" aria-live="polite">
+      <div class="ok">✓</div>
+      <h2>Mira is ready for you</h2>
+      <p class="lead">If she didn't open automatically, click below.</p>
+      <a class="cta" id="miraLink" href="#"><span class="dot"></span>Open Mira</a>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <div class="eyebrow">How it works</div>
+      <div class="steps" style="margin-top:14px">
+        <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
+        <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
+        <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
+        <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
+      </div>
+    </div>
+    <div class="offer gift" data-offer="boasis-year">
+      <div class="eyebrow">Show offer</div>
+      <div class="big">1 year</div>
+      <h3>of free company management</h3>
+      <p>For every SPARK licence signed during the show, your company is managed in the Boasis portal for a full year.</p>
+    </div>
+    <div class="offer ds" data-offer="digital-spark">
+      <div class="eyebrow">Digital Spark</div>
+      <h3>Living abroad?</h3>
+      <p>Open your SPARK company without coming to the UAE, with 100% ownership. Visa optional.</p>
+    </div>
+  </aside>
+</main>
+
+<footer><a class="brand" href="https://boasis.ae/">B<img src="assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
+
+<script src="yara-orb.js"></script>
+<script>
+/* ── what a person has to set before the doors open ─────────────────────────
+   endpoint  the Supabase edge function that mints a pass and starts the lead file
+   brainUrl  where the Brain UI lives. Only used if the function does not answer with
+             a url of its own, which is the usual case once task 3 is deployed.
+   Both are deliberately empty here. An empty endpoint is refused out loud on the page,
+   so a half-wired demo cannot look like a working one. */
+window.SPARK = {
+  endpoint: '',
+  brainUrl: '',
+  source: 'ai-everything-2026',
+};
+</script>
+<script src="spark.js"></script>
+</body>
+</html>

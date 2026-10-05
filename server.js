@@ -344,6 +344,12 @@ app.use((req, res, next) => {
   next();
 });
 
+/* The SPARK demo entrance is built in demo/ and deployed to its own host, never here.
+   Merging to main deploys this repo, so the folder is closed off by name: an offer page
+   sitting at boasis.ae/demo/spark would be found by Google, and staying out of the index is
+   the one thing the demo plan is strict about. */
+app.use('/demo', (req, res) => res.status(404).sendFile(path.join(SITE, '404.html')));
+
 app.use(express.static(SITE, { extensions: ['html'], dotfiles: 'deny', index: 'index.html' }));
 
 /* ── and a page that does not exist is a 404 ─────────────────────────────────

@@ -11,3 +11,6 @@ npm-debug.log*
 
 # large videos are added by hand on the server, not committed (keep the repo light)
 assets/video/*.mp4
+
+# the assembled SPARK demo bundle: copied from assets/ by docs/SPARK.md, not tracked
+demo/spark/assets/

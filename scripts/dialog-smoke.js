@@ -2,6 +2,8 @@
    server. Not part of the test suite on purpose: it needs jsdom, which is a dev-only
    install — `npm i --no-save jsdom` once, then `npm run smoke:dialogs`. */
 let JSDOM;
+const fs = require('fs');
+const spath = require('path');
 try { ({ JSDOM } = require('jsdom')); }
 catch (e) { console.error('jsdom is not installed. Run: npm i --no-save jsdom'); process.exit(1); }
 
@@ -523,6 +525,137 @@ const challenge = () => {
     await new Promise(r => setTimeout(r, 150));
     ok(cposts.length === 1 && cposts[0].url === '/api/contact', 'ticked, the send goes through to the contact endpoint');
     ok(String(cposts[0].body.altcha || '').length > 40, 'carrying the solved answer');
+  }
+
+  /* ── the SPARK demo entrance: the form, the pass, and the handoff ──────────── */
+  console.log('spark demo: the offer page, on its own host, against a stubbed function');
+  {
+    const dir = spath.resolve(__dirname, '..', 'demo/spark');
+    const page = fs.readFileSync(spath.join(dir, 'index.html'), 'utf8')
+      .replace('<link rel="stylesheet" href="spark.css">', '<style>' + fs.readFileSync(spath.join(dir, 'spark.css'), 'utf8') + '</style>')
+      .replace('<script src="spark.js"></script>', '<script>' + fs.readFileSync(spath.join(dir, 'spark.js'), 'utf8') + '</script>');
+    const SPARK_URL = 'https://supabase.test/functions/v1/create-pass';
+    const spark = async (send, opts) => {
+      const o = opts || {};
+      const dom = new JSDOM(page, {
+        runScripts: 'dangerously', url: 'https://spark.boasis.ae/', pretendToBeVisual: true,
+        beforeParse: w => {
+          ambient(w);
+          /* the pass a returning visitor was already given, seeded before the page's own
+             script runs, which is exactly the order a real browser leaves it in */
+          if (o.seed) w.sessionStorage.setItem('spark.pass', JSON.stringify(o.seed));
+          w.SPARK_posts = [];
+          w.fetch = async (url, opts) => {
+            const body = JSON.parse(opts.body);
+            w.SPARK_posts.push({ url: String(url), body });
+            const out = send ? send(body) : { ok: true, pass: 'PASSR4RK96R4', brain_url: 'https://brain.boasis.ae/demo' };
+            return { ok: out.ok !== false, status: out.ok === false ? 400 : 200, json: async () => out };
+          };
+        },
+      });
+      await new Promise(res => { dom.window.addEventListener('load', res); setTimeout(res, 4000); });
+      /* the config block in the page assigns window.SPARK last, so the test address is put
+         in after load, which is also where a person would paste it */
+      if ('endpoint' in o) dom.window.SPARK.endpoint = o.endpoint; else dom.window.SPARK.endpoint = SPARK_URL;
+      await new Promise(r => setTimeout(r, 60));
+      return dom.window;
+    };
+    const HUMAN = { first_name: 'Lena', last_name: 'Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: 'on' };
+    const fill = (w, vals) => {
+      const f = w.document.getElementById('eventForm');
+      Object.keys(vals).forEach(n => {
+        const el = f.elements[n]; if (!el) return;
+        if (el.type === 'checkbox') el.checked = !!vals[n]; else el.value = vals[n];
+      });
+      return f;
+    };
+    const submit = w => w.document.getElementById('eventForm').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+    const err = (w, n) => (w.document.querySelector('[data-err="' + n + '"]') || {}).textContent || '';
+    const note = w => (w.document.querySelector('[data-note]') || {}).textContent || '';
+
+    let w = await spark();
+    ok(!!w.document.getElementById('eventForm'), 'the entrance page carries the form');
+    ok(/noindex, nofollow/.test(w.document.querySelector('meta[name=robots]').content), 'and it tells the index to go away');
+    ok(!w.document.querySelector('a[href^="/"], a[href^="index"]'), 'and it links nowhere inside itself, only back to boasis.ae');
+    ok(!!w.document.querySelector('.hp input[name="hp"]'), 'the honeypot is on the page, invisible');
+    ok(!!w.document.querySelector('label[for="first_name"]'), 'and every field has a real label, for a stand with a screen reader');
+    ok(w.document.getElementById('orb').children.length === 0, 'the orb is absent rather than broken when its script is not there');
+
+    submit(w);
+    await new Promise(r => setTimeout(r, 60));
+    ok(['first_name', 'last_name', 'email', 'phone', 'consent'].every(n => err(w, n)), 'an empty send answers each field with its own line');
+    ok(w.SPARK_posts.length === 0, 'and nothing is sent');
+    w = await spark();
+    fill(w, { first_name: 'Lena', last_name: 'Bisht', email: 'lena at corp', phone: '551112222', consent: 'on' });
+    submit(w);
+    await new Promise(r => setTimeout(r, 60));
+    ok(/valid email/.test(err(w, 'email')), 'an address that is not one is said at the field');
+    w = await spark();
+    fill(w, { ...HUMAN, consent: false });
+    submit(w);
+    await new Promise(r => setTimeout(r, 60));
+    ok(/tick the box/.test(err(w, 'consent')), 'and the consent box is required, not pre-ticked');
+    w = await spark();
+    fill(w, { ...HUMAN, hp: 'https://seo.example' });
+    submit(w);
+    await new Promise(r => setTimeout(r, 80));
+    ok(w.SPARK_posts.length === 0 && note(w) === '', 'a filled honeypot is refused quietly, with no scene made');
+
+    /* the config is deliberately empty, and that has to be visible rather than silent */
+    w = await spark(null, { endpoint: '' });
+    fill(w, HUMAN);
+    submit(w);
+    await new Promise(r => setTimeout(r, 80));
+    ok(/not open on this page yet/.test(note(w)), 'a page with no endpoint says so, and does not pretend to have saved you');
+    ok(w.SPARK_posts.length === 0, 'nothing is posted at a guessed address');
+
+    w = await spark();
+    fill(w, HUMAN);
+    submit(w);
+    await new Promise(r => setTimeout(r, 120));
+    const post = w.SPARK_posts[0] || {};
+    ok(post.url === 'https://supabase.test/functions/v1/create-pass', 'the endpoint in the config is the one it posts to');
+    ok(post.body && post.body.email === 'LENA@corp.com' && post.body.source === 'ai-everything-2026', 'the address goes as typed, and the source is fixed by the page');
+    ok(typeof post.body._t === 'number' && post.body.consent === 'on', 'the clock and the consent ride along for the function to judge');
+    ok(!('miraLink' in (post.body || {})), 'and no pass is invented in the browser');
+    const link = w.document.getElementById('miraLink');
+    ok(link.href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'the pass from the function is what the Brain is given, saw ' + link.href);
+    ok(w.document.getElementById('doneView').classList.contains('on'), 'and the page changes to the ready screen');
+    ok(w.document.getElementById('formView').style.display === 'none', 'with the form put away');
+    ok(JSON.parse(w.sessionStorage.getItem('spark.pass')).pass === 'PASSR4RK96R4', 'the pass is remembered for the walk back');
+
+    const refused = await spark(b => ({ ok: false, error: 'email' }));
+    fill(refused, HUMAN);
+    submit(refused);
+    await new Promise(r => setTimeout(r, 100));
+    ok(/could not be opened just now/.test(note(refused)), 'a refusal from the function is said plainly');
+    ok(!refused.document.getElementById('doneView').classList.contains('on'), 'and no brain link is offered on the strength of it');
+    ok(refused.document.getElementById('formView').style.display !== 'none', 'the form stays, with the answers still in it');
+    ok(!refused.document.querySelector('.cta').disabled, 'and they can press it again');
+
+    const limited = await spark(b => ({ ok: false, error: 'limited' }));
+    fill(limited, HUMAN);
+    submit(limited);
+    await new Promise(r => setTimeout(r, 100));
+    ok(/stand is busy/.test(note(limited)), 'a rate limit is given its own sentence, not a shrug');
+
+    const nopass = await spark(b => ({ ok: true, pass: '', brain_url: 'https://brain.boasis.ae/demo' }));
+    fill(nopass, HUMAN);
+    submit(nopass);
+    await new Promise(r => setTimeout(r, 100));
+    ok(/could not be opened just now/.test(note(nopass)), 'an answer with no pass in it is treated as the failure it is');
+
+    const noBrain = await spark(b => ({ ok: true, pass: 'PASSR4RK96R4' }));
+    fill(noBrain, HUMAN);
+    submit(noBrain);
+    await new Promise(r => setTimeout(r, 100));
+    ok(/Mira is not open yet/.test(note(noBrain)), 'and a pass with nowhere to go is said, not sent to a blank screen');
+
+    /* a person who came back, or re-scanned, is not asked for their details twice */
+    const again = await spark(null, { endpoint: '', seed: { pass: 'PASSR4RK96R4', url: 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4' } });
+    ok(again.document.getElementById('doneView').classList.contains('on'), 'their pass is still theirs: the ready screen is showing at once');
+    ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'with the same link, no new pass asked for');
+    ok(again.SPARK_posts.length === 0, 'and nothing was sent to the function on the way there');
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);
