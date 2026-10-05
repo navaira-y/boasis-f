@@ -340,6 +340,16 @@ const challenge = () => {
     await new Promise(r => setTimeout(r, 80));
     ok(!form.querySelector('[data-err="code"]').hidden, 'the sixth digit is checked on its own, and a wrong code is refused');
     ok(eboxes.every(b => !b.value) && !steps[2].hidden, 'it clears them for the retyping, and the step stays open');
+    /* the escape that makes the lock after the check fair: before the code is checked, the
+       address is still open to them, in the question's own words */
+    click(steps[2].querySelector('[data-backemail]'));
+    ok(!steps[1].hidden && !form.querySelector('input[name="email"]').readOnly, 'Wrong address? walks them back to an address they can type over');
+    ok(form.querySelector('[data-verified]').hidden, 'and no verified line, because nothing has been verified');
+    ok(steps[1].querySelector('[data-sendcode]').textContent === 'Send the code', 'with the button asking for a code again, not saying Go on');
+    einput(form.querySelector('input[name="email"]'), 'lena@corp.com');
+    click(steps[1].querySelector('[data-sendcode]'));
+    await new Promise(r => setTimeout(r, 60));
+    ok(!steps[2].hidden && steps[1].classList.contains('is-done'), 'a code is asked for the corrected address, and the form moves on');
     /* the case the owner reported: a line copied out of the mail, digits and words together */
     const verifyTries = () => eposts.filter(x => x.url.includes('/verify-email/verify')).length;
     epaste(0, 'Invoice 300123 for 248153, 5 October 2026');
