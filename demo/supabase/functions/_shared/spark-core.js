@@ -53,15 +53,13 @@ export function readForm(body) {
   if (String(b.hp || '').trim()) return { ok: false, error: 'bot' };
   if (Number(b._t) > 0 && Number(b._t) < TOO_FAST_MS) return { ok: false, error: 'too-fast' };
 
-  const first = String(b.first_name || '').trim().slice(0, 60);
-  const last = String(b.last_name || '').trim().slice(0, 60);
+  const name = String(b.full_name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const email = normaliseEmail(b.email).slice(0, 254);
   const digits = String(b.phone || '').replace(/\D/g, '');
   const code = /^\+\d{1,4}$/.test(String(b.country_code || '')) ? String(b.country_code) : '';
   const phone = phoneOf(b.country_code, b.phone);
 
-  if (first.length < 1) return { ok: false, error: 'first_name' };
-  if (last.length < 1) return { ok: false, error: 'last_name' };
+  if (name.length < 2) return { ok: false, error: 'full_name' };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: 'email' };
   if (digits.length < 6 || digits.length > 15) return { ok: false, error: 'phone' };
   if (b.consent !== true && b.consent !== 'true' && b.consent !== 'on') return { ok: false, error: 'consent' };
@@ -70,8 +68,7 @@ export function readForm(body) {
   return {
     ok: true,
     contact: {
-      first_name: first,
-      last_name: last,
+      full_name: name,
       email,
       phone,
       country_code: code,

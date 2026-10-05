@@ -76,8 +76,6 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
 .choice input:focus-visible+span{box-shadow:0 0 0 3px var(--soft)}
 @media (max-width:420px){.choice{grid-template-columns:1fr}}
 
-.two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-@media (max-width:480px){.two{grid-template-columns:1fr}}
 .phone{display:grid; grid-template-columns:118px 1fr; gap:8px}
 .consent{display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--muted)}
 .consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-blue)}

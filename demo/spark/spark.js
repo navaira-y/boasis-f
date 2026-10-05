@@ -45,9 +45,8 @@
 
   function valid() {
     var ok = true;
-    ['first_name', 'last_name', 'email', 'phone', 'consent'].forEach(function (k) { say(k, ''); });
-    if (!(F.first_name.value || '').trim()) { say('first_name', 'Please enter your first name.'); ok = false; }
-    if (!(F.last_name.value || '').trim()) { say('last_name', 'Please enter your last name.'); ok = false; }
+    ['full_name', 'email', 'phone', 'consent'].forEach(function (k) { say(k, ''); });
+    if ((F.full_name.value || '').trim().length < 2) { say('full_name', 'Please enter your name.'); ok = false; }
     if (!/^\S+@\S+\.\S+$/.test((F.email.value || '').trim())) { say('email', 'Please enter a valid email.'); ok = false; }
     var d = (F.phone.value || '').replace(/\D/g, '');
     if (d.length < 6 || d.length > 15) { say('phone', 'Please enter a valid number.'); ok = false; }

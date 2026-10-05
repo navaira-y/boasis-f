@@ -63,7 +63,7 @@ test('the entrance page is built to stay out of the index', () => {
 
 test('the form asks only what the plan says it may ask', () => {
   const html = SPARK('index.html');
-  for (const n of ['first_name', 'last_name', 'email', 'phone', 'country_code', 'residence', 'consent', 'hp']) {
+  for (const n of ['full_name', 'email', 'phone', 'country_code', 'residence', 'consent', 'hp']) {
     assert.match(html, new RegExp('name="' + n + '"'), 'the form carries ' + n);
   }
   /* the plan is explicit that the application part is not shown, so the fields that would
@@ -101,7 +101,7 @@ test('the page reaches for bundle paths that the copy step can actually fill', (
 
 test('the rules the whole demo stands on, in one module', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
-  const ok = { first_name: 'Lena', last_name: 'Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };
+  const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };
 
   const good = c.readForm(ok);
   assert.equal(good.ok, true, 'a normal person passes');
@@ -115,7 +115,7 @@ test('the rules the whole demo stands on, in one module', async () => {
     ['no consent', { ...ok, consent: false }],
     ['a short number', { ...ok, phone: '555' }],
     ['no at sign', { ...ok, email: 'lena@corp' }],
-    ['no last name', { ...ok, last_name: '  ' }],
+    ['no name at all', { ...ok, full_name: '   ' }],
     ['nothing at all', {}],
   ]) {
     assert.equal(c.readForm(body).ok, false, 'refused for ' + why);
@@ -137,7 +137,7 @@ test('the rules the whole demo stands on, in one module', async () => {
 test('the lead file grows and never shrinks', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const now = Date.UTC(2026, 9, 5, 8);
-  let lead = c.buildLead({ pass: 'PASSABCDEFGH', contact: { first_name: 'L', last_name: 'B', email: 'l@corp.com', phone: '+971 5', consent: true }, now });
+  let lead = c.buildLead({ pass: 'PASSABCDEFGH', contact: { full_name: 'L B', email: 'l@corp.com', phone: '+971 5', consent: true }, now });
   assert.equal(lead.brain.steps_reached.length, 0, 'it starts empty');
   assert.equal(lead.version, 1);
   assert.match(lead.expires_at, /^2026-10-06/, 'and it is good for a day, at midnight plus the hours');

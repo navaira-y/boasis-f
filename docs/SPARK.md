@@ -47,7 +47,7 @@ an object name.
   "expires_at": "2026-10-06T10:00:00.000Z",
   "source": "ai-everything-2026",
   "contact": {
-    "first_name": "Lena", "last_name": "Bisht",
+    "full_name": "Lena Bisht",
     "email": "lena@corp.com", "phone": "+971 551112222",
     "country_code": "+971", "residence": "uae", "consent": true
   },
@@ -79,12 +79,12 @@ smallest thing both sides can agree on. Two consequences to accept, both written
 `POST` from the page, JSON in, JSON out.
 
 ```
-{ "first_name":"Lena", "last_name":"Bisht", "email":"lena@corp.com",
+{ "full_name":"Lena Bisht", "email":"lena@corp.com",
   "phone":"0551112222", "country_code":"+971", "residence":"uae",
   "consent":true, "hp":"", "source":"ai-everything-2026", "_t":9000 }
 
 200 { "ok":true, "pass":"PASSR4RK96R4", "brain_url":"https://brain.boasis.ae/demo", "reused":false }
-400 { "ok":false, "error":"email" | "consent" | "phone" | "first_name" | "last_name" }
+400 { "ok":false, "error":"email" | "consent" | "phone" | "full_name" }
 400 { "ok":false, "error":"bot" | "too-fast" }        503 { "ok":false, "error":"busy" }
 ```
 

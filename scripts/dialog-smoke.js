@@ -560,7 +560,7 @@ const challenge = () => {
       await new Promise(r => setTimeout(r, 60));
       return dom.window;
     };
-    const HUMAN = { first_name: 'Lena', last_name: 'Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: 'on' };
+    const HUMAN = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: 'on' };
     const fill = (w, vals) => {
       const f = w.document.getElementById('eventForm');
       Object.keys(vals).forEach(n => {
@@ -578,15 +578,16 @@ const challenge = () => {
     ok(/noindex, nofollow/.test(w.document.querySelector('meta[name=robots]').content), 'and it tells the index to go away');
     ok(!w.document.querySelector('a[href^="/"], a[href^="index"]'), 'and it links nowhere inside itself, only back to boasis.ae');
     ok(!!w.document.querySelector('.hp input[name="hp"]'), 'the honeypot is on the page, invisible');
-    ok(!!w.document.querySelector('label[for="first_name"]'), 'and every field has a real label, for a stand with a screen reader');
+    ok(!!w.document.querySelector('label[for="full_name"]'), 'one name field, labelled, as the design asks');
+    ok(!w.document.querySelector('[name="last_name"]'), 'and no second half of it left behind');
     ok(w.document.getElementById('orb').children.length === 0, 'the orb is absent rather than broken when its script is not there');
 
     submit(w);
     await new Promise(r => setTimeout(r, 60));
-    ok(['first_name', 'last_name', 'email', 'phone', 'consent'].every(n => err(w, n)), 'an empty send answers each field with its own line');
+    ok(['full_name', 'email', 'phone', 'consent'].every(n => err(w, n)), 'an empty send answers each field with its own line');
     ok(w.SPARK_posts.length === 0, 'and nothing is sent');
     w = await spark();
-    fill(w, { first_name: 'Lena', last_name: 'Bisht', email: 'lena at corp', phone: '551112222', consent: 'on' });
+    fill(w, { full_name: 'Lena Bisht', email: 'lena at corp', phone: '551112222', consent: 'on' });
     submit(w);
     await new Promise(r => setTimeout(r, 60));
     ok(/valid email/.test(err(w, 'email')), 'an address that is not one is said at the field');
