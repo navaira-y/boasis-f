@@ -81,10 +81,10 @@
 </main>
 
 <!-- ── how it works · one road, four points on it ─────────────────────────────
-     You are standing on the road at the mark, and the road moves ahead as you scroll. Each
-     point is written on the road, so the words travel with it: a point reaches the mark, is
-     read there, and then stays behind it further down the page rather than coming back.
-     The thin strip on the left is the whole route, so the way ahead is visible.
+     You stand at the mark in the middle of the screen and the road moves ahead of you. The
+     four sentences are written on the road, so the words travel with it: a point rises to the
+     mark, is read there, and is left behind above it. Nothing comes back down. The thin strip
+     at the left is the whole route with a light on it, so the way ahead stays visible.
      The four sentences are the design file's own, for the content team to replace. -->
 <section class="how" id="how" data-how>
   <div class="how-pin">
@@ -103,8 +103,8 @@
 
       <div class="how-track" data-track>
         <svg class="how-map" viewBox="0 0 420 2600" preserveAspectRatio="none" aria-hidden="true">
-          <path class="road" vector-effect="non-scaling-stroke" d="M210 0 C300 240 90 320 120 520 S330 760 240 1000 C150 1240 60 1360 180 1560 S360 1820 250 2060 C160 2280 240 2420 210 2600"/>
-          <path class="lane" vector-effect="non-scaling-stroke" d="M210 0 C300 240 90 320 120 520 S330 760 240 1000 C150 1240 60 1360 180 1560 S360 1820 250 2060 C160 2280 240 2420 210 2600"/>
+          <path class="road" vector-effect="non-scaling-stroke" d="M210 0 L210 2600"/>
+          <path class="lane" vector-effect="non-scaling-stroke" d="M210 0 L210 2600"/>
         </svg>
 
         <ol class="how-steps" aria-label="The four steps">
@@ -114,7 +114,7 @@
           <li class="how-step"><span class="n">4</span><div class="t"><b>An advisor takes over</b><span>If your project needs it.</span></div></li>
         </ol>
 
-        <div class="how-mark" data-mark aria-hidden="true"><span class="how-car"></span><span class="how-here">You are here</span></div>
+        <div class="how-mark" data-mark aria-hidden="true"><span class="how-car"></span></div>
       </div>
     </div>
   </div>

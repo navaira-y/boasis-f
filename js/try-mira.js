@@ -166,9 +166,9 @@
   if (!steps.length || !stage || !track) return;
   sec.classList.add('live');                        // the css waits for this word to move anything
 
-  var ANCHOR = 0.58;       // the height of the mark, as a share of the stage
+  var ANCHOR = 0.5;        // the mark sits in the middle of the screen, as the owner asked
   var K = 2.2;             // how much road there is, as a share of the stage
-  var GATE = 0.3;          // how close a point must be to the mark to be the one you read
+  var GATE = 0.26;         // how close a point must be to the mark to be the one you read
   var VIEW_H = 2600, VIEW_W = 420;   // the viewBox of the drawn road
 
   /* where each point sits on the road, and what fraction of the road that is. The last point

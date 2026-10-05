@@ -45,10 +45,12 @@ else. No menu, no button: there is nowhere else on this page to go. Its rules ar
 `css/site.css` into `css/try-mira.css` so the page stays one file, and if the site header ever
 changes, that copied block is the thing to refresh.
 
-"How it works" is one road. You stand at a mark, the four sentences are written on the road
-itself, and scrolling moves the road ahead of you, so a point rises to the mark, is read there,
-and is left behind above it. Nothing comes back down. A small strip at the left is the whole
-route with a light on it, so the part still to come is visible the whole time.
+"How it works" is one road. You stand at a light in the middle of the screen, the four
+sentences are written on the road itself, and scrolling moves the road ahead of you: a point
+rises to the light, is read there, and is left behind above it. Nothing comes back down, and no
+two points are lit at once. The road is nearly straight and as wide as a lane. A small strip at
+the left is the whole route with a marker on it, so the part still to come is visible the whole
+time. The light carries no words of its own.
 
 The only number that sets the pace is the height of `.how` in `css/try-mira.css`. The script
 measures the stage from the browser, so adding a fifth point is one more `<li class="how-step">`
@@ -57,9 +59,9 @@ points it finds. The four sentences are the design file's own, for the content t
 
 Three things about it are deliberate, each with a test:
 
-- The point's horizontal place is read from the drawn path, so the words are on the road rather
-  than next to it. A browser that cannot measure a path puts every point in the middle of the
-  road instead of throwing them anywhere.
+- The place of a point is read from the drawn path, so the words are on the road rather than
+  beside it, and the light follows the road's own line. A browser that cannot measure a path puts
+  every point in the middle of the road instead of throwing them anywhere.
 - With no script, or with `prefers-reduced-motion`, the section is not pinned at all and the four
   points are a plain list. Nothing on this page is only reachable by watching an animation.
 - The road is one curve whose every y is larger than the one before it. A test reads the numbers

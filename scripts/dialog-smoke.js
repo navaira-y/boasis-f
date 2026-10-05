@@ -681,9 +681,9 @@ const challenge = () => {
     ok(li().every(x => x.style.left === '600px'), 'with no path for the browser to read, every point stays in the middle of the road rather than being thrown off it');
     ok(state(0) === 'now', 'the first point rises to the mark and is the one you read');
     ok([1, 2, 3].every(k => state(k) === 'ahead'), 'the other three are still coming up to meet you');
-    at(-2400); await new Promise(r => setTimeout(r, 40));
+    at(-2216); await new Promise(r => setTimeout(r, 40));
     ok(state(0) === 'passed' && state(1) === 'now', 'further down, the second point is at the mark and the first is behind it, never back in front');
-    at(-3300); await new Promise(r => setTimeout(r, 40));
+    at(-3324); await new Promise(r => setTimeout(r, 40));
     ok(state(2) === 'now' && state(3) === 'ahead', 'the third at the mark, the last one still ahead of you');
     at(-4432); await new Promise(r => setTimeout(r, 40));
     ok(state(3) === 'now', 'and the last point reaches the mark exactly as the section lets go');
@@ -691,7 +691,8 @@ const challenge = () => {
     ok(parseFloat(how.querySelector('[data-here]').style.top) === 100, 'the little route strip says you have reached its end');
     const tops = li().map(x => parseFloat(x.style.top));
     ok(tops.every((y, k) => k === 0 || y > tops[k - 1]), 'the four sit in order up the road: ' + tops.join(','));
-    ok(how.querySelector('[data-mark]').style.left !== '', 'the mark you stand at moves along the road with it');
+    ok(how.querySelector('[data-mark]').style.left !== '', 'the mark takes the road’s own line, not a guessed one');
+    ok(li().filter(x => state(li().indexOf(x)) === 'now').length === 1, 'and one point is the one you read at a time, never two');
 
     /* the three rules of the road, on their own, no page required */
     const ROAD = w.SPARK_ROAD;

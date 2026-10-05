@@ -195,7 +195,9 @@ test('how it works: the words are on the road, and the road only goes ahead', ()
   assert.match(css, /\.how-pin\{position:sticky/, 'and the stage holds still while the road moves through it');
   assert.match(css, /\.how\.live \.how-step\{position:absolute/, 'a point is placed on the road only once its own script is running');
   assert.ok(!/(^|\n)\.how-step\{[^}]*opacity:0/.test(css), 'and the bare rule never hides them, so a reader and a crawler get all four sentences');
-  assert.match(html, /You are here/, 'the mark you are standing at is named on the page');
+  assert.ok(!/You are here/.test(html), 'the mark is a light on its own, with no words to read at it');
+  assert.match(css, /\.how-mark\{position:absolute; left:50%; top:50%/, 'and it sits in the middle of the screen, where the eye already is');
+  assert.match(html, /d="M210 0 L210 2600"/, 'the road the owner asked for: nearly straight, one x from end to end');
   assert.match(css, /\.how-route\{position:absolute/, 'and the whole route is shown beside it, small, so the road ahead is visible');
   assert.match(js, /getPointAtLength/, 'the horizontal place of a point comes from the road itself, so it cannot drift off it');
   assert.match(js, /window\.SPARK_ROAD/, 'the three rules of the road are reachable from a test');
