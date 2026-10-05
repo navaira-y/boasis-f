@@ -120,7 +120,10 @@ test('the demo dialog is on the home page, and the early-access form is a page o
   assert.match(early, /<div class="captcha" data-captcha>/, 'and the box that keeps the cost of automation high');
   /* the mailbox proof: the code field a visitor types, and the hidden field the signed
      token rides in. Both are in the DOM from the first pixel, hidden one step at a time. */
-  assert.match(early, /name="code"/, 'the page asks for the six-digit code');
+  assert.match(early, /<input type="hidden" name="code" value="">/, 'the code the form carries is one hidden value');
+  assert.equal((early.match(/class="ea-d"/g) || []).length, 6, 'and the visitor types it into six boxes, one digit each');
+  assert.match(early, /data-code[\s>]/, 'the boxes are a group the script can find');
+  assert.match(early, /autocomplete="one-time-code"/, 'and the first one takes the browser\'s own code autofill');
   assert.match(early, /<input type="hidden" name="emailv"/, 'and carries its proof to the endpoint');
   for (const b of ['data-sendcode', 'data-verifycode', 'data-resend', 'data-backemail']) {
     assert.match(early, new RegExp(b), 'the code step needs its ' + b + ' control');

@@ -230,10 +230,77 @@ function joinForm() {
   if (fields.name) fields.name.addEventListener('input', () => { if (!rule.name(fields.name.value)) say('name', ''); });
   if (fields.authority) fields.authority.addEventListener('input', () => { if (!rule.authority(fields.authority.value)) say('authority', ''); });
   if (fields.plans) fields.plans.addEventListener('input', () => { if (!rule.plans(fields.plans.value)) say('plans', ''); });
-  if (fields.code) fields.code.addEventListener('input', () => {
-    const raw = fields.code.value, clean = digits(raw).slice(0, 6);
-    if (clean !== raw) fields.code.value = clean;
-    if (!rule.code(clean)) say('code', '');
+  /* ── the six boxes · one digit each ────────────────────────────────────────
+     A code read off a screen is typed in pieces, so a digit lost in the wrong box used to
+     mean "that is not the code" and a retype. Here a paste, or the browser's own code
+     autofill, lands in whichever box the visitor is looking at and spreads itself. The
+     hidden input named `code` is what the form and the check read, kept in step on every
+     change. A full six is checked on its own, so nobody has to find the button. */
+  const codeWrap = form.querySelector('[data-code]');
+  const boxes = codeWrap ? [...codeWrap.querySelectorAll('.ea-d')] : [];
+  const codeField = form.querySelector('input[name="code"]');
+  const codeValue = () => boxes.length ? boxes.map(b => b.value).join('') : (codeField ? codeField.value : '');
+  let verifying = false;
+  const syncCode = () => {
+    if (codeField) codeField.value = codeValue();
+    boxes.forEach(b => b.classList.toggle('filled', !!b.value));
+    if (codeWrap && codeValue().length === 6) codeWrap.classList.remove('bad');
+  };
+  const clearCode = () => {
+    boxes.forEach(b => { b.value = ''; });
+    if (codeField) codeField.value = '';
+    if (codeWrap) codeWrap.classList.remove('bad');
+    if (boxes[0]) boxes[0].focus();
+  };
+  function distribute(text, start) {
+    const ds = digits(text).slice(0, 6);
+    if (!ds.length) return;
+    /* six digits in one go is the whole code, whoever it landed on; fewer is a start */
+    const from = ds.length === 6 ? 0 : start;
+    boxes.forEach((bx, k) => { bx.value = (k >= from && k - from < ds.length) ? ds[k - from] : ''; });
+    syncCode();
+    const last = Math.min(boxes.length - 1, from + ds.length - 1);
+    if (boxes[last]) boxes[last].focus();
+  }
+  const checkCodeNow = () => { if (!verifying && codeValue().length === 6) checkCode(); };
+
+  boxes.forEach((b, i) => {
+    b.addEventListener('input', () => {
+      const v = digits(b.value);
+      if (v.length > 1) distribute(v, i);
+      else { b.value = v; if (v && boxes[i + 1]) boxes[i + 1].focus(); }
+      syncCode();
+      if (v) say('code', '');
+      checkCodeNow();
+    });
+    b.addEventListener('paste', e => {
+      const cd = e.clipboardData || window.clipboardData;
+      const text = cd && cd.getData ? cd.getData('text') : '';
+      if (!digits(text)) return;                 /* a letter pasted here is their business */
+      e.preventDefault();                        /* maxlength would otherwise keep one digit and the rest vanishes */
+      /* This is the whole reason the field used to say "that is not the code" for a code
+         people had copied correctly: mail clients select a line, a subject, a date, and any
+         digits that came along first used to be taken as the code. So the code is read as the
+         one run of six that stands out, and if the clipboard leaves that unclear, it is said
+         plainly instead of a wrong check burning one of the three tries. */
+      const sixes = [...new Set(text.match(/\d{6}/g) || [])];
+      if (sixes.length === 1) distribute(sixes[0], i);
+      else if (digits(text).length === 6) distribute(text, i);
+      else {
+        say('code', sixes.length > 1
+          ? 'That has more than one 6 digit number in it. Copy only the code.'
+          : 'That is not a 6 digit code. Copy the digits themselves, not the whole mail.');
+        if (codeWrap) codeWrap.classList.add('bad');
+        return;
+      }
+      checkCodeNow();
+    });
+    b.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !b.value && i) { const prev = boxes[i - 1]; prev.value = ''; prev.focus(); syncCode(); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' && i) { boxes[i - 1].focus(); e.preventDefault(); }
+      else if (e.key === 'ArrowRight' && i < boxes.length - 1) { boxes[i + 1].focus(); e.preventDefault(); }
+      else if (e.key === 'Enter') { e.preventDefault(); checkCode(); }
+    });
   });
 
   /* ── the code · sent, counted down, checked ───────────────────────────────
@@ -284,7 +351,7 @@ function joinForm() {
       return;
     }
     btn.disabled = false; btn.textContent = was;
-    if (fields.code) fields.code.value = '';
+    clearCode();
     say('code', ''); sayCode('');
     if (codeStep) {
       const shown = codeStep.querySelector('[data-shown-email]');
@@ -305,25 +372,36 @@ function joinForm() {
     cur = stepEls.indexOf(emailStep);
     openStep(cur);
   });
-  if (verifyBtn) verifyBtn.addEventListener('click', async () => {
-    if (fields.code && rule.code(fields.code.value)) { say('code', rule.code(fields.code.value)); fields.code.focus(); return; }
-    const was = verifyBtn.textContent;
-    verifyBtn.disabled = true; verifyBtn.textContent = 'Checking';
+  async function checkCode() {
+    if (verifying) return;
+    const short = rule.code(codeValue());
+    if (short) {
+      say('code', short);
+      if (codeWrap) codeWrap.classList.add('bad');
+      if (boxes[0]) boxes[0].focus();
+      return;
+    }
+    verifying = true;
+    const was = verifyBtn ? verifyBtn.textContent : '';
+    if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Checking'; }
     let j = null;
     try {
       const r = await fetch('/api/verify-email/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: (fields.email ? fields.email.value.trim() : ''), code: fields.code ? fields.code.value.trim() : '' }),
+        body: JSON.stringify({ email: (fields.email ? fields.email.value.trim() : ''), code: codeValue() }),
       });
       j = await r.json().catch(() => null);
     } catch (e) { j = null; }
-    verifyBtn.disabled = false; verifyBtn.textContent = was;
+    verifying = false;
+    if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = was; }
     if (!j || !j.ok) {
       const why = j && j.errors ? j.errors[0] : '';
       say('code', why === 'attempts'
         ? 'Too many tries with that code. Ask for a new one.'
         : why === 'none' ? 'That code has expired. Ask for a new one.'
         : 'That is not the code. Three tries, then a new one is needed.');
+      if (codeWrap) codeWrap.classList.add('bad');
+      clearCode();
       sayCode('');
       return;
     }
@@ -332,7 +410,8 @@ function joinForm() {
     stepDone(codeStep, true);
     cur = Math.max(cur, stepEls.indexOf(codeStep) + 1);
     openStep(cur);
-  });
+  }
+  if (verifyBtn) verifyBtn.addEventListener('click', () => checkCode());
 
   form.addEventListener('submit', async ev => {
     ev.preventDefault();

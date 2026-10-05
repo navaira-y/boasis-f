@@ -167,8 +167,16 @@ test('an early access request from the dialog is stored, and both mails are prep
   assert.ok(mail.text.includes('1-3'), 'and how many');
   assert.ok(!/undefined/.test(mail.text), 'nothing leaks an undefined line');
   const receipt = manageToUser({ ...c, at: c.at }).text;
-  assert.match(receipt, /Your place is reserved, Lena\./, 'the receipt reserves their place by first name');
-  assert.match(receipt, /Nothing is required from you meanwhile\./, 'and says plainly that nothing is asked of them yet');
+  assert.match(receipt, /You are registered, Lena\./, 'the receipt says it plainly, by first name');
+  assert.match(receipt, /You are on the list for early access to BOASIS Manage\./, 'and confirms the thing itself');
+  assert.match(receipt, /Nothing else from you\./, 'then says plainly that nothing is asked of them');
+  assert.match(receipt, /Your first year is free\./, 'and repeats the offer, since the page promised it');
+  assert.ok(receipt.split('\n').filter(Boolean).length <= 14, 'the whole mail is short: ' + receipt.split('\n').filter(Boolean).length + ' lines');
+  const { verifyCode } = require('../lib/mail-templates');
+  const code = verifyCode({ email: 'lena@example.com', code: '248153' }).text;
+  assert.match(code, /Your BOASIS code is 248153\./, 'the code mail leads with the code');
+  assert.ok(code.split('\n').filter(Boolean).length <= 9, 'and stops: ' + code.split('\n').filter(Boolean).length + ' lines');
+  assert.ok(!/meant to be|keeps the list/i.test(code), 'no speech about why the check exists');
 });
 
 test('an early access request without a company describes the thought instead', async () => {

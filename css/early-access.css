@@ -62,6 +62,16 @@
 .ea-code-to{margin:0;color:rgba(255,255,255,.6);font-size:14px;line-height:1.55}
 .ea-code-to b{color:rgba(255,255,255,.85);font-weight:500}
 .ea-code-sent{margin:0;color:var(--bo-teal);font-size:14px;line-height:1.5}
+
+/* the code · six boxes, one digit each, because a code read off a screen is typed in
+   pieces and mis-read pieces land in the wrong place. Whatever arrives in one box, a paste
+   or the browser's own autofill, is spread across them by js/early-access.js */
+.ea-code{display:flex;gap:8px;flex-wrap:nowrap}
+.ea-code label{flex:1;min-width:0}
+.ea-d{width:100%;height:58px;padding:0;text-align:center;font-family:var(--font-mono);font-weight:500;font-size:24px;color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);border-radius:14px;transition:border-color .18s ease,background .18s ease;-moz-appearance:textfield}
+.ea-d:focus{outline:none;border-color:var(--bo-teal);background:rgba(95,211,232,.08)}
+.ea-d.filled{border-color:rgba(95,211,232,.5)}
+.ea-code.bad .ea-d{border-color:#E8747C;background:rgba(232,116,124,.07)}
 .ea-panel .captcha{justify-self:start}
 .ea-form .form-note{margin:4px 0 0;text-align:left}
 
@@ -71,6 +81,8 @@
 .ea-done p{margin:12px 0 0;color:rgba(255,255,255,.72);font-size:15.5px;line-height:1.6}
 
 @media (max-width:640px){
+.ea-code{gap:6px}
+.ea-d{height:50px;font-size:20px;border-radius:12px}
   .page-early main{padding-top:84px}
   .ea-split{padding-top:clamp(28px,7vw,44px)}
   .ea-cells{flex-wrap:wrap;max-width:320px}

@@ -34,7 +34,10 @@ same sentences. Both come from one template, so they cannot drift apart.
 > verification code, subject `Your BOASIS code is 248153`, to the visitor only, no owner
 > copy, minted by `lib/email-verify.js` and never written to disk. Three tries, one use,
 > fifteen minutes, one ask per address per minute. The answer you are about to read is
-> what the code unlocks.
+> what the code unlocks. The page asks for it in six boxes, one digit each, and one paste
+> fills them all; the sixth digit is checked on its own. The visitor's receipt says
+> `You are registered, <first name>.` and then only two steps and one line, because a
+> confirmation that explains itself reads like a brochure and people skip it.
 
 ### → To the team
 

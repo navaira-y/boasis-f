@@ -323,17 +323,33 @@ const challenge = () => {
     ok(!!sendPost, 'the page asked the server for a code');
     ok(!!sendPost && sendPost.body.email === 'lena@corp.com', 'and it carried the typed address, saw ' + (sendPost && sendPost.body.email));
     ok(steps[1].hidden && !steps[2].hidden, 'and the code step opened');
-    einput(form.querySelector('input[name="code"]'), '2481');
+    /* six boxes · one digit each, and a full one is checked without hunting for a button */
+    const eboxes = [...steps[2].querySelectorAll('.ea-d')];
+    ok(eboxes.length === 6, 'the code is six boxes, one digit each, saw ' + eboxes.length);
+    const etype = code => code.split('').forEach((ch, i) => { if (eboxes[i]) einput(eboxes[i], ch); });
+    const epaste = (i, text) => { const ev = new ew.Event('paste', { bubbles: true, cancelable: true }); ev.clipboardData = { getData: () => text }; eboxes[i].dispatchEvent(ev); };
+    etype('2481');
+    ok(eboxes.map(b => b.value).join('') === '2481', 'each digit sits in its own box');
+    ok(form.querySelector('input[name="code"]').value === '2481', 'and the hidden field the form reads follows along');
+    ok(ed.activeElement === eboxes[4], 'and the caret moves on by itself, saw ' + eboxes.indexOf(ed.activeElement));
     click(steps[2].querySelector('[data-verifycode]'));
     await new Promise(r => setTimeout(r, 60));
     ok(!form.querySelector('[data-err="code"]').hidden, 'four digits is not six, and it says so');
-    einput(form.querySelector('input[name="code"]'), '999999');
-    click(steps[2].querySelector('[data-verifycode]'));
+    ok(!eposts.some(x => x.url.includes('/verify-email/verify')), 'and a short code is never sent to the server');
+    etype('999999');
+    await new Promise(r => setTimeout(r, 80));
+    ok(!form.querySelector('[data-err="code"]').hidden, 'the sixth digit is checked on its own, and a wrong code is refused');
+    ok(eboxes.every(b => !b.value) && !steps[2].hidden, 'it clears them for the retyping, and the step stays open');
+    /* the case the owner reported: a line copied out of the mail, digits and words together */
+    const verifyTries = () => eposts.filter(x => x.url.includes('/verify-email/verify')).length;
+    epaste(0, 'Invoice 300123 for 248153, 5 October 2026');
+    ok(!form.querySelector('[data-err="code"]').hidden, 'two possible codes in one copy is said as such, never guessed');
     await new Promise(r => setTimeout(r, 60));
-    ok(!form.querySelector('[data-err="code"]').hidden, 'a wrong code is refused by the server, and the step stays');
-    einput(form.querySelector('input[name="code"]'), '248153');
-    click(steps[2].querySelector('[data-verifycode]'));
-    await new Promise(r => setTimeout(r, 60));
+    ok(verifyTries() === 1, 'and nothing was sent, so no try of the three is burned, saw ' + verifyTries());
+    ok(eboxes.every(b => !b.value), 'the boxes stay empty for a clean retyping');
+    epaste(2, 'Your BOASIS code is 248153. It works once.');
+    ok(eboxes.map(b => b.value).join('') === '248153', 'one paste into any box finds the code in the sentence, not the date');
+    await new Promise(r => setTimeout(r, 80));
     ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'the right code brings the signed proof into the form');
     ok(steps[2].hidden && !steps[3].hidden, 'and only then: the phone');
 
@@ -363,7 +379,7 @@ const challenge = () => {
     ok(form.querySelector('.form-note').textContent.length > 0, 'a send without the proof is stopped, and said: ' + form.querySelector('.form-note').textContent);
     ok(eq('.ea-done').hidden, 'and the done step stayed shut');
     ok(!form.querySelector('[data-step="code"]').hidden, 'and the page walks them back to the code, not to a dead end');
-    einput(form.querySelector('input[name="code"]'), '248153');
+    ok(eboxes.map(b => b.value).join('') === '248153', 'walked back, the digits are still sitting in their boxes, no retyping');
     form.querySelector('input[name="emailv"]').value = 'TESTTOKEN';
     esubmit();
     await new Promise(r => setTimeout(r, 80));

@@ -178,12 +178,20 @@
       </div>
 
       <div class="ea-step" data-step="code" hidden>
-        <p class="ea-q">The code from your email.</p>
+        <p class="ea-q">The 6 digit code from your email.</p>
         <p class="ea-code-to">Sent to <b data-shown-email>your email</b>. Good for 15 minutes and it works once.
           <button type="button" class="ea-link" data-backemail>Wrong address?</button></p>
         <p class="ea-code-sent" data-code-sent hidden></p>
         <div class="mf-field">
-          <div class="mf-pill"><label><span class="sr">Verification code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" pattern="[0-9]*" required></label></div>
+          <div class="ea-code" data-code role="group" aria-label="Six digit code">
+            <label><span class="sr">Digit 1</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" pattern="[0-9]*" required></label>
+            <label><span class="sr">Digit 2</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="off" maxlength="1" pattern="[0-9]*" required></label>
+            <label><span class="sr">Digit 3</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="off" maxlength="1" pattern="[0-9]*" required></label>
+            <label><span class="sr">Digit 4</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="off" maxlength="1" pattern="[0-9]*" required></label>
+            <label><span class="sr">Digit 5</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="off" maxlength="1" pattern="[0-9]*" required></label>
+            <label><span class="sr">Digit 6</span><input class="ea-d" type="text" inputmode="numeric" autocomplete="off" maxlength="1" pattern="[0-9]*" required></label>
+          </div>
+          <input type="hidden" name="code" value="">
           <p class="mf-err" data-err="code" aria-live="polite" hidden></p>
         </div>
         <p class="ea-go"><button type="button" class="btn btn-light" data-verifycode>Check the code</button>
