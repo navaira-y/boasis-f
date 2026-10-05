@@ -23,6 +23,7 @@ scripts/spark-stub.js                 the same rules on a laptop, no Supabase ne
 scripts/make-qr.js                    the stand QR, made here rather than at a web generator
 docs/qr/try-mira.png                  the code, 1200px, for screens and slides
 docs/qr/try-mira.svg                  the same code as vector, for print, with the orb inside it
+docs/qr/try-mira-card.html            the one file to open and crop: the picture is inside it
 ```
 
 The three demo files sit where the site's own files sit, so there is nothing to assemble and
@@ -42,7 +43,7 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
-## What the page is, and the eleven things that differ from the design file
+## What the page is, and the twelve things that differ from the design file
 
 `try-mira.html` carries `Page salon Mira - EN.html`: its markup, its copy, its four points, its
 two offers, its form fields and its footer, with the styles inline in the one file. A test reads
@@ -68,8 +69,8 @@ the page and refuses anything else. Eleven differences, each for a reason that i
 9. the site's `favicon.ico`, `favicon-32.png` and `apple-touch-icon.png` are in the head, so the
    tab carries the mark. The design file shipped none;
 10. the paint is boasis.ae's own, which the owner asked for on 5 October 2026, in these words:
-    the header as the home page writes it, the capsule at its measure and its height with the fill
-    left out because the owner made this one transparent, only the logo inside and no links,
+    the header as the home page writes it, the capsule at its measure, its height and its fill, with
+    only the logo inside and no links,
     the orb in the middle of its space, no
     second background behind the form, one gradient across the whole page, the glass of the site,
     the form on the right and the other things on the left, and the four points of `How it works`
@@ -78,7 +79,12 @@ the page and refuses anything else. Eleven differences, each for a reason that i
     of navy into teal the registration page uses. The test reads those four values out of the two
     site stylesheets and requires them here, so the light stays the site's light and cannot
     quietly become someone's taste;
-11. the country code is not a `<select>`. The owner asked for the picker the other forms use, so
+11. the phone is the page's main size, because it is the size a stand is. Under 700px the first
+    section reads down the middle, the three tags centre under it, the form moves above the four
+    points, the fields go to 54px and the button to the full width of the card, and the last line
+    clears the bar at the bottom of the screen. The country panel is clamped to the viewport so it
+    cannot hang off the side. A test reads those rules and requires them;
+12. the country code is not a `<select>`. The owner asked for the picker the other forms use, so
     the markup is `/early-access`'s word for word, the `.cc-*` and `.mf-*` rules are copied out of
     `css/site.css` as written there, and the behaviour is the shared `js/countries.js`: a closed
     control that says `AE +971`, a panel with a search box, the list of dial codes in the file,
@@ -89,9 +95,10 @@ plate behind the hero, its form on the left, and its native select. Everything a
 still the file's words, and the fields are still the ones the plan allows.
 
 The bar is `css/site.css`'s `.nav`, `.nav-bar`, `.brand` and `.nav .brand` copied rule for rule, and
-a test rebuilds the site's `.nav-bar` line, deletes `background:rgba(11,13,18,.97)`, and requires
-the two strings to match. That is the whole of the difference: one property, taken out, never
-retuned. The page's own measure is `min(100% - 56px, 1124px)`, which is the site's `.wrap` (1180
+a test rebuilds the site's `.nav-bar` line and requires the two strings to match, property for
+property. For a while it matched with `background:rgba(11,13,18,.97)` deleted, which is what was
+asked for and what then read as nothing at all over the drifting light; the owner asked for the
+solid bar back, and there is now no difference between the two files to explain. The page's own measure is `min(100% - 56px, 1124px)`, which is the site's `.wrap` (1180
 less 28px each side) and the width the bar is cut to, so the mark lines up with the headings under
 it the way it does on the home page.
 
@@ -116,6 +123,12 @@ takes the teal once, so the four points stay joined and nothing moves.
 
 `docs/qr/try-mira.png` and `docs/qr/try-mira.svg` encode one address, `https://boasis.ae/try-mira`
 and nothing else, so scanning lands the visitor on the form with Mira's orb in the middle of it.
+
+For the picture on a screen or in a slide, open `docs/qr/try-mira-card.html`: it is one file with the
+PNG inside it as data, nothing external to load, the code on the night of the brand with the address
+under it. Crop tight around the white square and you have the print file; take the whole picture and
+you have the one for the stand screen. Printing it sends the dark and the address away by itself.
+
 Four things about it are not taste:
 
 - **error correction H**, which is what lets the orb stand in the middle at all. The ring is 8

@@ -61,12 +61,12 @@ a{text-decoration:none}
 .sky i:nth-child(4){width:min(140vw,1700px); height:120%; left:50%; top:38%; translate:-50% -50%; filter:blur(40px); opacity:.9; background:radial-gradient(closest-side, rgba(23,54,94,.8), rgba(95,211,232,.12) 55%, rgba(11,13,18,0)); animation:none}
 @keyframes drift{to{transform:translate(8vw,6vh) scale(1.1)}}
 
-/* header · the capsule from css/site.css, the same width, the same height, the same hairline and
-   the same shadow. One property is gone, and it is the one the owner took out on the other site:
-   on boasis.ae the bar is filled with rgba(11,13,18,.97), here it is transparent, so the light of
-   the page is what you see inside it. Nothing else is retuned, and a test compares the rules. */
+/* header · the capsule from css/site.css, rule for rule and property for property: the width, the
+   height, the hairline, the shadow, and the solid fill of the brand behind the logo. It was left
+   out once on request and put back on request, and it is the site's line either way, so a test
+   compares it with css/site.css and there is nothing here of ours. */
 .nav{position:fixed;left:0;right:0;top:0;z-index:50;display:flex;justify-content:center;padding:14px 28px 0;pointer-events:none}
-.nav-bar{position:relative;pointer-events:auto;display:flex;align-items:center;gap:clamp(10px,1.2vw,14px);width:min(100%,1124px);height:60px;padding:0 9px 0 26px;border-radius:999px;border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 44px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.2)}
+.nav-bar{position:relative;pointer-events:auto;display:flex;align-items:center;gap:clamp(10px,1.2vw,14px);width:min(100%,1124px);height:60px;padding:0 9px 0 26px;border-radius:999px;background:rgba(11,13,18,.97);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 44px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.2)}
 .nav .brand{font-size:20px;color:#fff}
 
 /* Hero · one field of light, the orb held in the middle of its own column */
@@ -84,8 +84,12 @@ a{text-decoration:none}
 .orbwrap .fallback{width:72%; height:72%; filter:drop-shadow(0 0 40px rgba(95,211,232,.35))}
 .orbwrap.live .fallback{display:none}
 .orbwrap .mira{position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; place-items:center; text-align:center; font-family:var(--display)}
-.orbwrap .mira b{display:block; font-size:38px; font-weight:500}
-.orbwrap .mira span{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--bo-teal); text-transform:uppercase}
+/* the name sits in the middle of the ring, and the ring is a ring: laid over the water it cut
+   across the letters, so the words now stand on a chip of the brand's own night. The orb still
+   shows around it, and at any width the letters have ground under them, never water */
+.orbwrap .mira > div{padding:12px 20px; border-radius:999px; background:rgba(11,13,18,.55); border:1px solid rgba(95,211,232,.22); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px)}
+.orbwrap .mira b{display:block; font-size:clamp(26px,2.6vw,38px); font-weight:500; line-height:1.1}
+.orbwrap .mira span{font-family:var(--mono); font-size:clamp(9px,.9vw,11px); letter-spacing:.14em; color:var(--bo-teal); text-transform:uppercase}
 
 /* The panels · glass on the one background, nothing painted behind a section */
 .card{background:var(--glass); border:1px solid var(--hair); border-radius:22px; padding:28px; backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%); box-shadow:0 40px 80px -50px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06)}
@@ -231,12 +235,35 @@ footer .brand{font-size:16px; color:var(--heading)}
   .side{grid-template-columns:1fr 1fr}
   .side>.card{grid-column:1/-1}
 }
-/* Téléphone : la form d'abord, le reste après */
+/* Téléphone : la form d'abord, le reste après, et tout le premier écran centré.
+   The phone is how this page is actually seen, so it is not a squeezed desktop: the hero is read
+   down the middle, the orb and its name keep their distance from the ring, the pills sit on one
+   line under the headline, and the cards, the offers and the panel of country codes give the
+   thumb the room the 28px gutters of the wide page do not need. */
 @media (max-width:699px){
-  .hero-in{grid-template-columns:1fr; padding-bottom:44px}
-  .orbwrap{max-width:230px; order:-1}
-  .main{grid-template-columns:1fr}
+  .hero-in{grid-template-columns:1fr; padding-top:calc(74px + 18px); padding-bottom:36px; text-align:center; gap:20px}
+  .hero .sub{margin-left:auto; margin-right:auto; font-size:16px; max-width:34ch}
+  .orbwrap{max-width:236px; order:-1}
+  .orbwrap .mira > div{padding:9px 16px}
+  .facts{justify-content:center; gap:6px; margin-top:16px}
+  .facts span{font-size:13px; padding:6px 12px}
+  .main{grid-template-columns:1fr; gap:14px; padding:0 0 48px}
   #start{order:-1}
+  .card{padding:22px 18px; border-radius:20px}
+  .card h2{font-size:24px}
+  .offer{padding:20px 18px}
+  .offer h3{font-size:19px}
+  .big{font-size:34px}
+  .step b{font-size:17px}
+  .field > input,.mf-pill input{height:54px; font-size:16px}
+  .cc-pop{width:min(252px, calc(100vw - 72px))}
+  .mf-phone .mf-code{padding:0 20px 0 14px}   /* the number keeps its room once the pill is narrow */
+  .cta{width:100%}
+  .fine{max-width:34ch; margin-left:auto; margin-right:auto}
+}
+/* the safe area at the bottom of a phone, so the last line of the page is not under the bar */
+@supports (padding:env(safe-area-inset-bottom)){
+  footer{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
 }
 /* Écrans tactiles : champs plus grands, pas de zoom automatique */
 @media (pointer:coarse){
@@ -308,8 +335,8 @@ footer .brand{font-size:16px; color:var(--heading)}
       <p class="lead">A few details, then you talk to Mira.</p>
       <form id="eventForm" novalidate>
         <div class="hp" aria-hidden="true"><label>Website<input name="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
-        <div class="field"><label for="full_name">Full name</label><input id="full_name" name="full_name" type="text" autocomplete="name" required><p class="err" data-err="full_name"></p></div>
-        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><p class="err" data-err="email"></p></div>
+        <div class="field"><label for="full_name">Full name</label><input id="full_name" name="full_name" type="text" autocomplete="name" autocapitalize="words" required><p class="err" data-err="full_name"></p></div>
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required><p class="err" data-err="email"></p></div>
         <div class="field"><label for="phone">Phone <small>(WhatsApp preferred)</small></label>
           <div class="mf-pill mf-phone">
             <div class="mf-code" data-cc>
@@ -322,7 +349,7 @@ footer .brand{font-size:16px; color:var(--heading)}
               </div>
               <input type="hidden" name="country_code" value="+971">
             </div>
-            <label><span class="sr">Phone</span><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Enter your phone number" required></label>
+            <label><span class="sr">Phone</span><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" autocapitalize="none" spellcheck="false" placeholder="Enter your phone number" required></label>
           </div><p class="err" data-err="phone"></p></div>
         <div class="field"><span style="font-size:14px;font-weight:600">Do you live in the UAE?</span><div class="choice" role="radiogroup" aria-label="Do you live in the UAE?"><label><input type="radio" name="residence" value="uae"><span>Yes, I live here</span></label><label><input type="radio" name="residence" value="abroad"><span>No, I live abroad</span></label></div></div>
         <label class="consent"><input type="checkbox" name="consent" required><span>I agree that Boasis and SPARK may contact me about my project.</span></label>

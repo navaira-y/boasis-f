@@ -24,6 +24,10 @@
  *   node scripts/make-qr.js                    → docs/qr/try-mira.png and .svg, then the check
  *   node scripts/make-qr.js --size=2400        → a bigger PNG for a bigger print
  *   node scripts/make-qr.js --url=https://…    → another address, same rules
+ *
+ * Three files come out: the PNG, the SVG for print, and one HTML file with the code inside it, for
+ * opening on any machine and cropping the picture you want. The picture is in that file as data, so
+ * the file does not depend on what sits next to it.
  */
 'use strict';
 
@@ -57,6 +61,39 @@ try {
   process.exit(1);
 }
 
+/* the page that carries the picture: nothing external in it, so it works off a USB stick */
+function card(b64, url) {
+  const shown = url.replace(/^https?:\/\//, '');        // the address as the code encodes it, less the scheme
+  return `<!doctype html>
+<!-- The QR for the stand, in one file, with the picture inside it. Open it anywhere and crop. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${url}</title>
+<style>
+:root{--night:#0B0D12;--teal:#5FD3E8}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(1100px 620px at 50% -8%, rgba(95,211,232,.14), transparent 62%),
+  radial-gradient(900px 520px at 92% 96%, rgba(79,110,247,.12), transparent 60%), var(--night);
+  color:#fff; display:grid; place-items:center; padding:40px; box-sizing:border-box;
+  font-family:'PP Neue Montreal',ui-sans-serif,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.stack{display:grid; justify-items:center; gap:24px; max-width:100%}
+img{display:block; width:min(74vh, 92vw, 900px); height:auto; border-radius:18px; box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.addr{font-family:'PP Neue Machina','PP Neue Montreal',ui-sans-serif,sans-serif; font-weight:700;
+  letter-spacing:.08em; font-size:clamp(20px,3.4vh,34px)}
+.addr b{color:var(--teal); font-weight:700}
+.hint{color:rgba(233,240,247,.6); font-size:clamp(13px,1.7vh,15px); margin-top:8px; text-align:center}
+@media print{body{background:#fff; padding:0; display:block}
+  img{box-shadow:none; border-radius:0; width:100%; max-width:170mm}
+  .skip{display:none}}
+</style></head><body>
+<div class="stack">
+<img alt="QR code for ${url}" src="data:image/png;base64,${b64}">
+<div class="skip"><div class="addr">${shown.replace('.ae', '<b>.ae</b>')}</div>
+<div class="hint">Point the camera of a phone at the code. It opens the page, and the code works as the key.</div></div>
+</div></body></html>
+`;
+}
+
 /* the code, as a grid of modules */
 function symbol(url) {
   const sym = qrLib.create(url, { errorCorrectionLevel: LEVEL });
@@ -66,7 +103,7 @@ function symbol(url) {
 
 /* the orb, measured rather than assumed: where its visible pixels actually are */
 async function logoBox() {
-  const file = nodePath.join(ROOT, LOGO);
+  const file = nodePath.resolve(ROOT, LOGO);
   const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   let x0 = info.width, y0 = info.height, x1 = -1, y1 = -1;
   for (let y = 0; y < info.height; y++) {
@@ -116,7 +153,7 @@ async function build() {
   const d = runs.map(([c, r, w]) => `M${(c + QUIET) * U} ${(r + QUIET) * U}h${w * U}v${U}h${-w * U}z`).join('');
   const big = span * U;
   const ratio = (logo.box.y1 - logo.box.y0 + 1) / (logo.box.x1 - logo.box.x0 + 1);
-  const b64 = fs.readFileSync(nodePath.join(ROOT, LOGO)).toString('base64');
+  const b64 = fs.readFileSync(nodePath.resolve(ROOT, LOGO)).toString('base64');
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${side} ${side}" width="${side}" height="${side}">
 <!-- ${URL_TO_ENCODE} · error correction ${LEVEL} · quiet zone ${QUIET} modules · ${(covered * 100).toFixed(1)}% of the modules step out of the orb's way -->
@@ -126,12 +163,20 @@ async function build() {
 </svg>
 `;
 
-  const dir = nodePath.join(ROOT, OUT);
+  /* resolve, not join: join(ROOT, '/tmp/somewhere') hides a folder inside the repo, which is how
+     an --out= that looks absolute ends up writing next to the source */
+  const dir = nodePath.resolve(ROOT, OUT);
   fs.mkdirSync(dir, { recursive: true });
   const svgTo = nodePath.join(dir, 'try-mira.svg');
   const pngTo = nodePath.join(dir, 'try-mira.png');
   fs.writeFileSync(svgTo, svg);
   await sharp(Buffer.from(svg), { density: 300 }).resize(SIZE, SIZE).png({ compressionLevel: 9 }).toFile(pngTo);
+
+  /* the one file you can open and crop: the PNG as data, on the night of the brand, with the address
+     under it. Crop tight around the white square for print, or take the whole picture for a screen.
+     On paper it prints the code alone, because the dark around it would only drink the toner. */
+  const cardTo = nodePath.join(dir, 'try-mira-card.html');
+  fs.writeFileSync(cardTo, card(fs.readFileSync(pngTo).toString('base64'), URL_TO_ENCODE));
 
   /* the same picture at four sizes, each read back by a decoder. The small ones are what a phone
      camera really sees: a printed card across a loud hall, at arm's length, in bad light. */
@@ -146,7 +191,7 @@ async function build() {
   console.log('  symbol    ' + s.n + 'x' + s.n + ' modules, version ' + s.version + ', error correction ' + LEVEL);
   console.log('  quiet     ' + QUIET + ' modules of white on all four sides');
   console.log('  the orb   ' + span + ' modules across, with ' + (covered * 100).toFixed(1) + '% of the code standing out of its way');
-  console.log('  files     ' + nodePath.relative(ROOT, pngTo) + ' (' + SIZE + 'px) and ' + nodePath.relative(ROOT, svgTo) + ' (vector, for print)');
+  console.log('  files     ' + [pngTo, svgTo, cardTo].map(f => nodePath.relative(ROOT, f)).join(', '));
   console.log('  reads     ' + reads.join(' · '));
   if (reads.some(r => /FAILED/.test(r))) process.exitCode = 1;
 }

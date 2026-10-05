@@ -96,12 +96,14 @@ test('the page wears the site look: one sky, glass panels, and the four points o
   assert.match(html, /<html lang="en" data-theme="dark">/, 'the page is night on every machine, not on the setting of one laptop');
   assert.match(css, /:root\[data-theme="dark"\], :root\{/, 'and the values are written once, for that case and for no js at all');
   assert.match(html, /<style>[\s\S]{0,400}?--bo-night:#0B0D12[\s\S]*?<\/style>/, 'the brand tokens, in the page own style block');
+  assert.match(css, /\.orbwrap \.mira > div\{[^}]*border-radius:999px[^}]*backdrop-filter:blur\(8px\)/, 'the name in the orb stands on a chip, so the ring cannot cut across the letters');
   assert.match(html, /<meta name="color-scheme" content="dark">/, 'the same answer for the parts a browser draws by itself');
   assert.match(html, /<meta name="theme-color" content="#0B0D12">/, 'and the night of the brand, which is what the home page asks for too');
   assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the site fonts, the same three families at the same weights');
 
-  /* the header: the home page's own floating capsule, at its own measure, with only the fill
-     taken out, because the owner made this one transparent. Every other property is the site's. */
+  /* the header: the home page's own floating capsule, at its own measure, filled with the night of
+     the brand. One property was taken out once on request and put back on request; it is now the
+     site's rule entire, so there is no difference left to explain */
   assert.match(html, /<header class="nav">\s*<div class="nav-bar">\s*<a class="brand" href="https:\/\/boasis\.ae\/"[^>]*>B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>\s*<\/div>\s*<\/header>/, 'the header is the site own bar with the logo, and one child only');
   assert.ok(!/class="tabs"|nav-wait|nav-contact|tab-dot/.test(html), 'no links, no button, no dot: the bar carries the mark and nothing else');
   for (const sel of ['.nav', '.nav .brand', '.brand', '.brand img']) {
@@ -111,9 +113,9 @@ test('the page wears the site look: one sky, glass panels, and the four points o
   const open_rule = (t) => tight(t).replace(/}$/, '');   // rule() stops before the brace, a line does not
   const siteBar = site.split('\n').find(l => l.startsWith('.nav-bar{')) || '';
   assert.ok(siteBar.length > 0, 'css/site.css has the bar to compare against');
-  assert.equal(open_rule(rule('.nav-bar')), open_rule(siteBar).replace('background:rgba(11,13,18,.97);', ''),
-    '.nav-bar is the site rule with exactly one property removed, and no other edit');
-  assert.ok(!/background/.test(rule('.nav-bar')), 'the one removed property is the fill: the capsule is transparent, the light of the page shows inside it');
+  assert.equal(open_rule(rule('.nav-bar')), open_rule(siteBar),
+    '.nav-bar is css/site.css entire, nothing removed and nothing added');
+  assert.match(rule('.nav-bar'), /background:rgba\(11,13,18,\.97\)/, 'the bar carries the solid night of the brand, the site own value');
   assert.match(rule('.nav-bar'), /border-radius:999px/, 'it is still the capsule, and not a bar with corners');
   assert.match(rule('.nav'), /position:fixed[\s\S]*z-index:50/, 'it floats over the page at the site own height in the stack');
   assert.match(rule('.hero-in'), /padding:calc\(74px/, 'and the hero starts below it, at 14px of top padding plus the 60px of the bar');
@@ -204,6 +206,38 @@ test('the page wears the site look: one sky, glass panels, and the four points o
   for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(ROOT, m[1])), 'and ' + m[1] + ' is a file the site really has');
   }
+});
+
+test('the phone is how this page gets read, so it has its own rules and not a squeezed desktop', () => {
+  const html = HTML();
+  const css = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
+  const at = css.indexOf('@media (max-width:699px){');
+  assert.ok(at > 0, 'there is a block for a narrow screen');
+  const end = css.indexOf('\n}', at);
+  const phone = css.slice(at, end);
+  const base = css.slice(0, at);
+  assert.ok(end > at, 'and it is closed');
+  assert.ok(css.indexOf('}', end) < css.indexOf('@media (prefers-reduced-motion'), 'and it comes after the base rules, so it wins where they disagree');
+
+  assert.match(phone, /\.hero-in\{[^}]*text-align:center/, 'the first section reads down the middle');
+  assert.match(phone, /\.hero \.sub\{[^}]*margin-left:auto[^}]*margin-right:auto/, 'the sentence under the headline centres with it');
+  assert.match(phone, /\.facts\{[^}]*justify-content:center/, 'the three tags are centred under it, not left in a ragged row');
+  assert.match(phone, /\.facts span\{[^}]*font-size:13px/, 'and they are sized for a phone, not for 1120px');
+  assert.match(phone, /#start\{order:-1\}/, 'the form comes first, above the four points: at a stand the thing to do is type');
+  assert.match(phone, /\.card\{[^}]*padding:22px 18px/, 'the cards give the thumb the room the wide page does not need');
+  assert.match(phone, /\.field > input,\.mf-pill input\{height:54px/, 'every typed field is 54px tall on a phone');
+  assert.match(phone, /\.cta\{width:100%\}/, 'and the button is the whole width of the card, which is the thing you aim for');
+  assert.match(phone, /\.cc-pop\{width:min\(252px, calc\(100vw - 72px\)\)\}/, 'the country panel cannot hang off the side of the screen');
+  assert.match(css, /env\(safe-area-inset-bottom\)/, 'and the last line clears the bar at the bottom of a phone');
+
+  /* the two fields iOS likes to spoil: a capital A in an email address, and a spellcheck squiggle
+     under a phone number, both of which arrive as typos in the lead file */
+  assert.match(html, /name="email"[^>]*autocapitalize="none"[^>]*spellcheck="false"/, 'the address is typed as typed');
+  assert.match(html, /name="phone"[^>]*autocapitalize="none"[^>]*spellcheck="false"/, 'and the number is not underlined as a mistake');
+
+  /* the label in the orb is sized with the orb, which is what stops the cut on a small screen */
+  assert.match(css, /\.orbwrap \.mira b\{display:block; font-size:clamp\(26px,2\.6vw,38px\)/, 'the name scales with the circle it stands in');
+  assert.match(base, /\.orbwrap\{[^}]*max-width:340px/, 'and the wide page keeps the orb it had');
 });
 
 test('the form asks only what the plan says it may ask', () => {
@@ -355,9 +389,21 @@ test('the stand QR reads, and the web cannot fetch it back', async (t) => {
   assert.match(svg.slice(0, 500), /https:\/\/boasis\.ae\/try-mira · error correction H · quiet zone 4 modules/, 'the file says what it is, so nobody reprints the wrong thing');
   assert.match(svg, /<path fill="#0B0D12" d="M/, 'the code is modules in the page colour on white, not a picture of one');
 
+  /* the one file the owner asked for: open it anywhere, crop the picture. The point of it is that
+     nothing outside it is needed, so the PNG has to be inside as data and there may be no request
+     out to a network, a font, or the folder sitting next to it */
+  const cardFile = path.join(dir, 'try-mira-card.html');
+  assert.ok(fs.existsSync(cardFile), 'docs/qr/try-mira-card.html is there to open');
+  const card = fs.readFileSync(cardFile, 'utf8');
+  assert.match(card, /<img[^>]*src="data:image\/png;base64,[A-Za-z0-9+/]{4096,}/, 'the card holds the picture itself, as data');
+  assert.ok(!/(?:src|href)="(?:https?:)?\/\//.test(card), 'and asks nothing of a network or of a folder next to it');
+  assert.match(card, /class="addr">boasis</, 'and shows the address under the code, the way the code encodes it');
+  assert.ok(!/[\u200b\u200e\u202a-\u202e\u00ad]/.test(card), 'with no hidden character in it, in case a person copies that line');
+  assert.match(card, /@media print\{[\s\S]*?\.skip\{display:none\}/, 'and on paper the dark and the words step out of the way');
+
   /* it lives under docs/ because that prefix is closed to the web: a QR in /assets/ would be a
      guessable file that hands the entrance address to anything that comes looking for it */
-  for (const p of ['/docs/qr/try-mira.png', '/docs/qr/try-mira.svg', '/assets/qr/try-mira.png']) {
+  for (const p of ['/docs/qr/try-mira.png', '/docs/qr/try-mira.svg', '/docs/qr/try-mira-card.html', '/assets/qr/try-mira.png']) {
     assert.equal((await get(p)).status, 404, p + ' must not be fetchable, saw ' + (await get(p)).status);
   }
   assert.ok(!/qr|try-mira/.test(read('index.html')), 'and no page of the site points at it');
@@ -380,6 +426,7 @@ test('the stand QR reads, and the web cannot fetch it back', async (t) => {
   assert.equal(done.c, 0, 'the generator says the code reads back at four sizes, saw:\n' + done.log);
   assert.match(done.log, /reads +600px ok · 600px ok · 320px ok · 160px ok/);
   assert.match(done.log, /symbol +33x33 modules, version 4, error correction H/);
+  assert.ok(fs.existsSync(path.join(out, 'try-mira-card.html')), 'and it writes the card file beside them');
   } finally {
     fs.rmSync(out, { recursive: true, force: true });   // a failing run leaves nothing behind
   }
