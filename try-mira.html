@@ -1,7 +1,8 @@
 <!doctype html>
-<!-- data-theme is the design file own switch. Without it the page follows the light or dark
-     setting of whatever machine opens it, so the same page is dark on one laptop and white on
-     another. The demo is on a stand, so it is pinned to the dark of the brand. -->
+<!-- The look of this page is boasis.ae's own: the night of the brand, the three drifting lights
+     behind everything, and glass panels on top of them. One background for the whole page, no
+     second plate behind the form. The light that runs round the form box is the site's teal,
+     and it is pure CSS: no script, nothing on scroll. -->
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
@@ -26,41 +27,49 @@
   /* BOASIS brand tokens, from boasis.ae/css/tokens.css */
   --bo-night:#0B0D12; --bo-navy:#17365E; --bo-blue:#0E86C4; --bo-teal:#5FD3E8;
   --bo-day:#F4F7FB; --bo-white:#FFFFFF; --bo-ink:#14202A; --bo-muted:#3A4A5E; --bo-line:#E3E9F1; --bo-blue-text:#0B74AC;
-  --bg:var(--bo-day); --surface:var(--bo-white); --text:var(--bo-ink); --muted:var(--bo-muted); --line:var(--bo-line);
-  --heading:var(--bo-navy); --accent:var(--bo-blue-text); --soft:#E6F3FA; --err:#B3261E;
   --display:'Outfit',system-ui,sans-serif; --body:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:var(--bo-night); --surface:#111A26; --text:#fff; --muted:#B4C7DA; --line:#1C2431;
-    --heading:#fff; --accent:var(--bo-teal); --soft:#12283D; --err:#F2B8B5;
-  }
-}
-:root[data-theme="dark"]{
+:root[data-theme="dark"], :root{
+  /* the page is night on every machine, so the values are written once, not chosen by a setting */
   --bg:var(--bo-night); --surface:#111A26; --text:#fff; --muted:#B4C7DA; --line:#1C2431;
   --heading:#fff; --accent:var(--bo-teal); --soft:#12283D; --err:#F2B8B5;
+  /* the two numbers a panel is made of on boasis.ae: rgba(255,255,255,.04) over .16 */
+  --glass:rgba(255,255,255,.04); --hair:rgba(255,255,255,.16);
 }
 *{box-sizing:border-box}
-body{margin:0; background:var(--bg); color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55}
+html,body{background:var(--bg)}
+body{margin:0; overflow-x:clip; color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:var(--display); font-weight:500; margin:0; color:var(--heading); letter-spacing:-.01em; text-wrap:balance}
 p{margin:0}
+a{color:var(--bo-teal)}
 .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
 .brand{font-family:var(--display); font-weight:500; letter-spacing:.08em; display:inline-flex; align-items:center; color:inherit; text-decoration:none}
 .brand img{width:1.06em; height:1.06em; margin:0 .02em; transform:translateY(-.02em)}
 
-/* Hero */
-.hero{background:radial-gradient(900px 560px at 78% 30%, rgba(14,134,196,.35), transparent 65%), var(--bo-night); color:#fff}
-.nav{max-width:1120px; margin:0 auto; padding:16px 16px; display:flex; justify-content:space-between; align-items:center}
-.nav .brand{font-size:22px; color:#fff}
-.nav .tag{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bo-teal); border:1px solid rgba(95,211,232,.35); border-radius:999px; padding:6px 12px}
-.hero-in{max-width:1120px; margin:0 auto; padding:4px 16px 64px; display:grid; grid-template-columns:1.3fr .7fr; gap:32px; align-items:center}
+/* the sky · the site's own light, fixed behind the whole page */
+.sky{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
+.sky i{position:absolute; border-radius:50%; filter:blur(80px); opacity:.75; will-change:transform; animation:drift 30s ease-in-out infinite alternate}
+.sky i:nth-child(1){width:70vw; height:70vw; left:-15vw; top:-20vw; background:radial-gradient(circle, rgba(23,54,94,.9), transparent 62%)}
+.sky i:nth-child(2){width:60vw; height:60vw; right:-20vw; top:10vh; background:radial-gradient(circle, rgba(14,134,196,.55), transparent 60%); animation-duration:36s; animation-direction:alternate-reverse}
+.sky i:nth-child(3){width:50vw; height:50vw; left:30vw; bottom:-30vw; background:radial-gradient(circle, rgba(95,211,232,.32), transparent 60%); animation-duration:44s}
+@keyframes drift{to{transform:translate(8vw,6vh) scale(1.1)}}
+
+/* header · the logo, alone, on the same light as everything under it. No bar, no capsule */
+.top{position:sticky; top:0; z-index:4; display:flex; justify-content:center; padding:18px 0 14px; background:linear-gradient(180deg, rgba(11,13,18,.92), rgba(11,13,18,0))}
+.top .bar{width:min(100% - 32px,1120px); display:flex; align-items:center}
+.top .brand{font-size:21px; color:#fff}
+
+/* Hero · one field of light, the orb held in the middle of its own column */
+.hero{position:relative; z-index:1}
+.hero-in{width:min(100% - 32px,1120px); margin:0 auto; padding:clamp(20px,4vh,44px) 0 clamp(44px,8vh,84px); display:grid; grid-template-columns:1.12fr .88fr; gap:clamp(24px,4vw,48px); align-items:center}
 .hero .eyebrow{color:var(--bo-teal)}
 .hero h1{color:#fff; font-size:clamp(30px,3.6vw,46px); line-height:1.06; margin-top:0}
 .hero h1 em{font-style:normal; color:var(--bo-teal)}
-.hero .sub{color:#B4C7DA; font-size:17px; max-width:52ch; margin-top:12px}
+.hero .sub{color:var(--muted); font-size:17px; max-width:52ch; margin-top:12px}
 .facts{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
-.facts span{border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.05); border-radius:999px; padding:7px 14px; font-size:14px}
-.orbwrap{position:relative; aspect-ratio:1; max-width:350px; width:100%; justify-self:center; display:grid; place-items:center; margin:-78px 0 -40px}
+.facts span{border:1px solid var(--hair); background:var(--glass); border-radius:999px; padding:7px 14px; font-size:14px}
+.orbwrap{position:relative; isolation:isolate; aspect-ratio:1; width:100%; max-width:340px; margin:0 auto; justify-self:center; display:grid; place-items:center}
+.orbwrap::before{content:""; position:absolute; z-index:-1; inset:4%; border-radius:50%; background:radial-gradient(circle, rgba(95,211,232,.2), rgba(14,134,196,.1) 42%, transparent 68%); filter:blur(18px); pointer-events:none}
 #orb{position:absolute; inset:0; margin:auto}
 .orbwrap .fallback{width:72%; height:72%; filter:drop-shadow(0 0 40px rgba(95,211,232,.35))}
 .orbwrap.live .fallback{display:none}
@@ -68,87 +77,102 @@ p{margin:0}
 .orbwrap .mira b{display:block; font-size:38px; font-weight:500}
 .orbwrap .mira span{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--bo-teal); text-transform:uppercase}
 
-/* Form card */
-.main{max-width:1120px; margin:-40px auto 0; padding:0 16px 64px; display:grid; grid-template-columns:1.05fr .95fr; gap:20px; align-items:start; position:relative}
-.card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px; box-shadow:0 30px 60px -40px rgba(23,54,94,.5)}
+/* The panels · glass on the one background, nothing painted behind a section */
+.card{background:var(--glass); border:1px solid var(--hair); border-radius:22px; padding:28px; backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%); box-shadow:0 40px 80px -50px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06)}
+.main{width:min(100% - 32px,1120px); margin:0 auto; padding:0 0 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:20px; align-items:start; position:relative; z-index:1}
 .card h2{font-size:28px}
 .card .lead{color:var(--muted); margin-top:6px}
 form{display:grid; gap:14px; margin-top:22px}
 .field{display:grid; gap:6px}
 .field label{font-size:14px; font-weight:600}
 .field label small{font-weight:400; color:var(--muted)}
-input[type=text],input[type=email],input[type=tel],select,textarea{font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px 14px; width:100%}
-textarea{min-height:84px; resize:vertical}
-input:focus,select:focus,textarea:focus{outline:none; border-color:var(--bo-blue); box-shadow:0 0 0 3px var(--soft)}
 
-/* Champs modernisés */
-input[type=text],input[type=email],input[type=tel],select,textarea{background-color:var(--surface); border:1.5px solid var(--line); transition:border-color .2s, box-shadow .2s}
-input[type=text]:hover,input[type=email]:hover,input[type=tel]:hover,select:hover,textarea:hover{border-color:#B9CCE0}
+/* Champs, on glass */
+input[type=text],input[type=email],input[type=tel],select,textarea{font:inherit; color:var(--text); background-color:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.14); border-radius:12px; padding:12px 14px; width:100%; transition:border-color .2s, box-shadow .2s, background-color .2s}
+input::placeholder,textarea::placeholder{color:#7E93AC}
+textarea{min-height:84px; resize:vertical}
+input:hover,select:hover,textarea:hover{border-color:rgba(255,255,255,.3)}
+input:focus,select:focus,textarea:focus{outline:none; border-color:var(--bo-teal); background-color:rgba(95,211,232,.05); box-shadow:0 0 0 3px rgba(95,211,232,.16)}
 select{appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230E86C4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:14px; padding-right:34px; cursor:pointer; font-weight:500}
+/* what Chrome paints over a field it remembers, kept in the page's own night */
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:#fff; -webkit-box-shadow:0 0 0 1000px #0F1B27 inset; border-color:rgba(95,211,232,.4)}
 .choice{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 .choice label{position:relative; cursor:pointer}
 .choice input{position:absolute; opacity:0; inset:0; cursor:pointer}
-.choice span{display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; text-align:center; font-size:15px; font-weight:500; color:var(--text); background:var(--surface); transition:all .2s}
-.choice span::before{content:""; width:16px; height:16px; border-radius:50%; border:1.5px solid #B9CCE0; flex:none; transition:all .2s}
-.choice label:hover span{border-color:#B9CCE0}
-.choice input:checked+span{border-color:var(--bo-blue); background:var(--soft); color:var(--heading); font-weight:600}
-.choice input:checked+span::before{border-color:var(--bo-blue); background:var(--bo-blue); box-shadow:inset 0 0 0 3px var(--surface)}
-.choice input:focus-visible+span{box-shadow:0 0 0 3px var(--soft)}
+.choice span{display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border:1.5px solid rgba(255,255,255,.14); border-radius:12px; padding:10px 12px; text-align:center; font-size:15px; font-weight:500; color:var(--text); background:rgba(255,255,255,.04); transition:all .2s}
+.choice span::before{content:""; width:16px; height:16px; border-radius:50%; border:1.5px solid rgba(255,255,255,.28); flex:none; transition:all .2s}
+.choice label:hover span{border-color:rgba(255,255,255,.3)}
+.choice input:checked+span{border-color:var(--bo-teal); background:rgba(95,211,232,.12); color:#fff; font-weight:600}
+.choice input:checked+span::before{border-color:var(--bo-teal); background:var(--bo-teal); box-shadow:inset 0 0 0 3px #11212C}
+.choice input:focus-visible+span{box-shadow:0 0 0 3px rgba(95,211,232,.16)}
 @media (max-width:420px){.choice{grid-template-columns:1fr}}
 
 .two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 @media (max-width:480px){.two{grid-template-columns:1fr}}
 .phone{display:grid; grid-template-columns:118px 1fr; gap:8px}
 .consent{display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--muted)}
-.consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-blue)}
+.consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-teal)}
 .err{color:var(--err); font-size:13px; min-height:0}
 .err:empty{display:none}
 .hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
-.cta{font:600 17px var(--body); color:#fff; background:var(--bo-navy); border:0; border-radius:999px; padding:16px 22px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:10px; transition:background .2s}
-.cta:hover{background:var(--bo-blue)}
+.cta{font:600 17px var(--body); color:#fff; background:linear-gradient(180deg,#1B4F86, var(--bo-navy)); border:0; border-radius:999px; padding:16px 22px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:10px; transition:background .2s, box-shadow .3s, transform .2s; box-shadow:0 18px 40px -22px rgba(14,134,196,.9), inset 0 1px 0 rgba(255,255,255,.18)}
+.cta:hover{background:var(--bo-blue); box-shadow:0 22px 46px -20px rgba(95,211,232,.7), inset 0 1px 0 rgba(255,255,255,.22)}
+.cta:active{transform:translateY(1px)}
 .cta:disabled{opacity:.6; cursor:wait}
 .cta .dot{width:10px; height:10px; border-radius:50%; background:var(--bo-teal); box-shadow:0 0 12px var(--bo-teal)}
 .fine{font-size:12px; color:var(--muted); text-align:center}
 .done{display:none; text-align:center; gap:14px; padding:20px 0 6px}
 .done.on{display:grid}
-.done .ok{width:56px; height:56px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-size:26px; margin:0 auto}
+.done .ok{width:56px; height:56px; border-radius:50%; background:rgba(95,211,232,.14); border:1px solid rgba(95,211,232,.4); color:var(--bo-teal); display:grid; place-items:center; font-size:26px; margin:0 auto}
 .done a.cta{text-decoration:none}
 
-/* Side */
-.side{display:grid; gap:14px}
+/* The box that breathes: one line of light runs round the frame, its glow lifts the text
+   a little where it passes, and it never stops and never waits for the scroll. */
+.beam{padding:1px; overflow:hidden; isolation:isolate; background:rgba(255,255,255,.1)}
+.beam::before,.beam::after{content:""; position:absolute; left:50%; top:50%; width:250%; height:250%; translate:-50% -50%; pointer-events:none; will-change:rotate; animation:sweep 7s linear infinite}
+.beam::before{z-index:0; background:conic-gradient(from 90deg, transparent 0 56%, rgba(14,134,196,.45) 64%, rgba(95,211,232,.9) 72%, #fff 74.5%, rgba(95,211,232,.9) 77%, rgba(14,134,196,.45) 85%, transparent 92%)}
+.beam::after{z-index:2; filter:blur(30px); opacity:.34; mix-blend-mode:plus-lighter; background:conic-gradient(from 90deg, transparent 0 62%, rgba(95,211,232,.85) 74%, transparent 88%)}
+.beam > .beam-in{position:relative; z-index:1; border-radius:21px; padding:28px; background:linear-gradient(180deg, rgba(16,25,37,.86), rgba(11,13,18,.9))}
+/* 250% in both axes, so the cone is wider and taller than the box at every angle. A square
+   sized on the width alone stops short of the top and bottom of a tall card on a phone. */
+@keyframes sweep{to{rotate:360deg}}
+
+/* Side, on the left: the four points and the two offers, in the same glass */
+.side{display:grid; gap:14px; align-content:start}
 .steps{display:grid; gap:10px}
 .step{display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
-.step .n{width:36px; height:36px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-family:var(--display); font-weight:600}
+.step .n{width:36px; height:36px; border-radius:50%; background:rgba(95,211,232,.12); border:1px solid rgba(95,211,232,.3); color:var(--bo-teal); display:grid; place-items:center; font-family:var(--display); font-weight:600}
 .step b{font-family:var(--display); font-weight:500; font-size:18px; color:var(--heading)}
 .step span{display:block; color:var(--muted); font-size:14px}
-.offer{border-radius:18px; padding:22px; display:grid; gap:6px}
-.offer.gift{background:var(--soft)}
-.offer.ds{background:var(--bo-night); color:#fff}
+.offer{border:1px solid var(--hair); border-radius:20px; padding:22px; display:grid; gap:6px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:border-color .3s, transform .3s}
+.offer:hover{border-color:rgba(95,211,232,.34); transform:translateY(-2px)}
+.offer.gift{background:linear-gradient(180deg, rgba(95,211,232,.14), rgba(255,255,255,.04))}
+.offer.ds{background:linear-gradient(180deg, rgba(23,54,94,.55), rgba(11,13,18,.65)); color:#fff}
 .offer.ds h3{color:#fff}
-.offer.ds p{color:#B4C7DA}
+.offer.ds p{color:var(--muted)}
 .offer.ds .eyebrow{color:var(--bo-teal)}
 .offer h3{font-size:21px}
 .offer p{color:var(--muted); font-size:15px}
-.big{font-family:var(--display); font-size:44px; line-height:1; color:var(--accent); font-weight:500}
+.big{font-family:var(--display); font-size:44px; line-height:1; color:var(--bo-teal); font-weight:500}
 
-footer{border-top:1px solid var(--line); padding:24px 16px; text-align:center; color:var(--muted); font-size:13px}
+footer{border-top:1px solid rgba(255,255,255,.08); padding:24px 16px; text-align:center; color:#8FA6BE; font-size:13px}
 footer .brand{font-size:16px; color:var(--heading)}
 
 /* Tablette (iPad portrait et paysage) */
 @media (min-width:700px) and (max-width:1100px){
-  .hero-in{grid-template-columns:1.4fr .6fr; gap:24px; padding:16px 24px 64px}
-  .orbwrap{max-width:260px; margin:0}
-  .nav{padding:20px 24px}
-  .main{grid-template-columns:1fr; padding:0 24px 56px; margin-top:-32px}
+  .hero-in{grid-template-columns:1.25fr .75fr; gap:24px}
+  .orbwrap{max-width:260px}
+  .main{grid-template-columns:1fr}
   .side{grid-template-columns:1fr 1fr}
   .side>.card{grid-column:1/-1}
   .side .steps{grid-template-columns:1fr 1fr; gap:16px 24px}
 }
-/* Téléphone */
+/* Téléphone : la form d'abord, le reste après */
 @media (max-width:699px){
-  .hero-in{grid-template-columns:1fr; padding-bottom:64px}
-  .orbwrap{max-width:240px; order:-1; margin:0}
-  .main{grid-template-columns:1fr; margin-top:-32px}
+  .hero-in{grid-template-columns:1fr; padding-bottom:44px}
+  .orbwrap{max-width:230px; order:-1}
+  .main{grid-template-columns:1fr}
+  #start{order:-1}
 }
 /* Écrans tactiles : champs plus grands, pas de zoom automatique */
 @media (pointer:coarse){
@@ -159,16 +183,26 @@ footer .brand{font-size:16px; color:var(--heading)}
   .consent input{width:22px; height:22px; margin-top:1px}
   .cta{padding:18px 24px; font-size:18px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* moins de mouvement : la lumière reste, elle ne court plus */
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .sky i,.beam::before,.beam::after{animation:none}
+  .beam::before{background:conic-gradient(from 90deg, rgba(14,134,196,.5), rgba(95,211,232,.8) 40%, transparent 70%)}
+  .beam::after{opacity:.18}
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="nav">
-    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
 
+<header class="top">
+  <div class="bar">
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
   </div>
+</header>
+
+<header class="hero">
   <div class="hero-in">
     <div>
       <h1>Be the first to try <em>Mira</em></h1>
@@ -180,7 +214,31 @@ footer .brand{font-size:16px; color:var(--heading)}
 </header>
 
 <main class="main">
-  <section class="card" id="start">
+  <aside class="side">
+    <div class="card">
+      <div class="eyebrow">How it works</div>
+      <div class="steps" style="margin-top:14px">
+        <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
+        <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
+        <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
+        <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
+      </div>
+    </div>
+    <div class="offer gift" data-offer="boasis-year">
+      <div class="eyebrow">Show offer</div>
+      <div class="big">1 year</div>
+      <h3>of free company management</h3>
+      <p>For every SPARK licence signed during the show, your company is managed in the Boasis portal for a full year.</p>
+    </div>
+    <div class="offer ds" data-offer="digital-spark">
+      <div class="eyebrow">Digital Spark</div>
+      <h3>Living abroad?</h3>
+      <p>Open your SPARK company without coming to the UAE, with 100% ownership. Visa optional.</p>
+    </div>
+  </aside>
+
+  <section class="card beam" id="start">
+    <div class="beam-in">
     <div id="formView">
       <h2>Start here</h2>
       <p class="lead">A few details, then you talk to Mira.</p>
@@ -209,30 +267,8 @@ footer .brand{font-size:16px; color:var(--heading)}
       <p class="lead">If she didn't open automatically, click below.</p>
       <a class="cta" id="miraLink" href="#"><span class="dot"></span>Open Mira</a>
     </div>
+    </div>
   </section>
-
-  <aside class="side">
-    <div class="card">
-      <div class="eyebrow">How it works</div>
-      <div class="steps" style="margin-top:14px">
-        <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
-        <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
-        <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
-        <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
-      </div>
-    </div>
-    <div class="offer gift" data-offer="boasis-year">
-      <div class="eyebrow">Show offer</div>
-      <div class="big">1 year</div>
-      <h3>of free company management</h3>
-      <p>For every SPARK licence signed during the show, your company is managed in the Boasis portal for a full year.</p>
-    </div>
-    <div class="offer ds" data-offer="digital-spark">
-      <div class="eyebrow">Digital Spark</div>
-      <h3>Living abroad?</h3>
-      <p>Open your SPARK company without coming to the UAE, with 100% ownership. Visa optional.</p>
-    </div>
-  </aside>
 </main>
 
 <footer><a class="brand" href="https://boasis.ae/">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>

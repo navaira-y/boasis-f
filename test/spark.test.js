@@ -80,37 +80,88 @@ test('nothing on the site leads a crawler to it, and robots.txt is the one that 
   assert.ok(!/Sitemap:[^\n]*try-mira/.test(robots), 'and it is in no sitemap');
 });
 
-test('the page is the design file, and the only differences from it are the intended ones', () => {
+test('the page wears the site look: one sky, glass panels, and a light that runs round the box', () => {
   const html = HTML();
+  const css = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
+  const rule = (sel) => {
+    const at = css.indexOf(sel + '{');
+    assert.ok(at >= 0, 'the page styles ' + sel);
+    return css.slice(at, css.indexOf('}', at));
+  };
+  const tight = (t) => t.replace(/\s+/g, '');
 
-  /* what "exactly like the html one" means in this repo: the design's own markup and its own
-     styles, inline in the one file, hero and header and cards and footer as they were written.
-     Nothing is restyled and nothing is added for effect: the colours below are the design's own,
-     reached through the design's own switch. */
-  assert.match(html, /<html lang="en" data-theme="dark">/, 'the theme is pinned with data-theme, which is the rule the design style block already carries');
-  assert.match(html, /:root\[data-theme="dark"\]\{/, 'and that rule is the design own, untouched');
-  assert.match(html, /<meta name="color-scheme" content="dark">/, 'the same answer for what the browser draws itself: the select list, the scrollbars, autofill');
-  assert.match(html, /<style>[\s\S]{0,400}?--bo-night:#0B0D12[\s\S]*?<\/style>/, 'the design tokens, in the design own style block, in the page itself');
-  assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the design fonts');
-  assert.match(html, /<div class="nav">\s*<a class="brand" href="https:\/\/boasis\.ae\/" aria-label="BOASIS">B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>/, 'the design header: the logo, alone, as it stands in the file');
-  assert.ok(!/nav-bar|class="tabs"|nav-wait/.test(html), 'no menu, no button, no bar of our own invention');
-  assert.match(html, /<div class="orbwrap"><img class="fallback" src="\/assets\/logo\/orb-512\.png" alt=""><div id="orb"><\/div>/, 'the orb, with the still image behind it');
-  assert.match(html, /<aside class="side">[\s\S]*<div class="eyebrow">How it works<\/div>\s*<div class="steps" style="margin-top:14px">/, 'the four points in the panel beside the form, exactly where the design puts them');
-  assert.equal((html.match(/<div class="step"><div class="n">\d<\/div>/g) || []).length, 4, 'four of them, numbered, as written');
-  assert.match(html, /<div class="offer gift" data-offer="boasis-year">[\s\S]*?1 year[\s\S]*?<div class="offer ds" data-offer="digital-spark">/, 'and the two offer cards under it');
-  assert.match(html, /<footer><a class="brand" href="https:\/\/boasis\.ae\/">[\s\S]*?Boasis - FZC · support@boasis\.ae<\/p><\/footer>/, 'the design footer');
+  /* the night, pinned, with the brand tokens and the site own colour-scheme for what the
+     browser paints itself: the select list, the scrollbars, the yellow of autofill */
+  assert.match(html, /<html lang="en" data-theme="dark">/, 'the page is night on every machine, not on the setting of one laptop');
+  assert.match(css, /:root\[data-theme="dark"\], :root\{/, 'and the values are written once, for that case and for no js at all');
+  assert.match(html, /<style>[\s\S]{0,400}?--bo-night:#0B0D12[\s\S]*?<\/style>/, 'the brand tokens, in the page own style block');
+  assert.match(html, /<meta name="color-scheme" content="dark">/, 'the same answer for the parts a browser draws by itself');
+  assert.match(html, /<meta name="theme-color" content="#0B0D12">/, 'and the night of the brand, which is what the home page asks for too');
+  assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the site fonts, the same three families at the same weights');
 
-  /* the differences, all of them deliberate and each with a reason that is not taste */
+  /* the header: the logo and nothing else, no links, and not the floating capsule of the home page */
+  assert.match(html, /<header class="top">\s*<div class="bar">\s*<a class="brand" href="https:\/\/boasis\.ae\/" aria-label="BOASIS">B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>/, 'the header is the logo, alone');
+  assert.ok(!/nav-bar|class="tabs"|nav-wait|nav-contact/.test(html), 'no links, no button, no menu of our own invention');
+  assert.ok(!/border-radius/.test(rule('.top')), 'and no capsule: the bar carries no pill of its own');
+  assert.match(rule('.top'), /position:sticky/, 'it stays at the top as you scroll, the way the site bar does');
+
+  /* one background for the whole page: the sky, fixed, the three lights of the home page */
+  assert.match(html, /<div class="sky" aria-hidden="true"><i><\/i><i><\/i><i><\/i><\/div>/, 'the same three lights the home page drifts behind its sections');
+  assert.match(rule('.sky'), /position:fixed[\s\S]*z-index:-1[\s\S]*pointer-events:none/, 'behind everything, and it never takes a click');
+  const site = read('css/site.css');
+  const skyRules = (site.match(/^\.sky i:nth-child\(\d\)\{.*$/gm) || []);
+  assert.equal(skyRules.length, 3, 'the home page drifts three lights, so the sky rule is read three times');
+  for (const line of skyRules) {
+    const glow2 = /radial-gradient\((.*?)\)(?=[;}])/.exec(line);
+    const want = glow2[0];
+    assert.ok(tight(css).includes(tight(want)), 'and the light is copied, not invented: ' + want);
+  }
+  assert.ok(!/background/.test(rule('.hero')), 'the hero paints no plate of its own');
+  assert.ok(!/background/.test(rule('.main')), 'nor does the section the form stands in: one page, one background');
+  for (const m of css.match(/\.hero-in\{[^}]*\}|\.main\{[^}]*\}/g) || []) {
+    assert.ok(!/background/.test(m), 'and that holds for ' + m.slice(0, m.indexOf('{')));
+  }
+
+  /* glass, with the site own two numbers for a panel */
+  assert.match(rule('.card'), /background:var\(--glass\)/, 'a panel is the light of the page, dimmed');
+  assert.match(css, /--glass:rgba\(255,255,255,\.04\); --hair:rgba\(255,255,255,\.16\)/, 'the same .04 over .16 the home page uses on its cards');
+  for (const sel of ['.card', '.offer']) {
+    assert.match(rule(sel), /backdrop-filter:blur\(\d+px\)[^;]*; -webkit-backdrop-filter:blur/, sel + ' blurs what is behind it, and ships the prefix Safari still needs');
+  }
+
+  /* the form on the right, the other things on the left, and the orb held in its middle */
+  assert.ok(html.indexOf('<aside class="side">') < html.indexOf('id="start"'), 'the four points and the offers come first, so they sit left of the form');
+  assert.match(rule('.main'), /grid-template-columns:minmax\(0,\.9fr\) minmax\(0,1\.1fr\)/, 'and the form takes the wider half of the row');
+  assert.match(rule('.orbwrap'), /margin:0 auto/, 'the orb is centred in its own column');
+  assert.ok(!/margin:-\d/.test(rule('.orbwrap') + rule('.main') + rule('.orbwrap')), 'and nothing is pulled up or down out of its section any more');
+  assert.match(rule('.hero-in'), /align-items:center/, 'the two halves of the hero meet in the middle');
+
+  /* the box that breathes: one line of light, round the frame, forever, and its glow lifts the
+     text where it passes. Pure CSS, no scroll, no script, and still on a machine that asks for less movement */
+  assert.match(rule('.beam'), /padding:1px; overflow:hidden/, 'the frame is one pixel wide, so the line is a line');
+  for (const pseudo of ['.beam::before', '.beam::after']) {
+    assert.match(css, new RegExp(pseudo.replace(/[.:*]/g, '\\$&') + '[^}]*animation:sweep 7s linear infinite'), pseudo + ' is on the same clock as the other');
+    assert.match(css, new RegExp(pseudo.replace(/[.:*]/g, '\\$&') + '[^}]*conic-gradient'), pseudo + ' is a cone of light, so it has a head and a tail');
+  }
+  assert.match(css, /\.beam::after\{[^}]*mix-blend-mode:plus-lighter/, 'the glow adds itself onto the text it passes over, which is what lightens it');
+  assert.match(css, /@keyframes sweep\{to\{rotate:360deg\}\}/, 'one full turn, then again, and nothing about the scroll');
+  const rm = /@media \(prefers-reduced-motion:reduce\)\{([\s\S]*?)\n\}/.exec(css);
+  assert.ok(rm && /\.beam::before,\.beam::after\{animation:none\}/.test(rm[1]), 'asked for less movement the light stands still instead of stopping dark');
+
+  /* the fields, still the design own, and still only what the plan may ask */
+  assert.match(css, /select\{appearance:none;[\s\S]{0,40}background-image:url\("data:image\/svg\+xml/, 'the design own arrow on the select, kept');
+  assert.match(css, /input:-webkit-autofill[^}]*-webkit-box-shadow:0 0 0 1000px/, 'and the night stays the night when the browser remembers a name for you');
+
+  /* what the page is allowed to carry, unchanged by any of the above */
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/, 'one meta tag, to keep the page out of the index');
-  assert.ok(!/<img[^>]*src="data:/.test(html), 'the two pasted base64 pictures are the site own files instead, same artwork');
-  assert.match(html, /select\{appearance:none;[\s\S]{0,40}background-image:url\("data:image\/svg\+xml/, 'and the design own css is verbatim, down to its inline arrow on the select');
+  assert.ok(!/<img[^>]*src="data:/.test(html), 'no picture carried as text');
   assert.ok(!/orbvid/.test(html), 'and the video is streamed from /assets rather than carried as text in the page');
   assert.ok(!/data-endpoint/.test(html), 'no address in the markup for the form to post at: it is in the script, where it can be read');
   assert.equal((html.match(/<script src="\/js\//g) || []).length, 2, 'two external scripts, because a policy of this site forbids inline script on every page');
-  assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script');
+  assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script: the light above is css, so it needs none');
   assert.match(html, /<p class="err" data-note><\/p>/, 'one empty line for a sentence the fields cannot carry, hidden while empty');
-  assert.match(html, /<link rel="icon" href="\/assets\/icons\/favicon\.ico" sizes="any">\s*<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/icons\/favicon-32\.png">\s*<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/, 'the site own three icons in the head, so the tab is not blank: the design file shipped none');
-  assert.match(html, /<meta name="theme-color" content="#0B0D12">/, 'and the night of the brand, which is what the home page asks for too');
+  assert.match(html, /<link rel="icon" href="\/assets\/icons\/favicon\.ico" sizes="any">\s*<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/icons\/favicon-32\.png">\s*<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/, 'the site own three icons in the head, so the tab is not blank');
+  assert.match(html, /<footer><a class="brand" href="https:\/\/boasis\.ae\/">[\s\S]*?Boasis - FZC · support@boasis\.ae<\/p><\/footer>/, 'and the footer the design file has');
   assert.ok(!/demo\/spark|\.\.\/|css\/try-mira/.test(html), 'no bundle to assemble and no path that walks out of it');
   for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(ROOT, m[1])), 'and ' + m[1] + ' is a file the site really has');
