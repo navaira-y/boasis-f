@@ -50,7 +50,7 @@ test('the entrance answers at its own address, with its own headers', async () =
     assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post to the function, and that is the only widening');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script is still forbidden, so nothing about the demo loosens it');
   }
-  for (const p of ['/css/try-mira.css', '/js/try-mira.js', '/js/yara-orb.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
+  for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
     const r = await get(p);
     assert.equal(r.status, 200, p + ' has to be reachable or the page loads half dressed');
   }
@@ -62,7 +62,7 @@ test('the guard still owns the door: the folder the functions live in is not a p
     assert.equal(r.status, 404, p + ' must never be served, saw ' + r.status);
   }
   const cases = [
-    ['/try-mira', true], ['/try-mira.html', true], ['/css/try-mira.css', true], ['/js/try-mira.js', true],
+    ['/try-mira', true], ['/try-mira.html', true], ['/js/try-mira.js', true], ['/js/yara-orb.js', true],
     ['/demo/spark/index.html', false], ['/try-mira/../server.js', false], ['/try-mira.json', false],
   ];
   for (const [p, ok] of cases) {
@@ -80,17 +80,35 @@ test('nothing on the site leads a crawler to it, and robots.txt is the one that 
   assert.ok(!/Sitemap:[^\n]*try-mira/.test(robots), 'and it is in no sitemap');
 });
 
-test('the page is built the way this site is built', () => {
+test('the page is the design file, and the only differences from it are the intended ones', () => {
   const html = HTML();
-  assert.match(html, /<meta name="robots" content="noindex, nofollow">/, 'the page says it plainly to anything that reads the file');
-  assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'no inline script, because the policy of this site forbids it');
-  assert.match(html, /<link rel="stylesheet" href="\/css\/try-mira\.css">/, 'its css sits with the rest of the site css');
-  assert.match(html, /<script src="\/js\/try-mira\.js"><\/script>/, 'and its script with the rest of the site js');
-  assert.match(html, /<script src="\/js\/yara-orb\.js"><\/script>/, 'the orb is the site orb, not a copy that can drift');
+
+  /* what "exactly like the html one" means in this repo: the design's own markup and its own
+     styles, inline in the one file, hero and header and cards and footer as they were written.
+     Nothing is restyled, nothing is added for effect, and nothing is pinned or animated. */
+  assert.match(html, /<style>[\s\S]{0,400}?--bo-night:#0B0D12[\s\S]*?<\/style>/, 'the design tokens, in the design own style block, in the page itself');
+  assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the design fonts');
+  assert.match(html, /<div class="nav">\s*<a class="brand" href="https:\/\/boasis\.ae\/" aria-label="BOASIS">B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>/, 'the design header: the logo, alone, as it stands in the file');
+  assert.ok(!/nav-bar|class="tabs"|nav-wait/.test(html), 'no menu, no button, no bar of our own invention');
+  assert.match(html, /<div class="orbwrap"><img class="fallback" src="\/assets\/logo\/orb-512\.png" alt=""><div id="orb"><\/div>/, 'the orb, with the still image behind it');
+  assert.match(html, /<aside class="side">[\s\S]*<div class="eyebrow">How it works<\/div>\s*<div class="steps" style="margin-top:14px">/, 'the four points in the panel beside the form, exactly where the design puts them');
+  assert.equal((html.match(/<div class="step"><div class="n">\d<\/div>/g) || []).length, 4, 'four of them, numbered, as written');
+  assert.match(html, /<div class="offer gift" data-offer="boasis-year">[\s\S]*?1 year[\s\S]*?<div class="offer ds" data-offer="digital-spark">/, 'and the two offer cards under it');
+  assert.match(html, /<footer><a class="brand" href="https:\/\/boasis\.ae\/">[\s\S]*?Boasis - FZC · support@boasis\.ae<\/p><\/footer>/, 'the design footer');
+
+  /* the differences, all of them deliberate and each with a reason that is not taste */
+  assert.match(html, /<meta name="robots" content="noindex, nofollow">/, 'one meta tag, to keep the page out of the index');
+  assert.ok(!/<img[^>]*src="data:/.test(html), 'the two pasted base64 pictures are the site own files instead, same artwork');
+  assert.match(html, /select\{appearance:none;[\s\S]{0,40}background-image:url\("data:image\/svg\+xml/, 'and the design own css is verbatim, down to its inline arrow on the select');
+  assert.ok(!/orbvid/.test(html), 'and the video is streamed from /assets rather than carried as text in the page');
+  assert.ok(!/data-endpoint/.test(html), 'no address in the markup for the form to post at: it is in the script, where it can be read');
+  assert.equal((html.match(/<script src="\/js\//g) || []).length, 2, 'two external scripts, because a policy of this site forbids inline script on every page');
+  assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script');
+  assert.match(html, /<p class="err" data-note><\/p>/, 'one empty line for a sentence the fields cannot carry, hidden while empty');
+  assert.ok(!/demo\/spark|\.\.\/|css\/try-mira/.test(html), 'no bundle to assemble and no path that walks out of it');
   for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(ROOT, m[1])), 'and ' + m[1] + ' is a file the site really has');
   }
-  assert.ok(!/demo\/spark|\.\.\//.test(html), 'no bundle to assemble and no path that walks out of it');
 });
 
 test('the form asks only what the plan says it may ask', () => {
@@ -118,17 +136,6 @@ test('the two addresses a person has to paste are empty on purpose', () => {
   assert.ok(!/https?:\/\/(?!fonts)/.test(cfg[1]), 'and neither one is filled in by a developer guessing later');
 });
 
-test('the header is the one every page of this site carries, with nothing added', () => {
-  const html = HTML();
-  assert.match(html, /<header class="nav">\s*<div class="nav-bar">/, 'the same two elements, in the same order as the home page');
-  assert.match(read('index.html'), /<header class="nav">\s*<div class="nav-bar">/, 'and the home page agrees');
-  assert.ok(html.indexOf('href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>') > 0, 'the logo, spelled as the site spells it');
-  assert.ok(!/class="tabs"|nav-wait|nav-contact/.test(html), 'no menu and no button, because there is nowhere else on this page to go');
-  const head = read('css/try-mira.css');
-  assert.match(head, /\.nav\{position:fixed/, 'the bar floats over the page the way it does on boasis.ae');
-  assert.match(head, /\.nav-bar\{position:relative; pointer-events:auto/, 'and the pill is the site\'s own, copied rather than invented');
-});
-
 test('the local rehearsal serves what the site serves, at the same address', async () => {
   /* this is the command the owner runs tonight, so it is tested rather than trusted */
   const stub = spawn(process.execPath, [path.join(ROOT, 'scripts/spark-stub.js')], {
@@ -148,7 +155,7 @@ test('the local rehearsal serves what the site serves, at the same address', asy
     assert.equal(printed.s, 200, 'the printed address answers, saw ' + log);
     assert.equal(bare.s, 200, 'and so does the root of the stub');
     assert.match(printed.b, /id="eventForm"/);
-    for (const p of ['/css/try-mira.css', '/js/try-mira.js', '/js/yara-orb.js', '/assets/logo/orb-512.png']) {
+    for (const p of ['/js/try-mira.js', '/js/yara-orb.js', '/assets/logo/orb-512.png']) {
       assert.equal((await at(p)).s, 200, p + ' has to be there for the page to look like the page');
     }
     /* the stub is the one that fills the endpoint in, so the rehearsal posts at itself */

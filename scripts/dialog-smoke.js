@@ -531,8 +531,8 @@ const challenge = () => {
   console.log('spark demo: the entrance page on boasis.ae, against a stubbed function');
   {
     const R = spath.resolve(__dirname, '..');
+    /* the css is inline in the page, as the design has it, so only the script is inlined here */
     const page = fs.readFileSync(spath.join(R, 'try-mira.html'), 'utf8')
-      .replace('<link rel="stylesheet" href="/css/try-mira.css">', '<style>' + fs.readFileSync(spath.join(R, 'css/try-mira.css'), 'utf8') + '</style>')
       .replace('<script src="/js/try-mira.js"></script>', '<script>' + fs.readFileSync(spath.join(R, 'js/try-mira.js'), 'utf8') + '</script>');
     const SPARK_URL = 'https://supabase.test/functions/v1/create-pass';
     const spark = async (send, opts) => {

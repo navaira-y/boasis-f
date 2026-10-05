@@ -1,28 +1,166 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mira · SPARK · AI Everything</title>
-<meta name="description" content="Try Mira, the AI trained on SPARK data. A few details, then you talk to her.">
-<!-- This page is the SPARK demo entrance. It is a page of this site, but it is on no menu,
-     in no sitemap and in no link anywhere: the QR code at the stand is how a person arrives.
-     It stays out of the index by this tag, by the Disallow line in robots.txt, and by the
-     X-Robots-Tag the server puts on it, because being found by Google is the one thing the
-     plan does not want. After the event the answer is to delete this file. -->
+<title>Mira · AI Everything</title>
+<meta name="description" content="Try Mira first, the AI trained on SPARK data.">
+<!-- The demo entrance. It is a page of this site and it is on no menu, in no sitemap and in no
+     link anywhere, so the QR at the stand is the only way in. It stays out of the index by this
+     tag, by the Disallow line in robots.txt and by the X-Robots-Tag the server puts on it.
+     After the event, the answer is to delete this file. -->
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/try-mira.css">
+<style>
+:root{
+  /* BOASIS brand tokens, from boasis.ae/css/tokens.css */
+  --bo-night:#0B0D12; --bo-navy:#17365E; --bo-blue:#0E86C4; --bo-teal:#5FD3E8;
+  --bo-day:#F4F7FB; --bo-white:#FFFFFF; --bo-ink:#14202A; --bo-muted:#3A4A5E; --bo-line:#E3E9F1; --bo-blue-text:#0B74AC;
+  --bg:var(--bo-day); --surface:var(--bo-white); --text:var(--bo-ink); --muted:var(--bo-muted); --line:var(--bo-line);
+  --heading:var(--bo-navy); --accent:var(--bo-blue-text); --soft:#E6F3FA; --err:#B3261E;
+  --display:'Outfit',system-ui,sans-serif; --body:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:var(--bo-night); --surface:#111A26; --text:#fff; --muted:#B4C7DA; --line:#1C2431;
+    --heading:#fff; --accent:var(--bo-teal); --soft:#12283D; --err:#F2B8B5;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:var(--bo-night); --surface:#111A26; --text:#fff; --muted:#B4C7DA; --line:#1C2431;
+  --heading:#fff; --accent:var(--bo-teal); --soft:#12283D; --err:#F2B8B5;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55}
+h1,h2,h3{font-family:var(--display); font-weight:500; margin:0; color:var(--heading); letter-spacing:-.01em; text-wrap:balance}
+p{margin:0}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+.brand{font-family:var(--display); font-weight:500; letter-spacing:.08em; display:inline-flex; align-items:center; color:inherit; text-decoration:none}
+.brand img{width:1.06em; height:1.06em; margin:0 .02em; transform:translateY(-.02em)}
+
+/* Hero */
+.hero{background:radial-gradient(900px 560px at 78% 30%, rgba(14,134,196,.35), transparent 65%), var(--bo-night); color:#fff}
+.nav{max-width:1120px; margin:0 auto; padding:16px 16px; display:flex; justify-content:space-between; align-items:center}
+.nav .brand{font-size:22px; color:#fff}
+.nav .tag{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bo-teal); border:1px solid rgba(95,211,232,.35); border-radius:999px; padding:6px 12px}
+.hero-in{max-width:1120px; margin:0 auto; padding:4px 16px 64px; display:grid; grid-template-columns:1.3fr .7fr; gap:32px; align-items:center}
+.hero .eyebrow{color:var(--bo-teal)}
+.hero h1{color:#fff; font-size:clamp(30px,3.6vw,46px); line-height:1.06; margin-top:0}
+.hero h1 em{font-style:normal; color:var(--bo-teal)}
+.hero .sub{color:#B4C7DA; font-size:17px; max-width:52ch; margin-top:12px}
+.facts{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+.facts span{border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.05); border-radius:999px; padding:7px 14px; font-size:14px}
+.orbwrap{position:relative; aspect-ratio:1; max-width:350px; width:100%; justify-self:center; display:grid; place-items:center; margin:-78px 0 -40px}
+#orb{position:absolute; inset:0; margin:auto}
+.orbwrap .fallback{width:72%; height:72%; filter:drop-shadow(0 0 40px rgba(95,211,232,.35))}
+.orbwrap.live .fallback{display:none}
+.orbwrap .mira{position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; place-items:center; text-align:center; font-family:var(--display)}
+.orbwrap .mira b{display:block; font-size:38px; font-weight:500}
+.orbwrap .mira span{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--bo-teal); text-transform:uppercase}
+
+/* Form card */
+.main{max-width:1120px; margin:-40px auto 0; padding:0 16px 64px; display:grid; grid-template-columns:1.05fr .95fr; gap:20px; align-items:start; position:relative}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px; box-shadow:0 30px 60px -40px rgba(23,54,94,.5)}
+.card h2{font-size:28px}
+.card .lead{color:var(--muted); margin-top:6px}
+form{display:grid; gap:14px; margin-top:22px}
+.field{display:grid; gap:6px}
+.field label{font-size:14px; font-weight:600}
+.field label small{font-weight:400; color:var(--muted)}
+input[type=text],input[type=email],input[type=tel],select,textarea{font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px 14px; width:100%}
+textarea{min-height:84px; resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none; border-color:var(--bo-blue); box-shadow:0 0 0 3px var(--soft)}
+
+/* Champs modernisés */
+input[type=text],input[type=email],input[type=tel],select,textarea{background-color:var(--surface); border:1.5px solid var(--line); transition:border-color .2s, box-shadow .2s}
+input[type=text]:hover,input[type=email]:hover,input[type=tel]:hover,select:hover,textarea:hover{border-color:#B9CCE0}
+select{appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230E86C4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:14px; padding-right:34px; cursor:pointer; font-weight:500}
+.choice{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.choice label{position:relative; cursor:pointer}
+.choice input{position:absolute; opacity:0; inset:0; cursor:pointer}
+.choice span{display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; text-align:center; font-size:15px; font-weight:500; color:var(--text); background:var(--surface); transition:all .2s}
+.choice span::before{content:""; width:16px; height:16px; border-radius:50%; border:1.5px solid #B9CCE0; flex:none; transition:all .2s}
+.choice label:hover span{border-color:#B9CCE0}
+.choice input:checked+span{border-color:var(--bo-blue); background:var(--soft); color:var(--heading); font-weight:600}
+.choice input:checked+span::before{border-color:var(--bo-blue); background:var(--bo-blue); box-shadow:inset 0 0 0 3px var(--surface)}
+.choice input:focus-visible+span{box-shadow:0 0 0 3px var(--soft)}
+@media (max-width:420px){.choice{grid-template-columns:1fr}}
+
+.two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:480px){.two{grid-template-columns:1fr}}
+.phone{display:grid; grid-template-columns:118px 1fr; gap:8px}
+.consent{display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--muted)}
+.consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-blue)}
+.err{color:var(--err); font-size:13px; min-height:0}
+.err:empty{display:none}
+.hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
+.cta{font:600 17px var(--body); color:#fff; background:var(--bo-navy); border:0; border-radius:999px; padding:16px 22px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:10px; transition:background .2s}
+.cta:hover{background:var(--bo-blue)}
+.cta:disabled{opacity:.6; cursor:wait}
+.cta .dot{width:10px; height:10px; border-radius:50%; background:var(--bo-teal); box-shadow:0 0 12px var(--bo-teal)}
+.fine{font-size:12px; color:var(--muted); text-align:center}
+.done{display:none; text-align:center; gap:14px; padding:20px 0 6px}
+.done.on{display:grid}
+.done .ok{width:56px; height:56px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-size:26px; margin:0 auto}
+.done a.cta{text-decoration:none}
+
+/* Side */
+.side{display:grid; gap:14px}
+.steps{display:grid; gap:10px}
+.step{display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
+.step .n{width:36px; height:36px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-family:var(--display); font-weight:600}
+.step b{font-family:var(--display); font-weight:500; font-size:18px; color:var(--heading)}
+.step span{display:block; color:var(--muted); font-size:14px}
+.offer{border-radius:18px; padding:22px; display:grid; gap:6px}
+.offer.gift{background:var(--soft)}
+.offer.ds{background:var(--bo-night); color:#fff}
+.offer.ds h3{color:#fff}
+.offer.ds p{color:#B4C7DA}
+.offer.ds .eyebrow{color:var(--bo-teal)}
+.offer h3{font-size:21px}
+.offer p{color:var(--muted); font-size:15px}
+.big{font-family:var(--display); font-size:44px; line-height:1; color:var(--accent); font-weight:500}
+
+footer{border-top:1px solid var(--line); padding:24px 16px; text-align:center; color:var(--muted); font-size:13px}
+footer .brand{font-size:16px; color:var(--heading)}
+
+/* Tablette (iPad portrait et paysage) */
+@media (min-width:700px) and (max-width:1100px){
+  .hero-in{grid-template-columns:1.4fr .6fr; gap:24px; padding:16px 24px 64px}
+  .orbwrap{max-width:260px; margin:0}
+  .nav{padding:20px 24px}
+  .main{grid-template-columns:1fr; padding:0 24px 56px; margin-top:-32px}
+  .side{grid-template-columns:1fr 1fr}
+  .side>.card{grid-column:1/-1}
+  .side .steps{grid-template-columns:1fr 1fr; gap:16px 24px}
+}
+/* Téléphone */
+@media (max-width:699px){
+  .hero-in{grid-template-columns:1fr; padding-bottom:64px}
+  .orbwrap{max-width:240px; order:-1; margin:0}
+  .main{grid-template-columns:1fr; margin-top:-32px}
+}
+/* Écrans tactiles : champs plus grands, pas de zoom automatique */
+@media (pointer:coarse){
+  input[type=text],input[type=email],input[type=tel],select,textarea{font-size:17px; min-height:52px; padding:14px 16px}
+  select{padding-right:36px}
+  .choice span{min-height:54px; font-size:16px}
+  .consent{font-size:15px}
+  .consent input{width:22px; height:22px; margin-top:1px}
+  .cta{padding:18px 24px; font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
 </head>
-<header class="nav">
-  <div class="nav-bar">
-    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
-  </div>
-</header>
+<body>
 
 <header class="hero">
+  <div class="nav">
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
+
+  </div>
   <div class="hero-in">
     <div>
       <h1>Be the first to try <em>Mira</em></h1>

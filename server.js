@@ -346,7 +346,7 @@ app.use((req, res, next) => {
 
 /* The SPARK demo entrance: one page of this site, at /try-mira, reached from the QR code at
    the stand and from no link anywhere. After the event, closing it is deleting
-   try-mira.html, css/try-mira.css, js/try-mira.js and the Disallow line in robots.txt.
+   try-mira.html, js/try-mira.js and the Disallow line in robots.txt.
 
    It is answered with its own content policy rather than the site's, because the site's
    forbids exactly the one thing this page has to do: a POST to the Supabase function that

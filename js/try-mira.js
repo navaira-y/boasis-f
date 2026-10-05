@@ -34,17 +34,18 @@
   var F = form ? form.elements : {};
   var opened = Date.now();
 
-  /* ── the orb, the same one the home page carries ─────────────────────────────
-     If the video is not there, or the visitor asked for less motion, the still image the
-     markup ships stays put. The page never waits on this: it is decoration over a form. */
+  /* ── the orb, the site's own, sized the way the design sizes it ──────────────
+     Same call the design file makes, with the video taken from /assets instead of pasted in
+     as text. YaraOrb draws one still frame when a visitor asks for less motion, so nothing
+     here has to decide that. If the video is not there the still image the markup ships
+     stays on screen, and the page never waits on this: it is decoration over a form. */
   (function orb() {
     var host = document.getElementById('orb');
     var wrap = host && host.closest('.orbwrap');
     if (!host || !window.YaraOrb) return;
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
     try {
-      window.YaraOrb.create({ host: host, size: 340, src: '/assets/orb/orb.mp4', color: [90, 170, 255] });
+      var size = Math.round(Math.min(420, (wrap && wrap.clientWidth) || 420));
+      window.YaraOrb.create({ host: host, size: size, src: '/assets/orb/orb.mp4', color: [90, 170, 255] });
       if (wrap) wrap.classList.add('live');
     } catch (e) { /* the fallback image is already on screen */ }
   })();

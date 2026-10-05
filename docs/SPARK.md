@@ -10,9 +10,9 @@ clicks a developer has to make tonight.
 ## What is in the repo
 
 ```
-try-mira.html                         the page, at boasis.ae/try-mira
-css/try-mira.css                        its styles, the site's own tokens
-js/try-mira.js                          the form: validation, the pass, the handoff, and the two
+try-mira.html                         the page, at boasis.ae/try-mira. It is the design file
+                                        itself: the markup and the styles, one file, unchanged
+js/try-mira.js                        the form: validation, the pass, the handoff, and the two
                                         addresses a developer pastes in at the top
 demo/supabase/functions/create-pass     the function the form posts to
 demo/supabase/functions/save-step     the function the Brain UI posts to after every step
@@ -38,13 +38,28 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
-## The header
+## What the page is, and the seven things that differ from the design file
 
-`try-mira.html` carries the header every page on boasis.ae carries, with the logo and nothing
-else. No menu, no button: there is nowhere else on this page to go. Its rules are copied from
-`css/site.css` into `css/try-mira.css` so the page stays one file, and if the site header ever
-changes, that copied block is the thing to refresh. Everything else on the page is the design
-file as it was given, including the `How it works` list in the panel beside the form.
+`try-mira.html` is `Page salon Mira - EN.html`, the design, with its styles inline in the one
+file, its hero, its header, its cards and its footer as written. A test reads the file and
+refuses anything else. Seven differences, each for a reason that is not taste:
+
+1. the two base64 pictures are the site's own files, `/assets/logo/orb-160.png` for the mark and
+   `/assets/logo/orb-512.png` for the still behind the orb, the same artwork at a usable size;
+2. the video is `/assets/orb/orb.mp4` rather than 627 KB of text in the page, which is the same
+   file the home page already streams;
+3. the orb script is `/js/yara-orb.js`, the site's own, and the form script is `/js/try-mira.js`:
+   a content policy of this site refuses inline script on every page, so script has to be a file;
+4. the form's `data-endpoint="/api/event"` is gone. Nothing lives at that address. The function url
+   is set in `js/try-mira.js`, where a person can see it and change it;
+5. `First name` and `Last name` are one `Full name` field, because the owner asked for one;
+6. one empty `<p class="err" data-note></p>` above the button, for the sentences a field cannot
+   carry, and `.err:empty{display:none}` in the design's own css keeps it invisible until it is
+   needed;
+7. the `noindex, nofollow` meta tag, plus the `X-Robots-Tag` header and the `Disallow` lines.
+
+The header is the design's: the logo, alone, at the top of the dark hero. Nothing else, so there
+is no menu to keep in step with the site.
 
 ## The one file per person
 
@@ -166,8 +181,8 @@ pass is the whole credential: no account, no token, and the pass shape is checke
 
 ## Closing it
 
-Four files, and it is gone: `try-mira.html`, `css/try-mira.css`, `js/try-mira.js`, and the
-`Disallow: /try-mira` lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap
+Three things, and it is gone: `try-mira.html`, `js/try-mira.js`, and the `Disallow: /try-mira`
+lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap
 entry mentions it, so there is nothing to unpublish and no redirect to leave behind. The Supabase
 functions are on their own host, so deleting the page is enough to stop new passes; the bucket
 stays for the owner to read, keep or empty.
