@@ -22,7 +22,7 @@ const DIR = process.env.SPARK_BUCKET_DIR || fs.mkdtempSync(path.join(os.tmpdir()
 
 let core = null;
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.mp4': 'video/mp4', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json; charset=utf-8' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.mp4': 'video/mp4', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json; charset=utf-8', '.ico': 'image/x-icon' };
 const leadPath = (pass) => path.join(DIR, 'leads', pass + '.json');
 const emailPath = (email) => path.join(DIR, 'by-email', crypto.createHash('sha256').update('spark-demo-stub|' + email).digest('hex') + '.json');
 const readObj = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; } };

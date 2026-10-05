@@ -38,11 +38,11 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
-## What the page is, and the seven things that differ from the design file
+## What the page is, and the nine things that differ from the design file
 
 `try-mira.html` is `Page salon Mira - EN.html`, the design, with its styles inline in the one
 file, its hero, its header, its cards and its footer as written. A test reads the file and
-refuses anything else. Seven differences, each for a reason that is not taste:
+refuses anything else. Nine differences, each for a reason that is not taste:
 
 1. the two base64 pictures are the site's own files, `/assets/logo/orb-160.png` for the mark and
    `/assets/logo/orb-512.png` for the still behind the orb, the same artwork at a usable size;
@@ -56,7 +56,15 @@ refuses anything else. Seven differences, each for a reason that is not taste:
 6. one empty `<p class="err" data-note></p>` above the button, for the sentences a field cannot
    carry, and `.err:empty{display:none}` in the design's own css keeps it invisible until it is
    needed;
-7. the `noindex, nofollow` meta tag, plus the `X-Robots-Tag` header and the `Disallow` lines.
+7. the `noindex, nofollow` meta tag, plus the `X-Robots-Tag` header and the `Disallow` lines;
+8. `<html lang="en" data-theme="dark">`. The design page has two skins and picks one by the
+   setting of the machine that opens it, so on a laptop left in light mode the same page is white
+   with a dark hero. The style block already carries the `data-theme="dark"` rule; the page only
+   names it, so every screen at the stand shows the dark of the brand. The colours are the
+   design's own, none of them ours;
+9. the site's `favicon.ico`, `favicon-32.png` and `apple-touch-icon.png` in the head, with
+   `theme-color` and `color-scheme: dark`, so the tab carries the mark and the browser's own parts
+   of a form (the country list, the scrollbars, the yellow of autofill) are dark with the page.
 
 The header is the design's: the logo, alone, at the top of the dark hero. Nothing else, so there
 is no menu to keep in step with the site.

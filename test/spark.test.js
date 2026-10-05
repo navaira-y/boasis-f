@@ -85,7 +85,11 @@ test('the page is the design file, and the only differences from it are the inte
 
   /* what "exactly like the html one" means in this repo: the design's own markup and its own
      styles, inline in the one file, hero and header and cards and footer as they were written.
-     Nothing is restyled, nothing is added for effect, and nothing is pinned or animated. */
+     Nothing is restyled and nothing is added for effect: the colours below are the design's own,
+     reached through the design's own switch. */
+  assert.match(html, /<html lang="en" data-theme="dark">/, 'the theme is pinned with data-theme, which is the rule the design style block already carries');
+  assert.match(html, /:root\[data-theme="dark"\]\{/, 'and that rule is the design own, untouched');
+  assert.match(html, /<meta name="color-scheme" content="dark">/, 'the same answer for what the browser draws itself: the select list, the scrollbars, autofill');
   assert.match(html, /<style>[\s\S]{0,400}?--bo-night:#0B0D12[\s\S]*?<\/style>/, 'the design tokens, in the design own style block, in the page itself');
   assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the design fonts');
   assert.match(html, /<div class="nav">\s*<a class="brand" href="https:\/\/boasis\.ae\/" aria-label="BOASIS">B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>/, 'the design header: the logo, alone, as it stands in the file');
@@ -105,6 +109,8 @@ test('the page is the design file, and the only differences from it are the inte
   assert.equal((html.match(/<script src="\/js\//g) || []).length, 2, 'two external scripts, because a policy of this site forbids inline script on every page');
   assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script');
   assert.match(html, /<p class="err" data-note><\/p>/, 'one empty line for a sentence the fields cannot carry, hidden while empty');
+  assert.match(html, /<link rel="icon" href="\/assets\/icons\/favicon\.ico" sizes="any">\s*<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/icons\/favicon-32\.png">\s*<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/, 'the site own three icons in the head, so the tab is not blank: the design file shipped none');
+  assert.match(html, /<meta name="theme-color" content="#0B0D12">/, 'and the night of the brand, which is what the home page asks for too');
   assert.ok(!/demo\/spark|\.\.\/|css\/try-mira/.test(html), 'no bundle to assemble and no path that walks out of it');
   for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(ROOT, m[1])), 'and ' + m[1] + ' is a file the site really has');
