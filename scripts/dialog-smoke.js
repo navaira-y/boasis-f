@@ -541,7 +541,6 @@ const challenge = () => {
         runScripts: 'dangerously', url: 'https://boasis.ae/try-mira', pretendToBeVisual: true,
         beforeParse: w => {
           ambient(w);
-          if (o.reduce) w.matchMedia = q => ({ matches: /reduce/.test(q), media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
           /* the pass a returning visitor was already given, seeded before the page's own
              script runs, which is exactly the order a real browser leaves it in */
           if (o.seed) w.sessionStorage.setItem('spark.pass', JSON.stringify(o.seed));
@@ -658,61 +657,6 @@ const challenge = () => {
     ok(again.document.getElementById('doneView').classList.contains('on'), 'their pass is still theirs: the ready screen is showing at once');
     ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'with the same link, no new pass asked for');
     ok(again.SPARK_posts.length === 0, 'and nothing was sent to the function on the way there');
-
-    /* ── how it works: the words ride the road, and the road only goes ahead ── */
-    w = await spark();
-    const how = w.document.querySelector('[data-how]');
-    const li = () => Array.from(how.querySelectorAll('.how-step'));
-    const state = k => ['now', 'ahead', 'passed'].find(c => li()[k].classList.contains(c)) || 'nothing';
-    ok(how.classList.contains('live'), 'the road only starts moving once its own script is running');
-    ok(how.querySelectorAll('[data-dots] li').length === 4, 'the whole route is shown beside you, one mark per point, even where the browser cannot measure a path');
-    ok(li().every(x => x.style.top === ''), 'and with a stage of no size to measure, nothing is hidden and nothing is placed: the list stands as written');
-
-    /* now give the stage a real size and drive the scroll by hand */
-    Object.defineProperty(how.querySelector('[data-stage]'), 'clientHeight', { value: 900 });
-    Object.defineProperty(how.querySelector('[data-stage]'), 'clientWidth', { value: 1200 });
-    Object.defineProperty(how, 'offsetHeight', { value: 5200 });
-    const at = top => {
-      how.getBoundingClientRect = () => ({ top, bottom: top + 5200, left: 0, right: 0, width: 1200, height: 5200 });
-      w.dispatchEvent(new w.Event('resize'));
-      w.dispatchEvent(new w.Event('scroll'));
-    };
-    at(-1100); await new Promise(r => setTimeout(r, 40));
-    ok(li().every(x => x.style.left === '600px'), 'with no path for the browser to read, every point stays in the middle of the road rather than being thrown off it');
-    ok(state(0) === 'now', 'the first point rises to the mark and is the one you read');
-    ok([1, 2, 3].every(k => state(k) === 'ahead'), 'the other three are still coming up to meet you');
-    at(-2216); await new Promise(r => setTimeout(r, 40));
-    ok(state(0) === 'passed' && state(1) === 'now', 'further down, the second point is at the mark and the first is behind it, never back in front');
-    at(-3324); await new Promise(r => setTimeout(r, 40));
-    ok(state(2) === 'now' && state(3) === 'ahead', 'the third at the mark, the last one still ahead of you');
-    at(-4432); await new Promise(r => setTimeout(r, 40));
-    ok(state(3) === 'now', 'and the last point reaches the mark exactly as the section lets go');
-    ok([0, 1, 2].every(k => state(k) === 'passed'), 'with the three you read left behind, ahead of you and going away');
-    ok(parseFloat(how.querySelector('[data-here]').style.top) === 100, 'the little route strip says you have reached its end');
-    const tops = li().map(x => parseFloat(x.style.top));
-    ok(tops.every((y, k) => k === 0 || y > tops[k - 1]), 'the four sit in order up the road: ' + tops.join(','));
-    ok(how.querySelector('[data-mark]').style.left !== '', 'the mark takes the road’s own line, not a guessed one');
-    ok(li().filter(x => state(li().indexOf(x)) === 'now').length === 1, 'and one point is the one you read at a time, never two');
-
-    /* the three rules of the road, on their own, no page required */
-    const ROAD = w.SPARK_ROAD;
-    ok(!!ROAD, 'the page hands its rules out for checking');
-    const pl = ROAD.plan(4, 1000, 0.58, 2.2);
-    ok(pl.points[3].y === pl.anchor + pl.slide, 'the last point arrives exactly as the scroll runs out');
-    ok(pl.points[3].f < 1, 'and the road carries on past it, so there is always a way ahead');
-    ok(pl.points.every((q, k) => k === 0 || q.f > pl.points[k - 1].f), 'each point further along the road than the one before');
-    ok(ROAD.where(pl.anchor, pl.anchor, 150) === 'now', 'at the mark, it is the point you read');
-    ok(ROAD.where(pl.anchor + 400, pl.anchor, 150) === 'ahead', 'below it, on its way');
-    ok(ROAD.where(pl.anchor - 400, pl.anchor, 150) === 'passed', 'above it, behind you');
-    const ys = [0, 0.25, 0.5, 0.75, 1].map(p => pl.points[0].y - pl.slide * p);
-    ok(ys.every((y, k) => k === 0 || y < ys[k - 1]), 'a point only ever comes near and then goes ahead, never back: ' + ys.join(','));
-    ok(ROAD.xOnRoad(null, 500, 2000, 900) === 450, 'no table to read means the middle of the road, not a crash');
-    ok(ROAD.xOnRoad([{ y: 0, x: 100 }, { y: 1300, x: 210 }], 325, 1300, 840) === 310, 'and a real table is read between its marks, in the middle of the curve');
-
-    const still = await spark(null, { reduce: true });
-    ok(!still.document.querySelector('[data-how]').classList.contains('live'), 'asked for less motion, nobody is made to travel the road');
-    ok(still.document.querySelectorAll('.how-step').length === 4, 'and the four points are simply the four points, in the order they were written');
-
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

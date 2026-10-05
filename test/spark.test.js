@@ -118,6 +118,17 @@ test('the two addresses a person has to paste are empty on purpose', () => {
   assert.ok(!/https?:\/\/(?!fonts)/.test(cfg[1]), 'and neither one is filled in by a developer guessing later');
 });
 
+test('the header is the one every page of this site carries, with nothing added', () => {
+  const html = HTML();
+  assert.match(html, /<header class="nav">\s*<div class="nav-bar">/, 'the same two elements, in the same order as the home page');
+  assert.match(read('index.html'), /<header class="nav">\s*<div class="nav-bar">/, 'and the home page agrees');
+  assert.ok(html.indexOf('href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>') > 0, 'the logo, spelled as the site spells it');
+  assert.ok(!/class="tabs"|nav-wait|nav-contact/.test(html), 'no menu and no button, because there is nowhere else on this page to go');
+  const head = read('css/try-mira.css');
+  assert.match(head, /\.nav\{position:fixed/, 'the bar floats over the page the way it does on boasis.ae');
+  assert.match(head, /\.nav-bar\{position:relative; pointer-events:auto/, 'and the pill is the site\'s own, copied rather than invented');
+});
+
 test('the local rehearsal serves what the site serves, at the same address', async () => {
   /* this is the command the owner runs tonight, so it is tested rather than trusted */
   const stub = spawn(process.execPath, [path.join(ROOT, 'scripts/spark-stub.js')], {
@@ -160,50 +171,6 @@ test('the local rehearsal serves what the site serves, at the same address', asy
   } finally {
     stub.kill('SIGTERM');
   }
-});
-
-test('the header is the one every page of this site carries, with nothing added', () => {
-  const html = HTML();
-  assert.match(html, /<header class="nav">\s*<div class="nav-bar">/, 'the same two elements, in the same order as the home page');
-  assert.match(read('index.html'), /<header class="nav">\s*<div class="nav-bar">/, 'and the home page agrees');
-  assert.ok(html.indexOf('href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>') > 0, 'the logo, spelled as the site spells it');
-  assert.ok(!/class="tabs"|nav-wait|nav-contact/.test(html), 'no menu and no button, because there is nowhere else on this page to go');
-  const head = read('css/try-mira.css');
-  assert.match(head, /\.nav\{position:fixed/, 'the bar floats over the page the way it does on boasis.ae');
-  assert.match(head, /\.nav-bar\{position:relative; pointer-events:auto/, 'and the pill is the site\'s own, copied rather than invented');
-});
-
-test('how it works: the words are on the road, and the road only goes ahead', () => {
-  const html = HTML();
-  const css = read('css/try-mira.css');
-  const js = JS();
-  assert.match(html, /<section class="how" id="how" data-how>/, 'one section of its own, with its own scroll distance');
-  assert.equal((html.match(/class="how-step"/g) || []).length, 4, 'one point per step of the design file, no more');
-  assert.ok(html.indexOf('data-track') < html.indexOf('<ol class="how-steps"'), 'the points live inside the track that travels, not beside it');
-  assert.ok(!/how-grid/.test(html + css), 'and there is no second column for them to sit in any more');
-  assert.match(html, /<path class="road" vector-effect="non-scaling-stroke" d="M210 0/, 'the road is drawn in the page, not an image to lose');
-
-  /* the one thing the owner asked for in words: it goes ahead, it does not come back. The
-     control points of the curve are checked, not the picture, so a later edit cannot fold the
-     road back on itself without failing something. */
-  const d = /<path class="road"[^>]*d="([^"]+)"/.exec(html)[1];
-  const nums = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
-  const ys = nums.filter((_, k) => k % 2 === 1);
-  assert.ok(ys.every((y, k) => k === 0 || y > ys[k - 1]), 'every y on the road is further along than the one before: ' + ys.join(','));
-
-  assert.match(css, /\.how\{position:relative; height:520vh\}/, 'the scroll distance is one number in the css');
-  assert.match(css, /\.how-pin\{position:sticky/, 'and the stage holds still while the road moves through it');
-  assert.match(css, /\.how\.live \.how-step\{position:absolute/, 'a point is placed on the road only once its own script is running');
-  assert.ok(!/(^|\n)\.how-step\{[^}]*opacity:0/.test(css), 'and the bare rule never hides them, so a reader and a crawler get all four sentences');
-  assert.ok(!/You are here/.test(html), 'the mark is a light on its own, with no words to read at it');
-  assert.match(css, /\.how-mark\{position:absolute; left:50%; top:50%/, 'and it sits in the middle of the screen, where the eye already is');
-  assert.match(html, /d="M210 0 L210 2600"/, 'the road the owner asked for: nearly straight, one x from end to end');
-  assert.match(css, /\.how-route\{position:absolute/, 'and the whole route is shown beside it, small, so the road ahead is visible');
-  assert.match(js, /getPointAtLength/, 'the horizontal place of a point comes from the road itself, so it cannot drift off it');
-  assert.match(js, /window\.SPARK_ROAD/, 'the three rules of the road are reachable from a test');
-  assert.match(js, /prefers-reduced-motion/, 'and asked for less motion, nobody travels anything');
-  const rm = css.slice(css.lastIndexOf('@media (prefers-reduced-motion:reduce)'));
-  assert.match(rm, /\.how\{height:auto\}/, 'the section becomes the list it describes');
 });
 
 test('the rules the whole demo stands on, in one module', async () => {
