@@ -80,7 +80,7 @@ test('nothing on the site leads a crawler to it, and robots.txt is the one that 
   assert.ok(!/Sitemap:[^\n]*try-mira/.test(robots), 'and it is in no sitemap');
 });
 
-test('the page wears the site look: one sky, glass panels, and a light that runs round the box', () => {
+test('the page wears the site look: one sky, glass panels, and the four points on one line', () => {
   const html = HTML();
   const css = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
   const rule = (sel) => {
@@ -157,22 +157,28 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.ok(!/margin:-\d/.test(rule('.orbwrap') + rule('.main') + rule('.orbwrap')), 'and nothing is pulled up or down out of its section any more');
   assert.match(rule('.hero-in'), /align-items:center/, 'the two halves of the hero meet in the middle');
 
-  /* the scan sits on the How it works box, not on the form: a line of light round the frame,
-     forever, its glow lifting the four points as it crosses them. Pure CSS, no scroll, no script,
-     and it still behaves on a machine that asks for less movement */
-  assert.match(html, /<div class="card beam" data-scan>\s*<div class="beam-in">\s*<div class="eyebrow">How it works<\/div>/, 'the light belongs to the How it works panel');
-  assert.ok(!/class="[^"]*beam[^"]*" id="start"/.test(html), 'and the form is a plain panel: nothing runs round the box a person types into');
-  const plate = /\.beam > \.beam-in\{[^}]*\}/.exec(css)[0];
-  assert.match(plate, /rgba\(11,13,18,\.[45]/, 'the plate over the words stays thin, so the light reads through it rather than being painted out');
-  assert.match(rule('.beam'), /padding:1px; overflow:hidden/, 'the frame is one pixel wide, so the line is a line');
-  for (const pseudo of ['.beam::before', '.beam::after']) {
-    assert.match(css, new RegExp(pseudo.replace(/[.:*]/g, '\\$&') + '[^}]*animation:sweep 7s linear infinite'), pseudo + ' is on the same clock as the other');
-    assert.match(css, new RegExp(pseudo.replace(/[.:*]/g, '\\$&') + '[^}]*conic-gradient'), pseudo + ' is a cone of light, so it has a head and a tail');
+  /* the four points are joined by one line, and the light runs down that line from 1 to 4. Not
+     round the box: the box has nothing on it. Pure CSS, no scroll, no script, no measuring */
+  assert.ok(!/beam|sweep|conic-gradient/.test(html), 'the line round the box is gone, the word with it');
+  assert.ok(!/data-scan/.test(html), 'and no panel is a scan plate any more');
+  const seg = /\.step::before\{([^}]*)\}/.exec(css)[1];
+  assert.match(seg, /left:17px/, 'the line is on the centre of the 36px numbers');
+  assert.match(seg, /top:36px; bottom:-10px/, 'from the bottom of one number to the top of the next, the 10px being the grid gap');
+  assert.ok(!/top:\s*0|height:100%/.test(seg), 'it is cut to the row it belongs to, so it cannot be short or long at another text length');
+  assert.match(/\.step:last-child::before,\.step:last-child::after\{[^}]*\}/.exec(css)[0], /display:none/, 'the fourth point has no one below it, so nothing hangs under the list');
+  for (const i of [1, 2, 3, 4]) {
+    assert.match(css, new RegExp('\\.step:nth-child\\(' + i + '\\)\{--i:' + (i - 1) + '\}'), 'point ' + i + ' knows its place in the order');
   }
-  assert.match(css, /\.beam::after\{[^}]*mix-blend-mode:plus-lighter/, 'the glow adds itself onto the text it passes over, which is what lightens it');
-  assert.match(css, /@keyframes sweep\{to\{rotate:360deg\}\}/, 'one full turn, then again, and nothing about the scroll');
-  const rm = /@media \(prefers-reduced-motion:reduce\)\{([\s\S]*?)\n\}/.exec(css);
-  assert.ok(rm && /\.beam::before,\.beam::after\{animation:none\}/.test(rm[1]), 'asked for less movement the light stands still instead of stopping dark');
+  const head = /\.step::after\{([^}]*)\}/.exec(css)[1];
+  assert.match(head, /animation:flow 5\.6s/, 'the light runs on one clock for the whole list');
+  assert.match(head, /animation-delay:calc\(var\(--i\) \* 1\.4s\)/, 'and each piece waits its turn, a quarter of the clock apart');
+  assert.match(head, /mix-blend-mode:plus-lighter/, 'it adds itself to the line and the number it passes, which is what makes them glow');
+  assert.match(/\.step\{animation:arrive[^}]*\}/.exec(css)[0], /animation-delay:calc\(var\(--i\) \* 1\.4s\)/, 'and the number lights on the same clock and the same delay, so it cannot fall out of step');
+  assert.match(css, /@keyframes flow\{[\s\S]*?25%\{opacity:\.55\}[\s\S]*?\n  \}/, 'one piece hands off to the next instead of both burning at once');
+  assert.ok(!/\.step\s*\{[^}]*animation:[^}]*scroll/.test(css) && !/animation-timeline/.test(css), 'nothing here is driven by the scroll');
+  const rm2 = /@media \(prefers-reduced-motion:reduce\)\{([\s\S]*?)\n\}/.exec(css);
+  assert.ok(/\.step::after\{display:none\}/.test(rm2[1]), 'asked for less movement the light stops and the line stays: the four points are still joined');
+  assert.match(rm2[1], /\.step::before\{background:linear-gradient\(180deg, rgba\(95,211,232,\.5\)/, 'and the line itself takes the teal once, quietly, instead of running');
 
   /* the fields, still the design own, and still only what the plan may ask */
   assert.ok(!/<select/.test(html), 'the native country select is gone from this page, as it is from the other three');

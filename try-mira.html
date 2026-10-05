@@ -170,24 +170,43 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
 .mf-phone > label input{border-left:1px solid rgba(255,255,255,.14)}
 
-/* The How it works box, scanning: one line of light runs round the frame, the blurred one
-   crosses the four points inside it and lifts the words where it passes, and it never stops and
-   never waits for the scroll. The plate over the words is thin on purpose, so the light reads
-   through it instead of being painted out. */
-.beam{padding:1px; overflow:hidden; isolation:isolate; background:rgba(255,255,255,.1)}
-.beam::before,.beam::after{content:""; position:absolute; left:50%; top:50%; width:250%; height:250%; translate:-50% -50%; pointer-events:none; will-change:rotate; animation:sweep 7s linear infinite}
-.beam::before{z-index:0; background:conic-gradient(from 90deg, transparent 0 56%, rgba(14,134,196,.45) 64%, rgba(95,211,232,.9) 72%, #fff 74.5%, rgba(95,211,232,.9) 77%, rgba(14,134,196,.45) 85%, transparent 92%)}
-.beam::after{z-index:2; filter:blur(30px); opacity:.34; mix-blend-mode:plus-lighter; background:conic-gradient(from 90deg, transparent 0 62%, rgba(95,211,232,.85) 74%, transparent 88%)}
-.beam > .beam-in{position:relative; z-index:1; border-radius:21px; padding:28px; background:linear-gradient(180deg, rgba(11,13,18,.42), rgba(11,13,18,.58))}
-/* 250% in both axes, so the cone is wider and taller than the box at every angle. A square
-   sized on the width alone stops short of the top and bottom of a tall card on a phone. */
-@keyframes sweep{to{rotate:360deg}}
-
 /* Side, on the left: the four points and the two offers, in the same glass */
 .side{display:grid; gap:14px; align-content:start}
 .steps{display:grid; gap:10px}
-.step{display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
-.step .n{width:36px; height:36px; border-radius:50%; background:rgba(95,211,232,.12); border:1px solid rgba(95,211,232,.3); color:var(--bo-teal); display:grid; place-items:center; font-family:var(--display); font-weight:600}
+.step{position:relative; display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
+/* the line, and the light on it. Each point owns the piece of line that leaves it and reaches
+   the next: from the bottom of its own number to the top of the one below, which is the row's
+   36px plus the 10px the grid puts between rows. So the line is exact at any text length and at
+   any width, and it needs nothing measured at run time. */
+.step::before{content:""; position:absolute; left:17px; top:36px; bottom:-10px; width:2px; border-radius:2px; background:rgba(255,255,255,.14)}
+.step::after{content:""; position:absolute; left:16px; top:36px; bottom:-10px; width:4px; border-radius:4px; pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(95,211,232,.55) 34%, #fff 52%, rgba(95,211,232,.55) 70%, transparent);
+  filter:blur(1.5px); mix-blend-mode:plus-lighter; transform-origin:50% 0; transform:scaleY(0);
+  animation:flow 5.6s cubic-bezier(.4,0,.5,1) infinite; animation-delay:calc(var(--i) * 1.4s)}
+/* where each point is in the four, and so when its piece of the line lights */
+.step:nth-child(1){--i:0}
+.step:nth-child(2){--i:1}
+.step:nth-child(3){--i:2}
+.step:nth-child(4){--i:3}
+@keyframes flow{
+    0%{transform:scaleY(0); opacity:0}
+    3%{opacity:1}
+    22%{transform:scaleY(1); opacity:1}      /* the head reaches the next number */
+    25%{opacity:.55}                          /* and the next piece takes over, so it hands off */
+    32%{opacity:0}
+    100%{transform:scaleY(1); opacity:0}
+  }
+/* the number and its words take the light as it arrives at them, on the same clock and the
+   same delay, so nothing can fall out of step with the line */
+.step{animation:arrive 5.6s linear infinite; animation-delay:calc(var(--i) * 1.4s)}
+@keyframes arrive{
+    0%,4%{filter:brightness(1.5) saturate(1.15)}
+    20%{filter:brightness(1.1)}
+    34%,100%{filter:brightness(1)}
+  }
+.step .n{position:relative; z-index:1; width:36px; height:36px; border-radius:50%; background:rgba(95,211,232,.12); border:1px solid rgba(95,211,232,.3); color:var(--bo-teal); display:grid; place-items:center; font-family:var(--display); font-weight:600}
+/* the last point has no one below it to reach */
+.step:last-child::before,.step:last-child::after{display:none}
 .step b{font-family:var(--display); font-weight:500; font-size:18px; color:var(--heading)}
 .step span{display:block; color:var(--muted); font-size:14px}
 .offer{border:1px solid var(--hair); border-radius:20px; padding:22px; display:grid; gap:6px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:border-color .3s, transform .3s}
@@ -211,7 +230,6 @@ footer .brand{font-size:16px; color:var(--heading)}
   .main{grid-template-columns:1fr}
   .side{grid-template-columns:1fr 1fr}
   .side>.card{grid-column:1/-1}
-  .side .steps{grid-template-columns:1fr 1fr; gap:16px 24px}
 }
 /* Téléphone : la form d'abord, le reste après */
 @media (max-width:699px){
@@ -232,9 +250,10 @@ footer .brand{font-size:16px; color:var(--heading)}
 /* moins de mouvement : la lumière reste, elle ne court plus */
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important}
-  .sky i,.beam::before,.beam::after{animation:none}
-  .beam::before{background:conic-gradient(from 90deg, rgba(14,134,196,.5), rgba(95,211,232,.8) 40%, transparent 70%)}
-  .beam::after{opacity:.18}
+  .sky i{animation:none}
+  .step,.step::after{animation:none}
+  .step::after{display:none}
+  .step::before{background:linear-gradient(180deg, rgba(95,211,232,.5), rgba(255,255,255,.16))}
 }
 </style>
 </head>
@@ -261,15 +280,13 @@ footer .brand{font-size:16px; color:var(--heading)}
 
 <main class="main">
   <aside class="side">
-    <div class="card beam" data-scan>
-      <div class="beam-in">
+    <div class="card" data-steps>
       <div class="eyebrow">How it works</div>
       <div class="steps" style="margin-top:14px">
         <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
         <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
         <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
         <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
-      </div>
       </div>
     </div>
     <div class="offer gift" data-offer="boasis-year">

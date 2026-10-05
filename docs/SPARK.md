@@ -68,8 +68,8 @@ the page and refuses anything else. Eleven differences, each for a reason that i
     left out because the owner made this one transparent, only the logo inside and no links,
     the orb in the middle of its space, no
     second background behind the form, one gradient across the whole page, the glass of the site,
-    the form on the right and the other things on the left, and the box whose line of light keeps
-    moving, which is the How it works panel and not the form. The light is `css/site.css`'s own
+    the form on the right and the other things on the left, and the four points of `How it works`
+    joined by one line that lights its way from 1 to 2 to 3 to 4 and then again. The light is `css/site.css`'s own
     `.sky` (three drifting lights) plus `css/early-access.css`'s wash behind that panel, the mix
     of navy into teal the registration page uses. The test reads those four values out of the two
     site stylesheets and requires them here, so the light stays the site's light and cannot
@@ -95,10 +95,18 @@ One trap, because it cost an hour: the page's night goes on `body` and nowhere e
 background on `html` too and the browser stops carrying the body's to the canvas, paints it as a
 box over the sky, and the whole page reads flat black with the lights hidden underneath.
 
-The light on the form box is `@keyframes sweep` on two conic gradients inside one pixel of frame,
-with the blurred one set to `plus-lighter` so it lifts the text as it passes. It is CSS only: no
-script, nothing measured from the scroll, and under `prefers-reduced-motion: reduce` the light
-stays where it is instead of going away.
+The connector needs no geometry at run time. Each `.step` owns the piece of line that leaves it:
+`top:36px; bottom:-10px`, that is from the bottom of its own number to the top of the next one, the
+10px being the grid's own row gap. So the line is exact whatever the text does and whatever the
+width is. The light is a second copy of that same piece, one per point, each on the same 5.6s
+clock and each waiting `--i * 1.4s`, where `--i` is written by four `:nth-child` rules. A piece
+fills, hands off at 25% at half light, and the next one is already starting, so it reads as one
+head travelling down the list. The point and its words take a `brightness` pulse on the same clock
+and the same delay, which is why they cannot drift out of step with the line. `mix-blend-mode:
+plus-lighter` is what makes it add light rather than paint over it.
+
+Under `prefers-reduced-motion: reduce` the travelling copy is switched off and the line itself
+takes the teal once, so the four points stay joined and nothing moves.
 
 ## The one file per person
 
