@@ -200,6 +200,7 @@ function joinForm() {
     /* the last step's box solves itself while they read the question: the contract — a
        click, a puzzle, a tick — is untouched, the visitor just never waits on it */
     if (el.getAttribute('data-step') === 'last') autoBox();
+    paintVerified();
     const panel = form.closest('.ea-panel');
     if (panel && window.innerWidth < 900 && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
@@ -213,6 +214,14 @@ function joinForm() {
      is a deliberate act that costs a new code. */
   let mailLocked = false;
   const verifiedLine = form.querySelector('[data-verified]');
+  const verifiedHost = verifiedLine ? verifiedLine.closest('.ea-step') : null;
+  /* shown only while the question it speaks about is the one on screen: a fact about an
+     answer already given has no business sitting above the question being answered now */
+  function paintVerified() {
+    if (!verifiedLine) return;
+    const here = verifiedHost && stepEls[cur] === verifiedHost && !verifiedHost.classList.contains('is-done');
+    verifiedLine.hidden = !(mailLocked && here);
+  }
   const sendBtnEarly = form.querySelector('[data-sendcode]');
   function lockMail(on) {
     mailLocked = on;
@@ -224,8 +233,8 @@ function joinForm() {
       const to = verifiedLine.querySelector('[data-verified-to]');
       if (to && fields.email) to.textContent = fields.email.value.trim();
     }
-    if (verifiedLine) verifiedLine.hidden = !on;
     if (sendBtnEarly) sendBtnEarly.textContent = on ? 'Go on' : 'Send the code';
+    paintVerified();
   }
   function goBack(i) {
     const codeIdx = stepEls.findIndex(el => el.getAttribute('data-step') === 'code');
@@ -240,7 +249,6 @@ function joinForm() {
     openStep(k);
     if (k === 0 && fields.name) fields.name.select();
   }
-  const unlockBtn = form.querySelector('[data-unlock]');
 
   if (stepEls.length) {
     stepEls.forEach((el, i) => { if (i) el.hidden = true; stepDone(el, false); });
@@ -440,19 +448,6 @@ function joinForm() {
   if (sendBtn) sendBtn.addEventListener('click', () => {
     if (mailLocked) { stepDone(emailStep, true); cur = nextOpen(stepEls.indexOf(emailStep)); openStep(cur); return; }
     requestCode(sendBtn);
-  });
-  if (unlockBtn) unlockBtn.addEventListener('click', () => {
-    /* the way out of a locked address, and it is honest about what it costs: the proof is
-       thrown away with the address, so the mailbox has to be checked again before the list */
-    if (tokenField) tokenField.value = '';
-    lockMail(false);
-    if (codeStep) stepDone(codeStep, false);
-    clearCode();
-    say('code', ''); sayCode('A new code will be needed for the new address.');
-    stepDone(emailStep, false);
-    cur = stepEls.indexOf(emailStep); furthest = cur;
-    openStep(cur);
-    if (fields.email) { fields.email.focus(); fields.email.select(); }
   });
   if (resendBtn) resendBtn.addEventListener('click', () => requestCode(resendBtn));
   if (backBtn) backBtn.addEventListener('click', () => {

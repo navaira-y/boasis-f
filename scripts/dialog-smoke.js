@@ -400,26 +400,18 @@ const challenge = () => {
     ok(form.querySelector('input[name="phone"]').value === '0551112222' && form.querySelector('select[name="count"]').value === '1-3', 'and not one answer had to be written twice');
     ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'and the mailbox proof is still valid');
 
-    /* a wrong address is still fixable, and it costs a new code, which is said out loud */
-    goBackFrom(1);
-    click(form.querySelector('[data-unlock]'));
-    await new Promise(r => setTimeout(r, 40));
-    ok(!form.querySelector('input[name="email"]').readOnly, 'Use another address gives the field back');
-    ok(form.querySelector('input[name="emailv"]').value === '', 'the proof of the old address is thrown away with it');
-    ok(!steps[2].classList.contains('is-done'), 'and the code question is un-answered, waiting to be asked again');
-    ok(form.querySelector('[data-code-sent]').textContent.includes('new code'), 'and it says plainly that a new code is needed');
-    einput(form.querySelector('input[name="email"]'), 'lena.bisht@corp.com');
+    /* and the verified line shows nowhere but on the address question itself */
+    ok(form.querySelector('[data-verified]').hidden, 'standing on the last step, that line is not on screen');
+    goBackFrom(5); goBackFrom(4); goBackFrom(3);
+    ok(!steps[1].hidden, 'three Backs land on the address');
+    ok(!form.querySelector('[data-verified]').hidden, 'and only there does the line appear');
+    ok(/^\s*Verified as lena@corp\.com, so it cannot be changed\.\s*$/.test(form.querySelector('[data-verified]').textContent), 'one sentence, no more: ' + JSON.stringify(form.querySelector('[data-verified]').textContent));
+    ok(!steps[1].querySelector('[data-unlock]'), 'nothing clickable under it');
     click(steps[1].querySelector('[data-sendcode]'));
-    await new Promise(r => setTimeout(r, 60));
-    ok(!steps[2].hidden && !form.querySelector('input[name="email"]').readOnly, 'the new address is asked to prove itself');
-    epaste(0, '248153');
-    await new Promise(r => setTimeout(r, 80));
-    ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'and one code later it is verified');
-    ok(form.querySelector('input[name="email"]').readOnly, 'and locked again');
-    ok(!steps[3].hidden && form.querySelector('input[name="phone"]').value === '0551112222', 'back where they were, the number still filled');
-    click(steps[3].querySelector('[data-next]')); click(steps[4].querySelector('[data-next]'));
     await new Promise(r => setTimeout(r, 40));
-    ok(!steps[5].hidden, 'and two presses take them to the last step again');
+    ok(!steps[5].hidden && form.querySelector('[data-verified]').hidden, 'Go on takes them back to the last step, and the line stays behind');
+    /* before the check, the address is still theirs to correct, in the question's own words */
+    ok(!!steps[2].querySelector('[data-backemail]') && !steps[1].querySelector('[data-unlock]'), 'the way back is on the code step, before it is checked');
     await new Promise(r => { let i = 0; const w = setInterval(() => { if (form.querySelector('input[name="altcha"]').value || ++i > 120) { clearInterval(w); r(); } }, 50); });
     ok(form.querySelector('input[name="altcha"]').value.length > 40, 'the page clicked the box itself, and it really solved');
     form.querySelector('input[name="emailv"]').value = '';

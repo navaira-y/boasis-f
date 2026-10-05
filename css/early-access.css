@@ -70,7 +70,6 @@
    address, and silently retyping it would send a signup under a mailbox nobody checked. */
 .ea-verified{margin:10px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:rgba(255,255,255,.74);font-size:14px;line-height:1.5}
 .ea-verified b{font-weight:500;color:#fff;word-break:break-all}
-.ea-verified .ea-link{margin-left:2px}
 .ea-tick{width:9px;height:9px;border-radius:50%;background:var(--bo-teal);flex:0 0 auto}
 .mf-pill input[readonly]{background:rgba(255,255,255,.03);color:rgba(255,255,255,.62);cursor:default}
 .mf-pill input[readonly]:focus{outline:none}

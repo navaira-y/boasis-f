@@ -128,7 +128,8 @@ test('the demo dialog is on the home page, and the early-access form is a page o
   assert.equal((early.match(/<\/main>/g) || []).length, 1, 'and it closes once');
   assert.equal((early.match(/data-back>Back/g) || []).length, 4, 'four steps carry a way back, and the code step asks its own question instead');
   assert.match(early, /class="ea-verified" data-verified hidden>/, 'the verified address gets a line under the field');
-  assert.match(early, /data-unlock>Use another address</, 'and the one way out of that lock is named plainly');
+  assert.match(early, /so it cannot be changed\.<\/p>/, 'the line says the fact and stops, without naming where');
+  assert.ok(!/data-unlock/.test(early), 'and it is not a menu: no link under a verified address');
   assert.match(early, /<input type="hidden" name="emailv"/, 'and carries its proof to the endpoint');
   for (const b of ['data-sendcode', 'data-verifycode', 'data-resend', 'data-backemail']) {
     assert.match(early, new RegExp(b), 'the code step needs its ' + b + ' control');
