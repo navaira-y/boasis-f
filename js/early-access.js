@@ -119,6 +119,7 @@ function joinForm() {
     .map(n => form.querySelector(`[data-step="${n}"]`)).filter(Boolean);
   const pips = [...document.querySelectorAll('.ea-pips i')];
   let cur = 0;
+  let furthest = 0;                       /* how far they have got: Back goes back, and Continue comes forward to here, not through everything again */
   const summarise = step => {
     const name = step.getAttribute('data-step');
     if (name === 'name') return fields.name ? fields.name.value.trim() : '';
@@ -144,6 +145,27 @@ function joinForm() {
     step.classList.toggle('is-done', on);
   };
   const paint = () => pips.forEach((p, i) => p.classList.toggle('on', i <= cur));
+  /* whether a step's answer is still worth its place: an answered question that has not
+     gone stale is not shown again on the way forward */
+  function answerGood(k) {
+    if (k === stepEls.indexOf(codeStep)) return !!(tokenField && String(tokenField.value || '').trim());
+    const names = STEP_FIELDS[k] || [];
+    if (!names.length) return false;              /* the last step is the box and Join, it is never "answered" until it is sent */
+    for (const n of names) {
+      const f = fields[n]; if (!f) continue;
+      const branchOff = (n === 'count' || n === 'authority') && fields.have && fields.have.value !== 'yes';
+      const plansOff = n === 'plans' && fields.have && fields.have.value !== 'no';
+      if (branchOff || plansOff) continue;
+      if (rule[n] && rule[n](f.value)) return false;
+    }
+    return true;
+  }
+  /* the next question to face: after a fix further back, this is where they were standing,
+     not every step in between. Nothing is skipped that has gone stale or invalid. */
+  function nextOpen(i) {
+    for (let k = i + 1; k <= furthest && k < stepEls.length; k += 1) if (!answerGood(k)) return k;
+    return Math.min(Math.max(furthest, i + 1), stepEls.length - 1);
+  }
   function checkStep(i) {
     const names = STEP_FIELDS[i] || [];
     let firstBad = null;
@@ -171,6 +193,7 @@ function joinForm() {
   }
   function openStep(i) {
     stepEls.forEach((el, k) => { el.hidden = k !== i; });
+    furthest = Math.max(furthest, i);
     paint();
     const el = stepEls[i]; if (!el) return;
     const f = el.querySelector('input:not([type=hidden]), select'); if (f) f.focus({ preventScroll: true });
@@ -180,6 +203,44 @@ function joinForm() {
     const panel = form.closest('.ea-panel');
     if (panel && window.innerWidth < 900 && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
+
+  /* ── going back · and the one answer that cannot change afterwards ──────────
+     A person who spots a typo in their name should fix it and be sent straight back to
+     where they were, with every other answer still on the screen. The email address is
+     the exception, and it has to be: the code they checked belongs to that address, and
+     the token the server gave back is only ever valid for it. So once the code matches,
+     the address is read only, the line under it says so in plain words, and changing it
+     is a deliberate act that costs a new code. */
+  let mailLocked = false;
+  const verifiedLine = form.querySelector('[data-verified]');
+  const sendBtnEarly = form.querySelector('[data-sendcode]');
+  function lockMail(on) {
+    mailLocked = on;
+    if (fields.email) {
+      fields.email.readOnly = on;
+      fields.email.setAttribute('aria-readonly', on ? 'true' : 'false');
+    }
+    if (on && verifiedLine) {
+      const to = verifiedLine.querySelector('[data-verified-to]');
+      if (to && fields.email) to.textContent = fields.email.value.trim();
+    }
+    if (verifiedLine) verifiedLine.hidden = !on;
+    if (sendBtnEarly) sendBtnEarly.textContent = on ? 'Go on' : 'Send the code';
+  }
+  function goBack(i) {
+    const codeIdx = stepEls.findIndex(el => el.getAttribute('data-step') === 'code');
+    let k = i - 1;
+    /* the code question has nothing to correct once it is checked, so Back walks past it
+       to the address itself, which is where a wrong address would be fixed */
+    if (mailLocked && k === codeIdx) k -= 1;
+    if (k < 0) k = 0;
+    stepDone(stepEls[i], false);
+    stepDone(stepEls[k], false);
+    cur = k;
+    openStep(k);
+    if (k === 0 && fields.name) fields.name.select();
+  }
+  const unlockBtn = form.querySelector('[data-unlock]');
 
   if (stepEls.length) {
     stepEls.forEach((el, i) => { if (i) el.hidden = true; stepDone(el, false); });
@@ -194,11 +255,16 @@ function joinForm() {
       el.appendChild(sum);
     });
     stepEls.forEach((el, i) => {
+      /* Back first, and on its own terms: the email step has no Continue, the last step has
+         no Continue either, and an early return for the missing one must not cost a person
+         their way back */
+      const bk = el.querySelector('[data-back]');
+      if (bk) bk.addEventListener('click', () => goBack(i));
       const b = el.querySelector('[data-next]'); if (!b) return;
       b.addEventListener('click', () => {
         if (!checkStep(i)) return;
         stepDone(el, true);
-        cur = Math.min(i + 1, stepEls.length - 1);
+        cur = nextOpen(i);
         openStep(cur);
       });
     });
@@ -219,6 +285,12 @@ function joinForm() {
   /* while they write: a field that is wrong about itself is told so at once, and a field
      that has righted itself goes quiet. An empty one waits for Continue. */
   if (fields.email) fields.email.addEventListener('input', () => {
+    /* a token is the address it was issued for: an edit below the lock line makes an old
+       proof worse than none, so it goes, and the code question opens again underneath */
+    if (tokenField && tokenField.value && !mailLocked) {
+      tokenField.value = '';
+      if (codeStep) stepDone(codeStep, false);
+    }
     const e = fields.email.value.trim();
     say('email', e && !validEmail(e) ? 'Please enter a valid email address.' : '');
   });
@@ -365,9 +437,28 @@ function joinForm() {
        asks the visitor to read their mail everywhere the mail is real */
     if (j.devCode) sayCode('Nothing is being sent right now, so here it is: ' + j.devCode);
   }
-  if (sendBtn) sendBtn.addEventListener('click', () => requestCode(sendBtn));
+  if (sendBtn) sendBtn.addEventListener('click', () => {
+    if (mailLocked) { stepDone(emailStep, true); cur = nextOpen(stepEls.indexOf(emailStep)); openStep(cur); return; }
+    requestCode(sendBtn);
+  });
+  if (unlockBtn) unlockBtn.addEventListener('click', () => {
+    /* the way out of a locked address, and it is honest about what it costs: the proof is
+       thrown away with the address, so the mailbox has to be checked again before the list */
+    if (tokenField) tokenField.value = '';
+    lockMail(false);
+    if (codeStep) stepDone(codeStep, false);
+    clearCode();
+    say('code', ''); sayCode('A new code will be needed for the new address.');
+    stepDone(emailStep, false);
+    cur = stepEls.indexOf(emailStep); furthest = cur;
+    openStep(cur);
+    if (fields.email) { fields.email.focus(); fields.email.select(); }
+  });
   if (resendBtn) resendBtn.addEventListener('click', () => requestCode(resendBtn));
   if (backBtn) backBtn.addEventListener('click', () => {
+    lockMail(false);
+    if (tokenField) tokenField.value = '';
+    if (codeStep) stepDone(codeStep, false);
     stepDone(emailStep, false);
     cur = stepEls.indexOf(emailStep);
     openStep(cur);
@@ -407,8 +498,9 @@ function joinForm() {
     }
     if (tokenField) tokenField.value = j.token || '';
     if (timer) { clearInterval(timer); timer = null; }
+    lockMail(true);
     stepDone(codeStep, true);
-    cur = Math.max(cur, stepEls.indexOf(codeStep) + 1);
+    cur = nextOpen(stepEls.indexOf(codeStep));
     openStep(cur);
   }
   if (verifyBtn) verifyBtn.addEventListener('click', () => checkCode());

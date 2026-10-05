@@ -371,6 +371,55 @@ const challenge = () => {
     einput(form.querySelector('input[name="authority"]'), 'SPARK Free Zone');
     click(steps[4].querySelector('[data-next]'));
     ok(steps[4].hidden && !steps[5].hidden, 'and the last step opens');
+
+    /* walking back: nothing is thrown away, and the checked address does not come loose */
+    const goBackFrom = n => click(steps[n].querySelector('[data-back]'));
+    ok(steps.every((st, i) => i === 0 || i === 2 || st.querySelector('[data-back]')), 'every step after the first has a way back');
+    ok(!!steps[2].querySelector('[data-backemail]'), 'and the code step words its way back as the question it really is');
+    goBackFrom(5);
+    ok(!steps[4].hidden, 'Back opens the company question again');
+    ok(form.querySelector('select[name="have"]').value === 'yes' && form.querySelector('select[name="count"]').value === '1-3', 'with its answers still filled in');
+    goBackFrom(4);
+    ok(!steps[3].hidden && form.querySelector('input[name="phone"]').value === '0551112222', 'and the number is exactly where it was');
+    goBackFrom(3);
+    ok(!steps[1].hidden, 'past a checked code, Back lands on the address itself, not on the six boxes');
+    ok(form.querySelector('input[name="email"]').readOnly, 'which cannot be typed over any more');
+    ok(!form.querySelector('[data-verified]').hidden, 'and there is a line under it saying so');
+    ok(form.querySelector('[data-verified-to]').textContent === 'lena@corp.com', 'naming the address that was verified');
+    ok(steps[1].querySelector('[data-sendcode]').textContent === 'Go on', 'and its button is only a way forward now');
+    click(steps[1].querySelector('[data-sendcode]'));
+    await new Promise(r => setTimeout(r, 40));
+    ok(!steps[5].hidden, 'Go on returns them to the step they left, not through the form again');
+    ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'and the proof rode along untouched');
+    goBackFrom(5); goBackFrom(4); goBackFrom(3); goBackFrom(1);
+    ok(!steps[0].hidden, 'and from the address, Back goes on to the name');
+    einput(form.querySelector('input[name="name"]'), 'Lena K. Bisht');
+    click(steps[0].querySelector('[data-next]'));
+    await new Promise(r => setTimeout(r, 40));
+    ok(!steps[5].hidden, 'a fixed spelling brings them back to the last step by itself');
+    ok(form.querySelector('input[name="phone"]').value === '0551112222' && form.querySelector('select[name="count"]').value === '1-3', 'and not one answer had to be written twice');
+    ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'and the mailbox proof is still valid');
+
+    /* a wrong address is still fixable, and it costs a new code, which is said out loud */
+    goBackFrom(1);
+    click(form.querySelector('[data-unlock]'));
+    await new Promise(r => setTimeout(r, 40));
+    ok(!form.querySelector('input[name="email"]').readOnly, 'Use another address gives the field back');
+    ok(form.querySelector('input[name="emailv"]').value === '', 'the proof of the old address is thrown away with it');
+    ok(!steps[2].classList.contains('is-done'), 'and the code question is un-answered, waiting to be asked again');
+    ok(form.querySelector('[data-code-sent]').textContent.includes('new code'), 'and it says plainly that a new code is needed');
+    einput(form.querySelector('input[name="email"]'), 'lena.bisht@corp.com');
+    click(steps[1].querySelector('[data-sendcode]'));
+    await new Promise(r => setTimeout(r, 60));
+    ok(!steps[2].hidden && !form.querySelector('input[name="email"]').readOnly, 'the new address is asked to prove itself');
+    epaste(0, '248153');
+    await new Promise(r => setTimeout(r, 80));
+    ok(form.querySelector('input[name="emailv"]').value === 'TESTTOKEN', 'and one code later it is verified');
+    ok(form.querySelector('input[name="email"]').readOnly, 'and locked again');
+    ok(!steps[3].hidden && form.querySelector('input[name="phone"]').value === '0551112222', 'back where they were, the number still filled');
+    click(steps[3].querySelector('[data-next]')); click(steps[4].querySelector('[data-next]'));
+    await new Promise(r => setTimeout(r, 40));
+    ok(!steps[5].hidden, 'and two presses take them to the last step again');
     await new Promise(r => { let i = 0; const w = setInterval(() => { if (form.querySelector('input[name="altcha"]').value || ++i > 120) { clearInterval(w); r(); } }, 50); });
     ok(form.querySelector('input[name="altcha"]').value.length > 40, 'the page clicked the box itself, and it really solved');
     form.querySelector('input[name="emailv"]').value = '';
@@ -476,4 +525,4 @@ const challenge = () => {
 
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
-})().catch(e => { console.error('smoke crashed:', e.message); process.exit(1); });
+})().catch(e => { console.error('smoke crashed:', e.stack || String(e)); process.exit(1); });

@@ -116,11 +116,16 @@
   and the form only. On 5 October the owner asked for less: the page now carries the launch
   line, a live countdown to 08:00 Dubai on 17 November, and the form. The feature blocks were
   cut, and the plans with their prices stay on the home page alone.
-* The form kept its fields, rules, endpoint, captcha and both emails — the reviewed copy in
-  lib/mail-templates.js was not reworded, only extended (see the next line).
+* The form kept its fields, rules, endpoint and captcha. Of the visitor mails, three still
+  carry the reviewed words exactly; the registration receipt was reworded on 5 October at the
+  owner's ask, to say "you are registered" and stop.
 * The same day, the page became a split: the words on one side, the form on the other, and
   the form asks one question at a time — name, email, a six-digit code mailed to that
-  address, phone, the company question, the box, and an answered step keeps no Edit link.
+  address, phone, the company question, the box. There is no Edit link on an answered step;
+  the way back is one plain Back under each question, and walking back and on again costs
+  nobody a retyping. The address is the exception on purpose: once its code has matched the
+  field is read only, the line under it names the verified address, and "Use another address"
+  is the only way to change it, which throws the proof away and asks the mailbox again.
   The heading says what the visitor gets, in their words, and the trust comes from the limits
   the page states rather than from adjectives. /api/manage now refuses a signup whose
   mailbox never spoke (lib/email-verify.js; test/verify-email.test.js drives the whole

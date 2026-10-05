@@ -63,6 +63,17 @@
 .ea-code-to b{color:rgba(255,255,255,.85);font-weight:500}
 .ea-code-sent{margin:0;color:var(--bo-teal);font-size:14px;line-height:1.5}
 
+/* the address, once its code has matched · read only, said plainly, with the one way
+   out of it. Not a lock to trap anyone: it exists because the proof belongs to the
+   address, and silently retyping it would send a signup under a mailbox nobody checked. */
+.ea-verified{margin:10px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:rgba(255,255,255,.74);font-size:14px;line-height:1.5}
+.ea-verified b{font-weight:500;color:#fff;word-break:break-all}
+.ea-verified .ea-link{margin-left:2px}
+.ea-tick{width:9px;height:9px;border-radius:50%;background:var(--bo-teal);flex:0 0 auto}
+.mf-pill input[readonly]{background:rgba(255,255,255,.03);color:rgba(255,255,255,.62);cursor:default}
+.mf-pill input[readonly]:focus{outline:none}
+.ea-step.is-done .ea-verified{display:none}
+
 /* the code · six boxes, one digit each, because a code read off a screen is typed in
    pieces and mis-read pieces land in the wrong place. Whatever arrives in one box, a paste
    or the browser's own autofill, is spread across them by js/early-access.js */
