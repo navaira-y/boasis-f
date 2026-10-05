@@ -38,6 +38,25 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
+## The page itself: the header, and the pinned section
+
+`try-mira.html` carries the header every page on boasis.ae carries, with the logo and nothing
+else. No menu, no button: there is nowhere else on this page to go. Its rules are copied from
+`css/site.css` into `css/try-mira.css` so the page stays one file, and if the site header ever
+changes, that copied block is the thing to refresh.
+
+"How it works" is one pinned section. The section is `460vh` tall (`.how`, in the css), its
+inside sticks, and that distance is cut into as many parts as there are points. A blue light
+travels the drawn road and a point comes up when the light reaches its part; points already
+passed stay on screen, dimmer, so the last screen holds all four. Two things about it are
+deliberate, and each has a test:
+
+- with no script, or with `prefers-reduced-motion`, the section is not pinned at all and the four
+  points are simply listed. Nothing on this page is only reachable by watching an animation.
+- the four sentences live in `try-mira.html`, beside the road. The content team edits them there.
+  A fifth point is one more `<li>`: the scroll distance and the road are divided by the count the
+  script reads, not by a number written next to them.
+
 ## The one file per person
 
 A private bucket, one object per lead, named by the pass, and updated by every step:

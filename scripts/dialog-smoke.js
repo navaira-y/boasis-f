@@ -541,6 +541,7 @@ const challenge = () => {
         runScripts: 'dangerously', url: 'https://boasis.ae/try-mira', pretendToBeVisual: true,
         beforeParse: w => {
           ambient(w);
+          if (o.reduce) w.matchMedia = q => ({ matches: /reduce/.test(q), media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } });
           /* the pass a returning visitor was already given, seeded before the page's own
              script runs, which is exactly the order a real browser leaves it in */
           if (o.seed) w.sessionStorage.setItem('spark.pass', JSON.stringify(o.seed));
@@ -657,6 +658,31 @@ const challenge = () => {
     ok(again.document.getElementById('doneView').classList.contains('on'), 'their pass is still theirs: the ready screen is showing at once');
     ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'with the same link, no new pass asked for');
     ok(again.SPARK_posts.length === 0, 'and nothing was sent to the function on the way there');
+
+    /* ── how it works: the pinned section, one point per part of the scroll ── */
+    w = await spark();
+    const how = w.document.querySelector('[data-how]');
+    const li = () => Array.from(how.querySelectorAll('.how-step'));
+    const shown = () => li().filter(x => x.classList.contains('on')).length;
+    const lit = () => li().findIndex(x => x.classList.contains('now'));
+    ok(!!how && !!w.document.querySelector('.how-step .road, .road'), 'the section is there, with a road to travel');
+    ok(how.classList.contains('live'), 'and it only hides a point once its own script is running');
+    ok(shown() === 4 && lit() === 3, 'with no room to scroll it shows all four rather than teasing one');
+    ok(how.querySelector('.marks').children.length === 0, 'where the browser cannot measure a path, no light is pretended');
+
+    Object.defineProperty(how, 'offsetHeight', { value: 5000 });
+    w.innerHeight = 768;
+    const at = top => { how.getBoundingClientRect = () => ({ top, bottom: top + 5000, left: 0, right: 0, width: 800, height: 5000 }); w.dispatchEvent(new w.Event('scroll')); };
+    at(-400); await new Promise(r => setTimeout(r, 50));
+    ok(shown() === 1 && lit() === 0, 'the first part of the scroll holds the first point');
+    at(-1600); await new Promise(r => setTimeout(r, 50));
+    ok(shown() === 2 && lit() === 1, 'further down the second point comes up and the first stays behind it');
+    at(-3800); await new Promise(r => setTimeout(r, 50));
+    ok(shown() === 4 && lit() === 3, 'and by the end all four are shown, so nothing is only reachable mid animation');
+
+    const still = await spark(null, { reduce: true });
+    ok(!still.document.querySelector('[data-how]').classList.contains('live'), 'asked for less motion, the section keeps its hands off the list');
+    ok(still.document.querySelectorAll('.how-step').length === 4, 'and the four points are simply the four points');
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

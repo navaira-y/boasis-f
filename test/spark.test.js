@@ -162,6 +162,36 @@ test('the local rehearsal serves what the site serves, at the same address', asy
   }
 });
 
+test('the header is the one every page of this site carries, with nothing added', () => {
+  const html = HTML();
+  assert.match(html, /<header class="nav">\s*<div class="nav-bar">/, 'the same two elements, in the same order as the home page');
+  assert.match(read('index.html'), /<header class="nav">\s*<div class="nav-bar">/, 'and the home page agrees');
+  assert.ok(html.indexOf('href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>') > 0, 'the logo, spelled as the site spells it');
+  assert.ok(!/class="tabs"|nav-wait|nav-contact/.test(html), 'no menu and no button, because there is nowhere else on this page to go');
+  const head = read('css/try-mira.css');
+  assert.match(head, /\.nav\{position:fixed/, 'the bar floats over the page the way it does on boasis.ae');
+  assert.match(head, /\.nav-bar\{position:relative; pointer-events:auto/, 'and the pill is the site\'s own, copied rather than invented');
+});
+
+test('how it works is one pinned section, four points, and a road', () => {
+  const html = HTML();
+  const css = read('css/try-mira.css');
+  const js = JS();
+  assert.match(html, /<section class="how" id="how" data-how>/, 'the section the owner asked for, in its own scroll distance');
+  assert.equal((html.match(/class="how-step"/g) || []).length, 4, 'one point per step of the design file, no more');
+  assert.match(html, /<path class="road" d="M46 54/, 'the road is drawn in the page, not an image to lose');
+  assert.match(css, /\.how\{position:relative; height:460vh\}/, 'the distance it takes is one number in the css');
+  assert.match(css, /\.how-pin\{position:sticky/, 'and the section holds still while it is walked through');
+  assert.match(js, /getPointAtLength/, 'the light is placed on the path itself, so it cannot drift off the road');
+  assert.match(js, /prefers-reduced-motion/, 'and the whole performance is skipped for anyone who asked for less motion');
+  /* a point that exists only after an animation is a point a text browser, a search engine and
+     a reader never get, so the hidden state waits for a word the script says first */
+  assert.match(css, /\.how\.live \.how-step\{opacity:\.2/, 'the css hides them only once its own script is running');
+  assert.ok(!/\.how-step\{[^}]*opacity:0/.test(css), 'and never by default');
+  const rm = css.slice(css.lastIndexOf('@media (prefers-reduced-motion:reduce)'));
+  assert.match(rm, /\.how\{height:auto\}/, 'with less motion the section is the list, not the track');
+});
+
 test('the rules the whole demo stands on, in one module', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };

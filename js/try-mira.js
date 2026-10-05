@@ -137,3 +137,79 @@
     go(pass, brain);
   }, { passive: false });
 })();
+
+/* ── how it works: the light on the road, and one point at a time ──────────────
+ *
+ * The section's own height is the scroll distance (css/try-mira.css, .how). That distance is
+ * cut into as many parts as there are points. The light is put on the road at the fraction
+ * travelled and a point comes up when the light enters its part, so the two are the same
+ * measurement rather than two timelines that can drift. Points already passed stay on screen,
+ * dimmer, which is why the last screen holds all four.
+ *
+ * It is decoration around a list that reads fine on its own, so every way out of it is quiet:
+ * no section, no svg geometry, or motion asked down to nothing, and in each case the four
+ * points are simply there. This has nothing to do with the form; it never touches it.
+ */
+(function howItWorks () {
+  var sec = document.querySelector('[data-how]');
+  if (!sec) return;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  var steps = Array.prototype.slice.call(sec.querySelectorAll('.how-step'));
+  if (!steps.length) return;
+  sec.classList.add('live');                       // the css waits for this word to hide anything
+
+  var road = sec.querySelector('.road');
+  var car = sec.querySelector('.car');
+  var haze = sec.querySelector('.haze');
+  var marks = sec.querySelector('.marks');
+  /* an svg that cannot measure its own path is an old or a stripped browser: the points still
+     come up on scroll, they just travel without a light to watch */
+  var canDraw = !!(road && car && typeof road.getTotalLength === 'function' && typeof road.getPointAtLength === 'function');
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var dots = [];
+  if (canDraw && marks) {
+    var full = road.getTotalLength();
+    for (var m = 0; m < steps.length; m++) {
+      var at = road.getPointAtLength(full * (m + 0.5) / steps.length);
+      var c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', at.x.toFixed(1));
+      c.setAttribute('cy', at.y.toFixed(1));
+      c.setAttribute('r', '5');
+      c.setAttribute('class', 'mark');
+      marks.appendChild(c);
+      dots.push(c);
+    }
+  }
+
+  function place (t) {
+    if (!canDraw) return;
+    var p = road.getPointAtLength(road.getTotalLength() * t);
+    car.setAttribute('cx', p.x.toFixed(1));
+    car.setAttribute('cy', p.y.toFixed(1));
+    if (haze) { haze.setAttribute('cx', p.x.toFixed(1)); haze.setAttribute('cy', p.y.toFixed(1)); }
+  }
+
+  var n = steps.length;
+  var raf = 0;
+  function update () {
+    raf = 0;
+    var box = sec.getBoundingClientRect();
+    var span = sec.offsetHeight - (window.innerHeight || 0);
+    // nothing to scroll means nothing to pace out: show the whole list rather than the first line
+    var t = span > 0 ? Math.min(1, Math.max(0, -box.top / span)) : 1;
+    var i = Math.min(n - 1, Math.floor(t * n));
+    for (var k = 0; k < n; k++) {
+      steps[k].classList.toggle('on', k <= i);
+      steps[k].classList.toggle('now', k === i);
+      if (dots[k]) dots[k].classList.toggle('on', k <= i);
+    }
+    place(t);
+  }
+  function onScroll () { if (!raf) raf = window.requestAnimationFrame ? requestAnimationFrame(update) : update(); }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+})();

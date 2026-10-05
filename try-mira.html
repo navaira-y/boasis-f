@@ -16,11 +16,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/try-mira.css">
 </head>
-<header class="hero">
-  <div class="nav">
-    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
-
+<header class="nav">
+  <div class="nav-bar">
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS">B<img src="/assets/logo/orb-160.png" alt="">ASIS</a>
   </div>
+</header>
+
+<header class="hero">
   <div class="hero-in">
     <div>
       <h1>Be the first to try <em>Mira</em></h1>
@@ -64,15 +66,6 @@
   </section>
 
   <aside class="side">
-    <div class="card">
-      <div class="eyebrow">How it works</div>
-      <div class="steps" style="margin-top:14px">
-        <div class="step"><div class="n">1</div><div><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></div>
-        <div class="step"><div class="n">2</div><div><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></div>
-        <div class="step"><div class="n">3</div><div><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></div>
-        <div class="step"><div class="n">4</div><div><b>An advisor takes over</b><span>If your project needs it.</span></div></div>
-      </div>
-    </div>
     <div class="offer gift" data-offer="boasis-year">
       <div class="eyebrow">Show offer</div>
       <div class="big">1 year</div>
@@ -86,6 +79,36 @@
     </div>
   </aside>
 </main>
+
+<!-- ── how it works · pinned, one point at a time, a light on the road ─────────────
+     The distance below is divided into as many parts as there are points: the light
+     travels the road across that distance and a point comes up when it reaches its
+     part. All four stay shown once passed, so the last screen holds the whole list.
+     The words are the design's own and the content team edits them here. -->
+<section class="how" id="how" data-how>
+  <div class="how-pin">
+    <div class="how-head">
+      <p class="eyebrow">How it works</p>
+      <h2>Four steps, from a description to an estimate.</h2>
+    </div>
+    <div class="how-grid">
+      <ol class="how-steps" aria-label="The four steps">
+        <li class="how-step"><span class="n">1</span><div class="t"><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></li>
+        <li class="how-step"><span class="n">2</span><div class="t"><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></li>
+        <li class="how-step"><span class="n">3</span><div class="t"><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></li>
+        <li class="how-step"><span class="n">4</span><div class="t"><b>An advisor takes over</b><span>If your project needs it.</span></div></li>
+      </ol>
+      <div class="how-road">
+        <svg viewBox="0 0 420 560" aria-hidden="true" focusable="false">
+          <path class="road" d="M46 54 C150 18 300 46 340 118 C378 186 210 214 132 244 C64 270 52 330 122 366 C200 406 330 386 362 452 C390 510 280 546 182 528"/>
+          <path class="lane" d="M46 54 C150 18 300 46 340 118 C378 186 210 214 132 244 C64 270 52 330 122 366 C200 406 330 386 362 452 C390 510 280 546 182 528"/>
+          <g class="marks"></g>
+          <circle class="haze" r="30" cx="46" cy="54"/><circle class="car" r="7" cx="46" cy="54"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
 
 <footer><a class="brand" href="https://boasis.ae/">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
 

@@ -29,10 +29,15 @@ p{margin:0}
 .brand img{width:1.06em; height:1.06em; margin:0 .02em; transform:translateY(-.02em)}
 
 /* Hero */
-.hero{background:radial-gradient(900px 560px at 78% 30%, rgba(14,134,196,.35), transparent 65%), var(--bo-night); color:#fff}
-.nav{max-width:1120px; margin:0 auto; padding:16px 16px; display:flex; justify-content:space-between; align-items:center}
-.nav .brand{font-size:22px; color:#fff}
-.nav .tag{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bo-teal); border:1px solid rgba(95,211,232,.35); border-radius:999px; padding:6px 12px}
+.hero{background:radial-gradient(900px 560px at 78% 30%, rgba(14,134,196,.35), transparent 65%), var(--bo-night); color:#fff; padding-top:86px}
+/* The header of every page on boasis.ae, rules copied from css/site.css on 5 October 2026 so
+   this page stays one file. Same shape, same pill, nothing added: no tabs and no button,
+   because there is nowhere else on this page to go. If the site header changes, this is the
+   block to copy again. */
+.nav{position:fixed; left:0; right:0; top:0; z-index:50; display:flex; justify-content:center; padding:14px 28px 0; pointer-events:none}
+.nav-bar{position:relative; pointer-events:auto; display:flex; align-items:center; gap:clamp(10px,1.2vw,14px); width:min(100%,1124px); height:60px; padding:0 9px 0 26px; border-radius:999px; background:rgba(11,13,18,.97); border:1px solid rgba(255,255,255,.09); box-shadow:0 20px 44px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.2)}
+.nav .brand{font-size:20px; color:#fff}
+.nav :focus-visible{outline-color:var(--bo-teal)}
 .hero-in{max-width:1120px; margin:0 auto; padding:4px 16px 64px; display:grid; grid-template-columns:1.3fr .7fr; gap:32px; align-items:center}
 .hero .eyebrow{color:var(--bo-teal)}
 .hero h1{color:#fff; font-size:clamp(30px,3.6vw,46px); line-height:1.06; margin-top:0}
@@ -94,11 +99,7 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
 
 /* Side */
 .side{display:grid; gap:14px}
-.steps{display:grid; gap:10px}
-.step{display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
-.step .n{width:36px; height:36px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-family:var(--display); font-weight:600}
-.step b{font-family:var(--display); font-weight:500; font-size:18px; color:var(--heading)}
-.step span{display:block; color:var(--muted); font-size:14px}
+
 .offer{border-radius:18px; padding:22px; display:grid; gap:6px}
 .offer.gift{background:var(--soft)}
 .offer.ds{background:var(--bo-night); color:#fff}
@@ -109,6 +110,37 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
 .offer p{color:var(--muted); font-size:15px}
 .big{font-family:var(--display); font-size:44px; line-height:1; color:var(--accent); font-weight:500}
 
+/* ── how it works · pinned, one point at a time ─────────────────────────────────
+   One number runs the whole thing: the height on .how is the distance you scroll, and it is
+   cut into as many parts as there are points. The light is placed on the road at the fraction
+   travelled, so it passes a marker as its point comes up. Points already passed stay on
+   screen at a lower level, which is why the last screen holds all four.
+   Without script the section is not pinned and all four are simply there, so the content is
+   never only reachable by an animation. prefers-reduced-motion gets the same reading. */
+.how{position:relative; height:460vh}
+.how-pin{position:sticky; top:0; min-height:100vh; display:grid; align-content:center; gap:clamp(20px,3.4vh,40px); padding:96px 24px 72px; background:linear-gradient(180deg,var(--bo-night),#0C1420 55%,var(--bo-night)); color:#fff}
+.how-head,.how-grid{width:100%; max-width:1124px; margin:0 auto}
+.how-head .eyebrow{color:var(--bo-teal)}
+.how-head h2{color:#fff; font-size:clamp(25px,3.2vw,38px); line-height:1.14; margin-top:8px}
+.how-grid{display:grid; grid-template-columns:1.02fr .98fr; gap:clamp(20px,4vw,56px); align-items:center}
+.how-steps{list-style:none; margin:0; padding:0; display:grid; gap:12px}
+.how-step{display:grid; grid-template-columns:44px 1fr; gap:14px; align-items:start; padding:15px 18px; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(255,255,255,.045); opacity:1; transition:opacity .45s ease,transform .45s ease,border-color .45s ease,background .45s ease}
+.how.live .how-step{opacity:.2; transform:translateY(12px)}
+.how.live .how-step.on{opacity:.62; transform:none}
+.how.live .how-step.now{opacity:1; border-color:rgba(95,211,232,.5); background:rgba(95,211,232,.08)}
+.how-step .n{width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:17px; background:rgba(255,255,255,.08); color:#fff; transition:background .45s ease,color .45s ease}
+.how-step.now .n{background:var(--bo-teal); color:#08283A}
+.how-step .t b{display:block; font-family:var(--display); font-weight:500; font-size:19px; line-height:1.25; color:#fff}
+.how-step .t span{display:block; margin-top:3px; color:#B4C7DA; font-size:14.5px}
+.how-road{display:grid; place-items:center}
+.how-road svg{width:100%; max-width:460px; height:auto; max-height:66vh; overflow:visible}
+.road{fill:none; stroke:rgba(255,255,255,.13); stroke-width:15; stroke-linecap:round}
+.lane{fill:none; stroke:rgba(95,211,232,.42); stroke-width:2; stroke-linecap:round; stroke-dasharray:2 15}
+.mark{fill:rgba(255,255,255,.3)}
+.mark.on{fill:var(--bo-teal)}
+.car{fill:var(--bo-teal); filter:drop-shadow(0 0 16px rgba(95,211,232,.85))}
+.haze{fill:rgba(95,211,232,.16)}
+
 footer{border-top:1px solid var(--line); padding:24px 16px; text-align:center; color:var(--muted); font-size:13px}
 footer .brand{font-size:16px; color:var(--heading)}
 
@@ -116,13 +148,21 @@ footer .brand{font-size:16px; color:var(--heading)}
 @media (min-width:700px) and (max-width:1100px){
   .hero-in{grid-template-columns:1.4fr .6fr; gap:24px; padding:16px 24px 64px}
   .orbwrap{max-width:260px; margin:0}
-  .nav{padding:20px 24px}
   .main{grid-template-columns:1fr; padding:0 24px 56px; margin-top:-32px}
   .side{grid-template-columns:1fr 1fr}
-  .side>.card{grid-column:1/-1}
-  .side .steps{grid-template-columns:1fr 1fr; gap:16px 24px}
 }
-/* Téléphone */
+/* Téléphone: the road above the points, and less distance to travel */
+@media (max-width:860px){
+  .how{height:400vh}
+  .how-pin{padding:84px 16px 48px; gap:16px}
+  .how-grid{grid-template-columns:1fr; gap:18px}
+  .how-road{order:-1}
+  .how-road svg{max-height:min(34vh,280px)}
+  .how-step{padding:12px 14px; grid-template-columns:34px 1fr; gap:12px}
+  .how-step .n{width:34px; height:34px; font-size:15px}
+  .how-step .t b{font-size:17px}
+  .how-step .t span{font-size:14px}
+}
 @media (max-width:699px){
   .hero-in{grid-template-columns:1fr; padding-bottom:64px}
   .orbwrap{max-width:240px; order:-1; margin:0}
@@ -138,3 +178,11 @@ footer .brand{font-size:16px; color:var(--heading)}
   .cta{padding:18px 24px; font-size:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* asked for less motion: the section stops being a scroll performance and becomes the list
+   it describes, all four points on screen, the light parked at the end of the road */
+@media (prefers-reduced-motion:reduce){
+  .how{height:auto}
+  .how-pin{position:static; min-height:0; padding:56px 24px 64px}
+  .how.live .how-step,.how.live .how-step.on{opacity:1; transform:none}
+  .how.live .how-step.now{border-color:rgba(95,211,232,.5)}
+}
