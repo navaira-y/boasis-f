@@ -89,6 +89,7 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
     return css.slice(at, css.indexOf('}', at));
   };
   const tight = (t) => t.replace(/\s+/g, '');
+  const site = read('css/site.css');   // the header and the sky are compared against it, rule for rule
 
   /* the night, pinned, with the brand tokens and the site own colour-scheme for what the
      browser paints itself: the select list, the scrollbars, the yellow of autofill */
@@ -99,16 +100,30 @@ test('the page wears the site look: one sky, glass panels, and a light that runs
   assert.match(html, /<meta name="theme-color" content="#0B0D12">/, 'and the night of the brand, which is what the home page asks for too');
   assert.match(html, /href="https:\/\/fonts\.googleapis\.com\/css2\?family=Outfit[^"]*IBM\+Plex\+Mono/, 'the site fonts, the same three families at the same weights');
 
-  /* the header: the logo and nothing else, no links, and not the floating capsule of the home page */
-  assert.match(html, /<header class="top">\s*<div class="bar">\s*<a class="brand" href="https:\/\/boasis\.ae\/" aria-label="BOASIS">B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>/, 'the header is the logo, alone');
-  assert.ok(!/nav-bar|class="tabs"|nav-wait|nav-contact/.test(html), 'no links, no button, no menu of our own invention');
-  assert.ok(!/border-radius/.test(rule('.top')), 'and no capsule: the bar carries no pill of its own');
-  assert.match(rule('.top'), /position:sticky/, 'it stays at the top as you scroll, the way the site bar does');
+  /* the header: the home page's own floating capsule, at its own measure, with only the fill
+     taken out, because the owner made this one transparent. Every other property is the site's. */
+  assert.match(html, /<header class="nav">\s*<div class="nav-bar">\s*<a class="brand" href="https:\/\/boasis\.ae\/"[^>]*>B<img src="\/assets\/logo\/orb-160\.png" alt="O">ASIS<\/a>\s*<\/div>\s*<\/header>/, 'the header is the site own bar with the logo, and one child only');
+  assert.ok(!/class="tabs"|nav-wait|nav-contact|tab-dot/.test(html), 'no links, no button, no dot: the bar carries the mark and nothing else');
+  for (const sel of ['.nav', '.nav .brand', '.brand', '.brand img']) {
+    const line = site.split('\n').find(l => l.startsWith(sel + '{'));
+    assert.ok(tight(css).includes(tight(line)), sel + ' is css/site.css, copied as written');
+  }
+  const open_rule = (t) => tight(t).replace(/}$/, '');   // rule() stops before the brace, a line does not
+  const siteBar = site.split('\n').find(l => l.startsWith('.nav-bar{')) || '';
+  assert.ok(siteBar.length > 0, 'css/site.css has the bar to compare against');
+  assert.equal(open_rule(rule('.nav-bar')), open_rule(siteBar).replace('background:rgba(11,13,18,.97);', ''),
+    '.nav-bar is the site rule with exactly one property removed, and no other edit');
+  assert.ok(!/background/.test(rule('.nav-bar')), 'the one removed property is the fill: the capsule is transparent, the light of the page shows inside it');
+  assert.match(rule('.nav-bar'), /border-radius:999px/, 'it is still the capsule, and not a bar with corners');
+  assert.match(rule('.nav'), /position:fixed[\s\S]*z-index:50/, 'it floats over the page at the site own height in the stack');
+  assert.match(rule('.hero-in'), /padding:calc\(74px/, 'and the hero starts below it, at 14px of top padding plus the 60px of the bar');
+  for (const sel of ['.hero-in', '.main']) {
+    assert.match(rule(sel), /width:min\(100% - 56px,1124px\)/, sel + ' is cut to the measure the capsule is cut to, so the logo lines up with what is under it');
+  }
 
   /* one background for the whole page: the sky, fixed, the three lights of the home page */
   assert.match(html, /<div class="sky" aria-hidden="true"><i><\/i><i><\/i><i><\/i><i><\/i><\/div>/, 'the three lights the home page drifts, plus the wash behind /early-access');
   assert.match(rule('.sky'), /position:fixed[\s\S]*z-index:-1[\s\S]*pointer-events:none/, 'behind everything, and it never takes a click');
-  const site = read('css/site.css');
   const skyRules = (site.match(/^\.sky i:nth-child\(\d\)\{.*$/gm) || []);
   assert.equal(skyRules.length, 3, 'the home page drifts three lights, so the sky rule is read three times');
   const ea = read('css/early-access.css');

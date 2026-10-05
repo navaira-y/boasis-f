@@ -64,7 +64,9 @@ the page and refuses anything else. Eleven differences, each for a reason that i
 9. the site's `favicon.ico`, `favicon-32.png` and `apple-touch-icon.png` are in the head, so the
    tab carries the mark. The design file shipped none;
 10. the paint is boasis.ae's own, which the owner asked for on 5 October 2026, in these words:
-    the header with only the logo and not the capsule, the orb in the middle of its space, no
+    the header as the home page writes it, the capsule at its measure and its height with the fill
+    left out because the owner made this one transparent, only the logo inside and no links,
+    the orb in the middle of its space, no
     second background behind the form, one gradient across the whole page, the glass of the site,
     the form on the right and the other things on the left, and the box whose line of light keeps
     moving, which is the How it works panel and not the form. The light is `css/site.css`'s own
@@ -81,6 +83,13 @@ the page and refuses anything else. Eleven differences, each for a reason that i
 Four things from the file are deliberately overridden by points 10 and 11: its light skin, its dark
 plate behind the hero, its form on the left, and its native select. Everything a person reads is
 still the file's words, and the fields are still the ones the plan allows.
+
+The bar is `css/site.css`'s `.nav`, `.nav-bar`, `.brand` and `.nav .brand` copied rule for rule, and
+a test rebuilds the site's `.nav-bar` line, deletes `background:rgba(11,13,18,.97)`, and requires
+the two strings to match. That is the whole of the difference: one property, taken out, never
+retuned. The page's own measure is `min(100% - 56px, 1124px)`, which is the site's `.wrap` (1180
+less 28px each side) and the width the bar is cut to, so the mark lines up with the headings under
+it the way it does on the home page.
 
 One trap, because it cost an hour: the page's night goes on `body` and nowhere else. Put a
 background on `html` too and the browser stops carrying the body's to the canvas, paints it as a
