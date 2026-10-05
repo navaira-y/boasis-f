@@ -173,23 +173,35 @@ test('the header is the one every page of this site carries, with nothing added'
   assert.match(head, /\.nav-bar\{position:relative; pointer-events:auto/, 'and the pill is the site\'s own, copied rather than invented');
 });
 
-test('how it works is one pinned section, four points, and a road', () => {
+test('how it works: the words are on the road, and the road only goes ahead', () => {
   const html = HTML();
   const css = read('css/try-mira.css');
   const js = JS();
-  assert.match(html, /<section class="how" id="how" data-how>/, 'the section the owner asked for, in its own scroll distance');
+  assert.match(html, /<section class="how" id="how" data-how>/, 'one section of its own, with its own scroll distance');
   assert.equal((html.match(/class="how-step"/g) || []).length, 4, 'one point per step of the design file, no more');
-  assert.match(html, /<path class="road" d="M46 54/, 'the road is drawn in the page, not an image to lose');
-  assert.match(css, /\.how\{position:relative; height:460vh\}/, 'the distance it takes is one number in the css');
-  assert.match(css, /\.how-pin\{position:sticky/, 'and the section holds still while it is walked through');
-  assert.match(js, /getPointAtLength/, 'the light is placed on the path itself, so it cannot drift off the road');
-  assert.match(js, /prefers-reduced-motion/, 'and the whole performance is skipped for anyone who asked for less motion');
-  /* a point that exists only after an animation is a point a text browser, a search engine and
-     a reader never get, so the hidden state waits for a word the script says first */
-  assert.match(css, /\.how\.live \.how-step\{opacity:\.2/, 'the css hides them only once its own script is running');
-  assert.ok(!/\.how-step\{[^}]*opacity:0/.test(css), 'and never by default');
+  assert.ok(html.indexOf('data-track') < html.indexOf('<ol class="how-steps"'), 'the points live inside the track that travels, not beside it');
+  assert.ok(!/how-grid/.test(html + css), 'and there is no second column for them to sit in any more');
+  assert.match(html, /<path class="road" vector-effect="non-scaling-stroke" d="M210 0/, 'the road is drawn in the page, not an image to lose');
+
+  /* the one thing the owner asked for in words: it goes ahead, it does not come back. The
+     control points of the curve are checked, not the picture, so a later edit cannot fold the
+     road back on itself without failing something. */
+  const d = /<path class="road"[^>]*d="([^"]+)"/.exec(html)[1];
+  const nums = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+  const ys = nums.filter((_, k) => k % 2 === 1);
+  assert.ok(ys.every((y, k) => k === 0 || y > ys[k - 1]), 'every y on the road is further along than the one before: ' + ys.join(','));
+
+  assert.match(css, /\.how\{position:relative; height:520vh\}/, 'the scroll distance is one number in the css');
+  assert.match(css, /\.how-pin\{position:sticky/, 'and the stage holds still while the road moves through it');
+  assert.match(css, /\.how\.live \.how-step\{position:absolute/, 'a point is placed on the road only once its own script is running');
+  assert.ok(!/(^|\n)\.how-step\{[^}]*opacity:0/.test(css), 'and the bare rule never hides them, so a reader and a crawler get all four sentences');
+  assert.match(html, /You are here/, 'the mark you are standing at is named on the page');
+  assert.match(css, /\.how-route\{position:absolute/, 'and the whole route is shown beside it, small, so the road ahead is visible');
+  assert.match(js, /getPointAtLength/, 'the horizontal place of a point comes from the road itself, so it cannot drift off it');
+  assert.match(js, /window\.SPARK_ROAD/, 'the three rules of the road are reachable from a test');
+  assert.match(js, /prefers-reduced-motion/, 'and asked for less motion, nobody travels anything');
   const rm = css.slice(css.lastIndexOf('@media (prefers-reduced-motion:reduce)'));
-  assert.match(rm, /\.how\{height:auto\}/, 'with less motion the section is the list, not the track');
+  assert.match(rm, /\.how\{height:auto\}/, 'the section becomes the list it describes');
 });
 
 test('the rules the whole demo stands on, in one module', async () => {

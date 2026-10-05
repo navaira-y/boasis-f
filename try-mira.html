@@ -80,31 +80,41 @@
   </aside>
 </main>
 
-<!-- ── how it works · pinned, one point at a time, a light on the road ─────────────
-     The distance below is divided into as many parts as there are points: the light
-     travels the road across that distance and a point comes up when it reaches its
-     part. All four stay shown once passed, so the last screen holds the whole list.
-     The words are the design's own and the content team edits them here. -->
+<!-- ── how it works · one road, four points on it ─────────────────────────────
+     You are standing on the road at the mark, and the road moves ahead as you scroll. Each
+     point is written on the road, so the words travel with it: a point reaches the mark, is
+     read there, and then stays behind it further down the page rather than coming back.
+     The thin strip on the left is the whole route, so the way ahead is visible.
+     The four sentences are the design file's own, for the content team to replace. -->
 <section class="how" id="how" data-how>
   <div class="how-pin">
     <div class="how-head">
       <p class="eyebrow">How it works</p>
       <h2>Four steps, from a description to an estimate.</h2>
     </div>
-    <div class="how-grid">
-      <ol class="how-steps" aria-label="The four steps">
-        <li class="how-step"><span class="n">1</span><div class="t"><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></li>
-        <li class="how-step"><span class="n">2</span><div class="t"><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></li>
-        <li class="how-step"><span class="n">3</span><div class="t"><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></li>
-        <li class="how-step"><span class="n">4</span><div class="t"><b>An advisor takes over</b><span>If your project needs it.</span></div></li>
-      </ol>
-      <div class="how-road">
-        <svg viewBox="0 0 420 560" aria-hidden="true" focusable="false">
-          <path class="road" d="M46 54 C150 18 300 46 340 118 C378 186 210 214 132 244 C64 270 52 330 122 366 C200 406 330 386 362 452 C390 510 280 546 182 528"/>
-          <path class="lane" d="M46 54 C150 18 300 46 340 118 C378 186 210 214 132 244 C64 270 52 330 122 366 C200 406 330 386 362 452 C390 510 280 546 182 528"/>
-          <g class="marks"></g>
-          <circle class="haze" r="30" cx="46" cy="54"/><circle class="car" r="7" cx="46" cy="54"/>
+
+    <div class="how-stage" data-stage>
+      <!-- the whole route, small, so you can see how far there is still to go -->
+      <div class="how-route" aria-hidden="true">
+        <span class="how-route-line"></span>
+        <span class="how-route-here" data-here></span>
+        <ol class="how-route-dots" data-dots></ol>
+      </div>
+
+      <div class="how-track" data-track>
+        <svg class="how-map" viewBox="0 0 420 2600" preserveAspectRatio="none" aria-hidden="true">
+          <path class="road" vector-effect="non-scaling-stroke" d="M210 0 C300 240 90 320 120 520 S330 760 240 1000 C150 1240 60 1360 180 1560 S360 1820 250 2060 C160 2280 240 2420 210 2600"/>
+          <path class="lane" vector-effect="non-scaling-stroke" d="M210 0 C300 240 90 320 120 520 S330 760 240 1000 C150 1240 60 1360 180 1560 S360 1820 250 2060 C160 2280 240 2420 210 2600"/>
         </svg>
+
+        <ol class="how-steps" aria-label="The four steps">
+          <li class="how-step"><span class="n">1</span><div class="t"><b>Describe your business</b><span>In your own words, as you would to an advisor.</span></div></li>
+          <li class="how-step"><span class="n">2</span><div class="t"><b>Mira finds your activities</b><span>And explains what each one requires.</span></div></li>
+          <li class="how-step"><span class="n">3</span><div class="t"><b>Your package and estimate</b><span>Based on official SPARK prices.</span></div></li>
+          <li class="how-step"><span class="n">4</span><div class="t"><b>An advisor takes over</b><span>If your project needs it.</span></div></li>
+        </ol>
+
+        <div class="how-mark" data-mark aria-hidden="true"><span class="how-car"></span><span class="how-here">You are here</span></div>
       </div>
     </div>
   </div>

@@ -138,78 +138,143 @@
   }, { passive: false });
 })();
 
-/* ── how it works: the light on the road, and one point at a time ──────────────
+/* ── how it works: you stand at the mark and the road moves ahead of you ───────
  *
- * The section's own height is the scroll distance (css/try-mira.css, .how). That distance is
- * cut into as many parts as there are points. The light is put on the road at the fraction
- * travelled and a point comes up when the light enters its part, so the two are the same
- * measurement rather than two timelines that can drift. Points already passed stay on screen,
- * dimmer, which is why the last screen holds all four.
+ * The points are not beside the road, they are on it: every sentence is placed at a point of
+ * the drawn path, and the whole road slides upward as the page is scrolled, so a point rises
+ * to the mark, is read there, and is left behind above it. Nothing comes back down. The thin
+ * strip at the left is the same route in miniature, with a light on it, so the part still
+ * ahead of you is visible the whole time.
  *
- * It is decoration around a list that reads fine on its own, so every way out of it is quiet:
- * no section, no svg geometry, or motion asked down to nothing, and in each case the four
- * points are simply there. This has nothing to do with the form; it never touches it.
+ * The maths is three small pure functions, plan / where / xOnRoad, kept apart from the browser
+ * calls so they can be tested without a page. Everything after them is measurement and
+ * setting styles. If any of it cannot be measured, or the section is absent, or motion is
+ * asked down to nothing, the four points stay the plain list the markup already is.
  */
 (function howItWorks () {
   var sec = document.querySelector('[data-how]');
   if (!sec) return;
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var steps = Array.prototype.slice.call(sec.querySelectorAll('.how-step'));
-  if (!steps.length) return;
-  sec.classList.add('live');                       // the css waits for this word to hide anything
-
+  var stage = sec.querySelector('[data-stage]');
+  var track = sec.querySelector('[data-track]');
+  var mark = sec.querySelector('[data-mark]');
+  var here = sec.querySelector('[data-here]');
+  var dots = sec.querySelector('[data-dots]');
   var road = sec.querySelector('.road');
-  var car = sec.querySelector('.car');
-  var haze = sec.querySelector('.haze');
-  var marks = sec.querySelector('.marks');
-  /* an svg that cannot measure its own path is an old or a stripped browser: the points still
-     come up on scroll, they just travel without a light to watch */
-  var canDraw = !!(road && car && typeof road.getTotalLength === 'function' && typeof road.getPointAtLength === 'function');
-  var SVGNS = 'http://www.w3.org/2000/svg';
-  var dots = [];
-  if (canDraw && marks) {
-    var full = road.getTotalLength();
-    for (var m = 0; m < steps.length; m++) {
-      var at = road.getPointAtLength(full * (m + 0.5) / steps.length);
-      var c = document.createElementNS(SVGNS, 'circle');
-      c.setAttribute('cx', at.x.toFixed(1));
-      c.setAttribute('cy', at.y.toFixed(1));
-      c.setAttribute('r', '5');
-      c.setAttribute('class', 'mark');
-      marks.appendChild(c);
-      dots.push(c);
+  if (!steps.length || !stage || !track) return;
+  sec.classList.add('live');                        // the css waits for this word to move anything
+
+  var ANCHOR = 0.58;       // the height of the mark, as a share of the stage
+  var K = 2.2;             // how much road there is, as a share of the stage
+  var GATE = 0.3;          // how close a point must be to the mark to be the one you read
+  var VIEW_H = 2600, VIEW_W = 420;   // the viewBox of the drawn road
+
+  /* where each point sits on the road, and what fraction of the road that is. The last point
+     reaches the mark exactly as the section lets go, and the road carries on past it. */
+  function plan (n, stageH, anchorShare, kShare) {
+    var trackH = stageH * kShare;
+    var slide = trackH - stageH;
+    var anchor = stageH * anchorShare;
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var y = anchor + slide * ((i + 1) / n);
+      out.push({ y: y, f: y / trackH });
+    }
+    return { trackH: trackH, slide: slide, anchor: anchor, points: out };
+  }
+
+  /* a point is the one you are reading while it is at the mark; before that it is on its way,
+     after that it is behind you. It never returns. */
+  function where (screenY, anchor, gate) {
+    if (screenY > anchor + gate) return 'ahead';
+    if (screenY < anchor - gate) return 'passed';
+    return 'now';
+  }
+
+  /* the road is a curve, so the horizontal place of a point comes from the path itself. It is
+     sampled once into a table and read back by interpolation: no per-frame path walking. */
+  var table = null;
+  function sample () {
+    if (!road || typeof road.getTotalLength !== 'function' || typeof road.getPointAtLength !== 'function') return null;
+    var L = road.getTotalLength(), pts = [], N = 240;
+    for (var i = 0; i <= N; i++) {
+      var p = road.getPointAtLength(L * i / N);
+      pts.push({ y: p.y, x: p.x });
+    }
+    return pts;
+  }
+  function xOnRoad (pts, yCss, trackH, width) {
+    if (!pts || !trackH) return width / 2;
+    var want = yCss / trackH * VIEW_H;
+    for (var i = 1; i < pts.length; i++) {
+      if (pts[i].y >= want) {
+        var a = pts[i - 1], b = pts[i];
+        var t = (want - a.y) / ((b.y - a.y) || 1);
+        return (a.x + (b.x - a.x) * t) / VIEW_W * width;
+      }
+    }
+    return pts[pts.length - 1].x / VIEW_W * width;
+  }
+
+  /* the same route, in miniature, so the road ahead of the mark is always on screen */
+  var marks = [];
+  if (dots) {
+    for (var d = 0; d < steps.length; d++) {
+      var li = document.createElement('li');
+      li.style.top = ((d + 1) / steps.length * 100).toFixed(2) + '%';
+      dots.appendChild(li);
+      marks.push(li);
     }
   }
 
-  function place (t) {
-    if (!canDraw) return;
-    var p = road.getPointAtLength(road.getTotalLength() * t);
-    car.setAttribute('cx', p.x.toFixed(1));
-    car.setAttribute('cy', p.y.toFixed(1));
-    if (haze) { haze.setAttribute('cx', p.x.toFixed(1)); haze.setAttribute('cy', p.y.toFixed(1)); }
+  var w = 0, h = 0, pl = null;
+  function measure () {
+    w = stage.clientWidth; h = stage.clientHeight;
+    if (!h) return false;
+    pl = plan(steps.length, h, ANCHOR, K);
+    track.style.height = Math.round(pl.trackH) + 'px';
+    table = sample();
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].style.top = Math.round(pl.points[i].y) + 'px';
+      steps[i].style.left = Math.round(xOnRoad(table, pl.points[i].y, pl.trackH, w)) + 'px';
+    }
+    if (mark) mark.style.top = Math.round(pl.anchor) + 'px';
+    return true;
   }
 
-  var n = steps.length;
   var raf = 0;
-  function update () {
+  function draw () {
     raf = 0;
+    if (!pl && !measure()) return;
     var box = sec.getBoundingClientRect();
     var span = sec.offsetHeight - (window.innerHeight || 0);
-    // nothing to scroll means nothing to pace out: show the whole list rather than the first line
-    var t = span > 0 ? Math.min(1, Math.max(0, -box.top / span)) : 1;
-    var i = Math.min(n - 1, Math.floor(t * n));
-    for (var k = 0; k < n; k++) {
-      steps[k].classList.toggle('on', k <= i);
-      steps[k].classList.toggle('now', k === i);
-      if (dots[k]) dots[k].classList.toggle('on', k <= i);
+    // nothing to scroll is not a road to stand at the start of: show the whole thing
+    var p = span > 0 ? Math.min(1, Math.max(0, -box.top / span)) : 1;
+    track.style.transform = 'translate3d(0,' + (-pl.slide * p).toFixed(1) + 'px,0)';
+    for (var i = 0; i < steps.length; i++) {
+      var y = pl.points[i].y - pl.slide * p;
+      var state = where(y, pl.anchor, pl.anchor * GATE);
+      var cl = steps[i].classList;
+      cl.toggle('now', state === 'now');
+      cl.toggle('ahead', state === 'ahead');
+      cl.toggle('passed', state === 'passed');
+      if (marks[i]) marks[i].classList.toggle('on', state !== 'ahead');
     }
-    place(t);
+    if (mark) {
+      var x = xOnRoad(table, pl.anchor + pl.slide * p, pl.trackH, w);
+      mark.style.left = Math.round(x) + 'px';
+    }
+    if (here) here.style.top = (p * 100).toFixed(2) + '%';
   }
-  function onScroll () { if (!raf) raf = window.requestAnimationFrame ? requestAnimationFrame(update) : update(); }
+  function onScroll () { if (!raf && window.requestAnimationFrame) raf = requestAnimationFrame(draw); else if (!raf) draw(); }
+  function onResize () { if (measure()) draw(); }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll);
-  update();
+  window.addEventListener('resize', onResize);
+  if (measure()) draw();
+
+  /* the three pure rules, where a test can reach them without a page */
+  window.SPARK_ROAD = { plan: plan, where: where, xOnRoad: xOnRoad };
 })();

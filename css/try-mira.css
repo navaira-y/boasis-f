@@ -110,36 +110,52 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
 .offer p{color:var(--muted); font-size:15px}
 .big{font-family:var(--display); font-size:44px; line-height:1; color:var(--accent); font-weight:500}
 
-/* ── how it works · pinned, one point at a time ─────────────────────────────────
-   One number runs the whole thing: the height on .how is the distance you scroll, and it is
-   cut into as many parts as there are points. The light is placed on the road at the fraction
-   travelled, so it passes a marker as its point comes up. Points already passed stay on
-   screen at a lower level, which is why the last screen holds all four.
-   Without script the section is not pinned and all four are simply there, so the content is
-   never only reachable by an animation. prefers-reduced-motion gets the same reading. */
-.how{position:relative; height:460vh}
-.how-pin{position:sticky; top:0; min-height:100vh; display:grid; align-content:center; gap:clamp(20px,3.4vh,40px); padding:96px 24px 72px; background:linear-gradient(180deg,var(--bo-night),#0C1420 55%,var(--bo-night)); color:#fff}
-.how-head,.how-grid{width:100%; max-width:1124px; margin:0 auto}
+/* ── how it works · one road, four points written on it ───────────────────────
+   You stand at the mark and the road moves ahead of you: the section holds still
+   (.how-pin) while .how-track slides up, and each sentence is placed on the road by
+   js/try-mira.js, so the words travel with the road instead of sitting beside it. A
+   point reaches the mark, is read there, and is left behind further down. The strip at
+   the left is the whole route with a light on it, so the way ahead stays visible.
+   The pace is set by one number, the height of .how; the script reads the stage size
+   from the browser, so nothing has to be re-measured by hand when a fifth point is
+   added. Without script, or with less motion asked for, none of this applies and the
+   four points are a plain list, which is what a reader and a crawler get as well. */
+.how{position:relative; height:520vh}
+.how-pin{position:sticky; top:0; min-height:100vh; display:grid; grid-template-rows:auto 1fr; gap:14px; padding:96px 24px 40px; background:linear-gradient(180deg,var(--bo-night),#0C1420 45%,var(--bo-night)); color:#fff; overflow:hidden}
+.how-head,.how-stage{width:100%; max-width:1124px; margin:0 auto}
 .how-head .eyebrow{color:var(--bo-teal)}
-.how-head h2{color:#fff; font-size:clamp(25px,3.2vw,38px); line-height:1.14; margin-top:8px}
-.how-grid{display:grid; grid-template-columns:1.02fr .98fr; gap:clamp(20px,4vw,56px); align-items:center}
-.how-steps{list-style:none; margin:0; padding:0; display:grid; gap:12px}
-.how-step{display:grid; grid-template-columns:44px 1fr; gap:14px; align-items:start; padding:15px 18px; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(255,255,255,.045); opacity:1; transition:opacity .45s ease,transform .45s ease,border-color .45s ease,background .45s ease}
-.how.live .how-step{opacity:.2; transform:translateY(12px)}
-.how.live .how-step.on{opacity:.62; transform:none}
-.how.live .how-step.now{opacity:1; border-color:rgba(95,211,232,.5); background:rgba(95,211,232,.08)}
-.how-step .n{width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:17px; background:rgba(255,255,255,.08); color:#fff; transition:background .45s ease,color .45s ease}
-.how-step.now .n{background:var(--bo-teal); color:#08283A}
+.how-head h2{color:#fff; font-size:clamp(24px,3vw,36px); line-height:1.14; margin-top:6px}
+.how-stage{position:relative; min-height:60vh}
+.how-track{position:relative; will-change:transform}
+.how-map{position:absolute; inset:0; width:100%; height:100%; display:block}
+.road{fill:none; stroke:rgba(255,255,255,.15); stroke-width:16; stroke-linecap:round}
+.lane{fill:none; stroke:rgba(95,211,232,.4); stroke-width:2; stroke-linecap:round; stroke-dasharray:2 16}
+
+/* the place you are standing: it does not move, the road does */
+.how-mark{position:absolute; left:50%; top:58%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:10px; pointer-events:none; transition:left .12s linear}
+.how-car{width:15px; height:15px; border-radius:50%; background:var(--bo-teal); box-shadow:0 0 24px 8px rgba(95,211,232,.5),0 0 0 6px rgba(95,211,232,.13); flex:none}
+.how-here{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--bo-teal); white-space:nowrap; background:rgba(11,13,18,.72); border:1px solid rgba(95,211,232,.3); border-radius:999px; padding:5px 10px}
+
+/* the whole route, small, so what is still ahead of you is visible */
+.how-route{position:absolute; left:0; top:50%; transform:translateY(-50%); height:min(44vh,320px); width:30px}
+.how-route-line{position:absolute; left:50%; top:0; bottom:0; width:3px; transform:translateX(-50%); border-radius:3px; background:linear-gradient(180deg,rgba(95,211,232,.5),rgba(255,255,255,.14) 55%,rgba(255,255,255,.07))}
+.how-route-here{position:absolute; left:50%; top:0; width:11px; height:11px; border-radius:50%; transform:translate(-50%,-50%); background:var(--bo-teal); box-shadow:0 0 14px rgba(95,211,232,.9)}
+.how-route-dots{position:absolute; inset:0; margin:0; padding:0; list-style:none}
+.how-route-dots li{position:absolute; left:50%; width:7px; height:7px; border-radius:50%; transform:translate(-50%,-50%); background:rgba(255,255,255,.24); transition:background .3s ease}
+.how-route-dots li.on{background:var(--bo-teal)}
+
+.how-steps{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:10px}
+.how-step{display:grid; grid-template-columns:44px 1fr; gap:14px; align-items:start; padding:15px 18px; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(255,255,255,.045); opacity:1}
+.how-step .n{width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:17px; background:rgba(255,255,255,.08); color:#fff}
 .how-step .t b{display:block; font-family:var(--display); font-weight:500; font-size:19px; line-height:1.25; color:#fff}
 .how-step .t span{display:block; margin-top:3px; color:#B4C7DA; font-size:14.5px}
-.how-road{display:grid; place-items:center}
-.how-road svg{width:100%; max-width:460px; height:auto; max-height:66vh; overflow:visible}
-.road{fill:none; stroke:rgba(255,255,255,.13); stroke-width:15; stroke-linecap:round}
-.lane{fill:none; stroke:rgba(95,211,232,.42); stroke-width:2; stroke-linecap:round; stroke-dasharray:2 15}
-.mark{fill:rgba(255,255,255,.3)}
-.mark.on{fill:var(--bo-teal)}
-.car{fill:var(--bo-teal); filter:drop-shadow(0 0 16px rgba(95,211,232,.85))}
-.haze{fill:rgba(95,211,232,.16)}
+/* only once the script says it is running do the points leave the list and go onto the road */
+.how.live .how-steps{position:absolute; inset:0; display:block; margin:0}
+.how.live .how-step{position:absolute; left:50%; top:0; transform:translate(-50%,-50%); width:min(430px,86%); margin:0; padding:14px 16px; background:rgba(11,19,30,.93); opacity:0; filter:blur(2px); transition:opacity .45s ease,filter .45s ease,border-color .45s ease,box-shadow .45s ease}
+.how.live .how-step.ahead{opacity:.42; filter:none}
+.how.live .how-step.now{opacity:1; filter:none; border-color:rgba(95,211,232,.55); box-shadow:0 22px 50px -24px rgba(0,0,0,.85),0 0 0 1px rgba(95,211,232,.12)}
+.how.live .how-step.passed{opacity:.34; filter:none}
+.how.live .how-step.now .n{background:var(--bo-teal); color:#08283A}
 
 footer{border-top:1px solid var(--line); padding:24px 16px; text-align:center; color:var(--muted); font-size:13px}
 footer .brand{font-size:16px; color:var(--heading)}
@@ -151,13 +167,14 @@ footer .brand{font-size:16px; color:var(--heading)}
   .main{grid-template-columns:1fr; padding:0 24px 56px; margin-top:-32px}
   .side{grid-template-columns:1fr 1fr}
 }
-/* Téléphone: the road above the points, and less distance to travel */
+/* Téléphone: less road to walk, the mark higher so a thumb can reach the words */
 @media (max-width:860px){
-  .how{height:400vh}
-  .how-pin{padding:84px 16px 48px; gap:16px}
-  .how-grid{grid-template-columns:1fr; gap:18px}
-  .how-road{order:-1}
-  .how-road svg{max-height:min(34vh,280px)}
+  .how{height:440vh}
+  .how-pin{padding:84px 14px 32px; gap:10px}
+  .how-stage{min-height:66vh}
+  .how-mark{top:52%}
+  .how-route{height:34vh; left:2px; width:22px}
+  .how.live .how-step{width:calc(100% - 34px); left:calc(50% + 8px); padding:12px 14px; grid-template-columns:34px 1fr; gap:12px}
   .how-step{padding:12px 14px; grid-template-columns:34px 1fr; gap:12px}
   .how-step .n{width:34px; height:34px; font-size:15px}
   .how-step .t b{font-size:17px}
@@ -178,11 +195,14 @@ footer .brand{font-size:16px; color:var(--heading)}
   .cta{padding:18px 24px; font-size:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-/* asked for less motion: the section stops being a scroll performance and becomes the list
-   it describes, all four points on screen, the light parked at the end of the road */
+/* asked for less motion: the road is drawn, you are not made to travel it. The section stops
+   being a scroll performance and becomes the list it describes, all four points on screen */
 @media (prefers-reduced-motion:reduce){
   .how{height:auto}
-  .how-pin{position:static; min-height:0; padding:56px 24px 64px}
-  .how.live .how-step,.how.live .how-step.on{opacity:1; transform:none}
+  .how-pin{position:static; min-height:0; grid-template-rows:auto auto; padding:56px 24px 64px}
+  .how-stage{min-height:0}
+  .how-route,.how-mark{display:none}
+  .how.live .how-steps{position:static; display:grid; gap:10px}
+  .how.live .how-step{position:static; width:auto; left:auto; opacity:1; filter:none; transform:none}
   .how.live .how-step.now{border-color:rgba(95,211,232,.5)}
 }

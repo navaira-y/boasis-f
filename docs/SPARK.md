@@ -38,24 +38,32 @@ plus the rules in the function, which are a honeypot, a too-fast refuse, and one
 per day. A separate host would have had the Nginx counter as well. Say so if the stand is
 expected to draw a crowd; `limit_req` on `location = /try-mira` covers the page loads only.
 
-## The page itself: the header, and the pinned section
+## The page itself: the header, and the road
 
 `try-mira.html` carries the header every page on boasis.ae carries, with the logo and nothing
 else. No menu, no button: there is nowhere else on this page to go. Its rules are copied from
 `css/site.css` into `css/try-mira.css` so the page stays one file, and if the site header ever
 changes, that copied block is the thing to refresh.
 
-"How it works" is one pinned section. The section is `460vh` tall (`.how`, in the css), its
-inside sticks, and that distance is cut into as many parts as there are points. A blue light
-travels the drawn road and a point comes up when the light reaches its part; points already
-passed stay on screen, dimmer, so the last screen holds all four. Two things about it are
-deliberate, and each has a test:
+"How it works" is one road. You stand at a mark, the four sentences are written on the road
+itself, and scrolling moves the road ahead of you, so a point rises to the mark, is read there,
+and is left behind above it. Nothing comes back down. A small strip at the left is the whole
+route with a light on it, so the part still to come is visible the whole time.
 
-- with no script, or with `prefers-reduced-motion`, the section is not pinned at all and the four
-  points are simply listed. Nothing on this page is only reachable by watching an animation.
-- the four sentences live in `try-mira.html`, beside the road. The content team edits them there.
-  A fifth point is one more `<li>`: the scroll distance and the road are divided by the count the
-  script reads, not by a number written next to them.
+The only number that sets the pace is the height of `.how` in `css/try-mira.css`. The script
+measures the stage from the browser, so adding a fifth point is one more `<li class="how-step">`
+in `try-mira.html`: the road, the route strip and the spacing are all divided by the number of
+points it finds. The four sentences are the design file's own, for the content team to replace.
+
+Three things about it are deliberate, each with a test:
+
+- The point's horizontal place is read from the drawn path, so the words are on the road rather
+  than next to it. A browser that cannot measure a path puts every point in the middle of the
+  road instead of throwing them anywhere.
+- With no script, or with `prefers-reduced-motion`, the section is not pinned at all and the four
+  points are a plain list. Nothing on this page is only reachable by watching an animation.
+- The road is one curve whose every y is larger than the one before it. A test reads the numbers
+  out of the `d` attribute, so nobody can fold the road back on itself later by accident.
 
 ## The one file per person
 
