@@ -124,6 +124,8 @@ test('the demo dialog is on the home page, and the early-access form is a page o
   assert.equal((early.match(/class="ea-d"/g) || []).length, 6, 'and the visitor types it into six boxes, one digit each');
   assert.match(early, /data-code[\s>]/, 'the boxes are a group the script can find');
   assert.match(early, /autocomplete="one-time-code"/, 'and the first one takes the browser\'s own code autofill');
+  assert.equal((early.match(/<main>/g) || []).length, 1, 'one main on the page: a second one doubles the header space above the split');
+  assert.equal((early.match(/<\/main>/g) || []).length, 1, 'and it closes once');
   assert.equal((early.match(/data-back>Back/g) || []).length, 4, 'four steps carry a way back, and the code step asks its own question instead');
   assert.match(early, /class="ea-verified" data-verified hidden>/, 'the verified address gets a line under the field');
   assert.match(early, /data-unlock>Use another address</, 'and the one way out of that lock is named plainly');
