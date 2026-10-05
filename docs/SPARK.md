@@ -10,8 +10,9 @@ clicks a developer has to make tonight.
 ## What is in the repo
 
 ```
-try-mira.html                         the page, at boasis.ae/try-mira. It is the design file
-                                        itself: the markup and the styles, one file, unchanged
+try-mira.html                         the page, at boasis.ae/try-mira: the design file's markup,
+                                        copy and fields, in the site's own look, with its styles
+                                        inline in the one file
 js/try-mira.js                        the form: validation, the pass, the handoff, and the two
                                         addresses a developer pastes in at the top
 demo/supabase/functions/create-pass     the function the form posts to
@@ -19,6 +20,9 @@ demo/supabase/functions/save-step     the function the Brain UI posts to after e
 demo/supabase/functions/_shared/spark-core.js
                                       every rule, pure and testable in Node
 scripts/spark-stub.js                 the same rules on a laptop, no Supabase needed
+scripts/make-qr.js                    the stand QR, made here rather than at a web generator
+docs/qr/try-mira.png                  the code, 1200px, for screens and slides
+docs/qr/try-mira.svg                  the same code as vector, for print, with the orb inside it
 ```
 
 The three demo files sit where the site's own files sit, so there is nothing to assemble and
@@ -108,7 +112,42 @@ plus-lighter` is what makes it add light rather than paint over it.
 Under `prefers-reduced-motion: reduce` the travelling copy is switched off and the line itself
 takes the teal once, so the four points stay joined and nothing moves.
 
-## The one file per person
+## The QR for the stand
+
+`docs/qr/try-mira.png` and `docs/qr/try-mira.svg` encode one address, `https://boasis.ae/try-mira`
+and nothing else, so scanning lands the visitor on the form with Mira's orb in the middle of it.
+Four things about it are not taste:
+
+- **error correction H**, which is what lets the orb stand in the middle at all. The ring is 8
+  modules of the 33 across, and every module it touches is left out whole rather than painted over
+  in part, so the code gives up 4.7% of itself where a camera would otherwise see a half module
+  and guess.
+- **four modules of white on every side**, the quiet zone, which is what makes a code on a busy
+  poster read on the first try.
+- **near-black on white**, `#0B0D12` on `#fff`, with no tint on the modules. A coloured code is a
+  nicer picture and a worse scan, and a hall is not good light.
+- **it lives under `docs/`**, which `lib/protect.js` refuses to serve. The same file in
+  `/assets/` would be a guessable download whose first line is the entrance address in plain text.
+
+To print it, use the SVG, and go as large as the distance needs. The usual rule is a tenth: 10 cm
+for someone standing a metre away, 30 cm for a banner read from three. It is vector and it carries
+the orb inside it, so there is nothing to place and nothing to line up.
+
+To remake it, or to point it somewhere else:
+
+```
+npm i --no-save qrcode sharp jsqr          the three packages the site itself does not use
+node scripts/make-qr.js                    writes both files, then reads them back
+node scripts/make-qr.js --size=2400
+node scripts/make-qr.js --url=https://…    another address, the same rules
+```
+
+The script ends by decoding the picture at 1200, 600, 320 and 160 px and printing what it found.
+It exits non-zero if any size stops reading, so a QR that cannot be scanned never reaches a
+printer. A test runs it, and another test asserts the two files are not fetchable from the site.
+
+**Before the QR is handed out, the page has to be on main.** Until then that address has nothing
+behind it, and a code is a promise to a 404.
 
 ## The one file per person
 

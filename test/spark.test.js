@@ -344,6 +344,47 @@ test('the lead file grows and never shrinks', async () => {
   assert.equal(c.checkPass('..', lead, now).error, 'pass', 'and a string that is not a pass never reaches the bucket');
 });
 
+test('the stand QR reads, and the web cannot fetch it back', async (t) => {
+  const dir = path.join(ROOT, 'docs', 'qr');
+  const svg = fs.readFileSync(path.join(dir, 'try-mira.svg'), 'utf8');
+  const png = fs.readFileSync(path.join(dir, 'try-mira.png'));
+  const w = png.readUInt32BE(16), h = png.readUInt32BE(20);   // IHDR follows the 8-byte signature and the 8-byte chunk head
+  assert.equal(png.slice(1, 4).toString('latin1'), 'PNG', 'the file is really a PNG');
+  assert.ok(w === h && w >= 1200, 'and it is square at the size asked for, saw ' + w + 'x' + h);
+  assert.ok(png.length > 20000, 'and it is a drawing, not a stub: ' + png.length + ' bytes');
+  assert.match(svg.slice(0, 500), /https:\/\/boasis\.ae\/try-mira · error correction H · quiet zone 4 modules/, 'the file says what it is, so nobody reprints the wrong thing');
+  assert.match(svg, /<path fill="#0B0D12" d="M/, 'the code is modules in the page colour on white, not a picture of one');
+
+  /* it lives under docs/ because that prefix is closed to the web: a QR in /assets/ would be a
+     guessable file that hands the entrance address to anything that comes looking for it */
+  for (const p of ['/docs/qr/try-mira.png', '/docs/qr/try-mira.svg', '/assets/qr/try-mira.png']) {
+    assert.equal((await get(p)).status, 404, p + ' must not be fetchable, saw ' + (await get(p)).status);
+  }
+  assert.ok(!/qr|try-mira/.test(read('index.html')), 'and no page of the site points at it');
+
+  try { require.resolve('qrcode'); require.resolve('sharp'); require.resolve('jsqr'); }
+  catch { return t.skip('regenerating and decoding needs: npm i --no-save qrcode sharp jsqr'); }
+
+  /* run the generator into a temp folder and let it decode itself: this is the command that
+     makes the file, so it is tested rather than trusted */
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-qr-'));
+  try {
+  const done = await new Promise((res, rej) => {
+    const p = spawn(process.execPath, [path.join(ROOT, 'scripts/make-qr.js'), '--out=' + out, '--size=600'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let log = '';
+    p.stdout.on('data', d => { log += d; });
+    p.on('error', rej);
+    p.on('exit', c => res({ c, log }));
+    setTimeout(() => { p.kill('SIGTERM'); res({ c: -1, log }); }, 60000);
+  });
+  assert.equal(done.c, 0, 'the generator says the code reads back at four sizes, saw:\n' + done.log);
+  assert.match(done.log, /reads +600px ok · 600px ok · 320px ok · 160px ok/);
+  assert.match(done.log, /symbol +33x33 modules, version 4, error correction H/);
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });   // a failing run leaves nothing behind
+  }
+});
+
 test('the handover says what to click, and the contract is in it', () => {
   const doc = read('docs/SPARK.md');
   for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY',
