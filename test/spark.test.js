@@ -570,6 +570,52 @@ test('one file per person is also a list you can read the morning after', (t) =>
   assert.ok(!fs.existsSync(path.join(ROOT, 'leads.csv')), 'the script writes no file itself: the output goes where you point it');
 });
 
+test('the paste into the dashboard pair is the same rules, not a second set', (t) => {
+  const core = read('demo/supabase/functions/_shared/spark-core.js');
+  const pairs = [['create-pass', ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'BUCKET', 'ALLOW_ORIGIN', 'BRAIN_URL']],
+                 ['save-step', ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'BUCKET', 'ALLOW_ORIGIN']]];
+
+  for (const [name, env] of pairs) {
+    const gen = 'demo/supabase/dashboard/' + name + '.js';
+    const cli = 'demo/supabase/functions/' + name + '/index.ts';
+    const dash = read(gen), shipped = read(cli);
+
+    /* the reason the file exists at all: a pasted function has no folder beside it, so anything
+       imported by a relative path could not resolve, and a copy of the rules that is allowed to
+       be edited is a second opinion on what a lead is */
+    assert.ok(!/from ["']\.\.\//.test(dash), name + ' imports nothing by a relative path');
+    assert.deepEqual([...dash.matchAll(/^import .*$/gm)].map(m => m[0]),
+      ['import { createClient } from "https://esm.sh/@supabase/supabase-js@2";'], name + ' has the one import and no other');
+    assert.ok(dash.includes(core.replace(/^export /gm, '')), 'the inlined rules are the module, as written, with the export keyword off the front');
+
+    /* and the two shapes of the same door must still want the same secrets and refuse the same
+       words, or the dashboard route would quietly behave differently from the CLI one */
+    const envs = (s) => [...new Set([...s.matchAll(/Deno\.env\.get\("([A-Z_]+)"\)/g)].map(m => m[1]))].sort();
+    assert.deepEqual(envs(dash), envs(shipped), 'the same secrets, none dropped and none invented');
+    for (const e of env) assert.ok(dash.includes('"' + e + '"'), name + ' reads ' + e + ' from the secrets, and says so at the top');
+    const codes = (s) => [...new Set([...s.matchAll(/error: "([a-z-]+)"/g)].map(m => m[1]))].sort();
+    assert.deepEqual(codes(dash), codes(shipped), name + ' refuses exactly the same words as the CLI version, saw ' + codes(dash) + ' against ' + codes(shipped));
+    assert.match(dash, /"leads\/" \+ pass \+ "\.json"/, 'and it writes one object per person, named by the pass');
+  }
+
+  /* the files on disk are the ones the script writes: nothing hand edited since */
+  const os = require('os');
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-dash-'));
+  try {
+    const before = pairs.map(([n]) => read('demo/supabase/dashboard/' + n + '.js'));
+    const here = read('scripts/make-supabase-single.js');
+    fs.writeFileSync(path.join(out, 'make-supabase-single.js'), here.replace("path.resolve(__dirname, '..')", JSON.stringify(ROOT))
+      .replace("path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')", JSON.stringify(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')))
+      .replace("path.join(ROOT, 'demo/supabase/dashboard')", JSON.stringify(out)));
+    const r = require('child_process').spawnSync(process.execPath, [path.join(out, 'make-supabase-single.js')], { encoding: 'utf8' });
+    assert.equal(r.status, 0, 'the generator runs, saw:\n' + r.stderr);
+    const after = pairs.map(([n]) => fs.readFileSync(path.join(out, n + '.js'), 'utf8'));
+    assert.deepEqual(after, before, 'regenerating changes nothing, so nobody has edited a generated file');
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});
+
 test('the handover says what to click, and the contract is in it', () => {
   const doc = read('docs/SPARK.md');
   for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY',
