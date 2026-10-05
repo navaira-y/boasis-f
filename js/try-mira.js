@@ -4,10 +4,12 @@
  * person never wonders where they went.
  *
  * Nothing here saves the journey either. window.SPARK.endpoint mints the pass and starts the
- * file; every step inside the Brain updates that same file, including what the person typed and
- * what Mira said back. If a person walks away at step two, the file holds step two. Two back
- * ends answer that same contract: /api/spark-pass on this server (lib/spark.js, files under
- * data/leads/), or the Supabase pair of the same name if the client would rather have the bucket.
+ * record; every step inside the Brain updates that same record, including what the person typed
+ * and what Mira said back. If a person walks away at step two, the record holds step two. Two
+ * back ends answer the same contract: /api/spark-pass on this server, which keeps one file per
+ * person under data/leads/, or the three Supabase functions in demo/supabase, which keep one row
+ * per person in the table spark_leads. The page does not know and does not care which is in use,
+ * and switching is one line in this file.
  *
  * There is no email check and no waiting on purpose: the plan is that the visitor is inside
  * Mira within seconds. The gates that stay are the honeypot, the consent box, the pass

@@ -570,55 +570,53 @@ test('one file per person is also a list you can read the morning after', (t) =>
   assert.ok(!fs.existsSync(path.join(ROOT, 'leads.csv')), 'the script writes no file itself: the output goes where you point it');
 });
 
-test('the paste into the dashboard pair is the same rules, not a second set', (t) => {
-  const core = read('demo/supabase/functions/_shared/spark-core.js');
-  const pairs = [['create-pass', ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'BUCKET', 'ALLOW_ORIGIN', 'BRAIN_URL']],
-                 ['save-step', ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'BUCKET', 'ALLOW_ORIGIN']]];
+test('the three Supabase doors, the one table, and the generator all agree', () => {
+  const { compose } = require('../scripts/make-supabase-single.js');
+  const names = ['create-pass', 'save-step', 'get-lead'];
+  const sql = read('demo/supabase/spark.sql');
 
-  for (const [name, env] of pairs) {
-    const gen = 'demo/supabase/dashboard/' + name + '.js';
-    const cli = 'demo/supabase/functions/' + name + '/index.ts';
-    const dash = read(gen), shipped = read(cli);
-
-    /* the reason the file exists at all: a pasted function has no folder beside it, so anything
-       imported by a relative path could not resolve, and a copy of the rules that is allowed to
-       be edited is a second opinion on what a lead is */
-    assert.ok(!/from ["']\.\.\//.test(dash), name + ' imports nothing by a relative path');
+  for (const name of names) {
+    const dash = read('demo/supabase/dashboard/' + name + '.js');
+    /* the pasted file is the folder file with the two shared modules written into it, and nothing
+       else: so a rule change is made once, and the copy in the dashboard is never the place where
+       someone quietly fixes something */
+    assert.equal(dash, compose(name), name + ' in dashboard/ is exactly what the generator writes');
+    assert.ok(!/from ["']\.\.\//.test(dash), name + ' has no relative import left, which is the whole reason it exists');
     assert.deepEqual([...dash.matchAll(/^import .*$/gm)].map(m => m[0]),
-      ['import { createClient } from "https://esm.sh/@supabase/supabase-js@2";'], name + ' has the one import and no other');
-    assert.ok(dash.includes(core.replace(/^export /gm, '')), 'the inlined rules are the module, as written, with the export keyword off the front');
-
-    /* and the two shapes of the same door must still want the same secrets and refuse the same
-       words, or the dashboard route would quietly behave differently from the CLI one */
-    const envs = (s) => [...new Set([...s.matchAll(/Deno\.env\.get\("([A-Z_]+)"\)/g)].map(m => m[1]))].sort();
-    assert.deepEqual(envs(dash), envs(shipped), 'the same secrets, none dropped and none invented');
-    for (const e of env) assert.ok(dash.includes('"' + e + '"'), name + ' reads ' + e + ' from the secrets, and says so at the top');
-    const codes = (s) => [...new Set([...s.matchAll(/error: "([a-z-]+)"/g)].map(m => m[1]))].sort();
-    assert.deepEqual(codes(dash), codes(shipped), name + ' refuses exactly the same words as the CLI version, saw ' + codes(dash) + ' against ' + codes(shipped));
-    assert.match(dash, /"leads\/" \+ pass \+ "\.json"/, 'and it writes one object per person, named by the pass');
+      ['import { createClient } from "https://esm.sh/@supabase/supabase-js@2";'],
+      name + ' imports the Supabase client once, from a URL, and nothing else');
+    assert.match(dash, /^\/\* .*one file, to paste into the Supabase dashboard\n \*\n \* GENERATED, do not edit this copy\./m,
+      name + ' says on its first line what it is and that it is generated');
+    assert.ok(dash.includes('Deno.serve('), name + ' is a function, not a module');
+    assert.ok(dash.includes('const STEPS') && dash.includes('function rowOf'), name + ' has both shared files inside it');
   }
 
-  /* the files on disk are the ones the script writes: nothing hand edited since */
-  const os = require('os');
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-dash-'));
-  try {
-    const before = pairs.map(([n]) => read('demo/supabase/dashboard/' + n + '.js'));
-    const here = read('scripts/make-supabase-single.js');
-    fs.writeFileSync(path.join(out, 'make-supabase-single.js'), here.replace("path.resolve(__dirname, '..')", JSON.stringify(ROOT))
-      .replace("path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')", JSON.stringify(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')))
-      .replace("path.join(ROOT, 'demo/supabase/dashboard')", JSON.stringify(out)));
-    const r = require('child_process').spawnSync(process.execPath, [path.join(out, 'make-supabase-single.js')], { encoding: 'utf8' });
-    assert.equal(r.status, 0, 'the generator runs, saw:\n' + r.stderr);
-    const after = pairs.map(([n]) => fs.readFileSync(path.join(out, n + '.js'), 'utf8'));
-    assert.deepEqual(after, before, 'regenerating changes nothing, so nobody has edited a generated file');
-  } finally {
-    fs.rmSync(out, { recursive: true, force: true });
-  }
+  /* the table: the columns the code writes are the columns the SQL makes, or an insert fails in
+     front of a visitor at the stand, which is the worst possible time to find out */
+  const store = read('demo/supabase/functions/_shared/spark-supabase.js');
+  const table = /export const TABLE = "([a-z_]+)"/.exec(store)[1];
+  assert.ok(sql.includes('create table if not exists public.' + table), 'the SQL makes the one table the code writes to: ' + table);
+  const found = /rowOf[\s\S]*?return \{([\s\S]*?)\n\s*\};/.exec(store);
+  assert.ok(found, 'and the columns are read out of rowOf in the code, not typed again here');
+  const cols = [...found[1].matchAll(/^\s+([a-z_]+):/gm)].map(m => m[1]);
+  assert.ok(cols.length >= 14, 'and the record has flat columns worth sorting on, saw ' + cols.join(', '));
+  for (const c of cols) assert.ok(new RegExp('\\b' + c + '\\s+(text|boolean|integer|numeric|timestamptz|jsonb|text\\[\\])').test(sql),
+    'the column ' + c + ' is in the SQL as well as in the code');
+  assert.ok(sql.includes('data          jsonb       not null'), 'the whole record goes in a jsonb column, so nothing about a person is split');
+  assert.ok(sql.includes('pass          text        primary key'), 'and one row per person, keyed by the pass');
+
+  /* the lock, said out loud in the file: enabled with no policy means the browser keys read
+     nothing, which is the difference between a private table and a public list of names */
+  assert.match(sql, /alter table public\.[a-z_]+ enable row level security;/, 'row level security is turned on');
+  const live = sql.split('\n').filter(l => !/^\s*--/.test(l)).join('\n');   // the file explains the choice, so read past the prose
+  assert.ok(!/create\s+policy/i.test(live), 'and no policy is created, so anon and authenticated get zero rows');
+  assert.ok(!/service_role/.test(sql), 'the SQL never mentions the service key, because it never needs it');
 });
 
 test('the handover says what to click, and the contract is in it', () => {
   const doc = read('docs/SPARK.md');
-  for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY',
+  for (const need of ['leads/', 'create-pass', 'save-step', 'get-lead', 'noindex', 'spark_leads', 'row level security',
+    'spark.sql', 'SUPABASE_SERVICE_ROLE_KEY',
     'X-Robots-Tag', 'connect-src', 'full_name', 'try-mira.html', 'js/try-mira.js',
     /* the part that changed on 5 October: the leads are files on boasis.ae, the record holds the
        whole exchange, and the Brain is framed rather than left. A handover missing any of those

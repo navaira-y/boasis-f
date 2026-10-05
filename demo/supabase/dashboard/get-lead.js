@@ -1,16 +1,16 @@
-/* create-pass · one file, to paste into the Supabase dashboard
+/* get-lead · one file, to paste into the Supabase dashboard
  *
  * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
- * demo/supabase/functions/create-pass/index.js (the door, unchanged) with _shared/spark-core.js and _shared/spark-supabase.js
+ * demo/supabase/functions/get-lead/index.js (the door, unchanged) with _shared/spark-core.js and _shared/spark-supabase.js
  * inlined above it, because a function pasted in the browser has no folder beside it to import
  * from. The folder version and this one are the same code; a test recomposes it and fails if the
  * two ever disagree, so neither can be quietly edited into a second opinion about a person's row.
  *
- * Run it: Supabase dashboard → your project → Edge Functions → create-pass → paste → Save, and
+ * Run it: Supabase dashboard → your project → Edge Functions → get-lead → paste → Save, and
  * "Deploy" if it asks. Then the secrets below, on Project Settings → Edge Functions → Secrets, or
  * in the function's own page, and nothing is set in the code.
  *
- * Secrets this one reads (5): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL
+ * Secrets this one reads (3): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN
  *   SUPABASE_SERVICE_ROLE_KEY can read and write anywhere in the project, which is why the table
  *   has row level security enabled with no policies: the anon key that a browser holds gets nothing.
  *   This key stays in the function and is never in the page, never in the Brain, never in the repo.
@@ -297,75 +297,33 @@ async function emailHashOf(email) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/* ── create-pass, from create-pass/index.js, as written there ── */
+/* ── get-lead, from get-lead/index.js, as written there ── */
 
-/* create pass · the only door into the demo
+/* get lead · so the journey can be picked up where it stopped
  *
- * The form at boasis.ae/try-mira posts here. A pass is minted, one row is created for that person,
- * and the answer hands back the pass and where to take them. Nothing in here trusts the caller
- * with more than the fields the form has, and nothing lets the caller name a column, a row, or a
- * table: the object the core builds is what goes in, and `pass` is the key.
+ * The Brain reads here, once, with the pass from its own address bar. The answer is the row as it
+ * stands: the form answers, the steps reached, and everything typed and said so far. That is what
+ * makes a reload continue rather than restart, and it is the same body the site's own
+ * GET /api/spark-lead answers, so the Brain's code does not care which back end is in use.
  *
- * Run as a Supabase edge function, either from this folder with the CLI or as the one generated
- * file in demo/supabase/dashboard/create-pass.js, pasted in the browser. Both are this file.
+ * It reads and writes nothing else, and it refuses a string that is not a pass before the database
+ * is touched. The row it returns belongs to whoever holds the pass, which is the trust the whole
+ * demo runs on: see the note in lib/spark.js for why, and what to do if that ever reads wrong.
  *
- * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL.
- * The service key can write anywhere in the project, so it lives here and nowhere else: not in
- * the page, not in the Brain, not in the repo.
+ * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN.
  */
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
   const json = (body, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors(req), "Content-Type": "application/json" } });
-  if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
+  if (req.method !== "GET") return json({ ok: false, error: "method" }, 405);
 
-  let body = null;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ ok: false, error: "json" }, 400);
-  }
+  const pass = new URL(req.url).searchParams.get("pass") || "";
+  if (!isPass(pass)) return json({ ok: false, error: "pass" }, 400);
 
-  /* the bot traps and the fields, judged by the same rules the site's own back end uses: the page
-     is the least trusted part of the system, so a filled honeypot and a form submitted in 300ms
-     are refused here as well as there */
-  const form = readForm(body);
-  if (!form.ok) return json({ ok: false, error: form.error }, 400);
+  const checked = checkPass(pass, await readLead(client(), pass), Date.now());
+  if (!checked.ok) return json({ ok: false, error: checked.error }, checked.error === "pass" ? 400 : 404);
 
-  const sb = client();
-  const now = Date.now();
-  const hash = await emailHashOf(normaliseEmail(form.contact.email));
-
-  /* a person who reloads, or scans the QR twice, is handed their own row back rather than opening
-     a second stranger with their name on it */
-  const seen = await readByEmailHash(sb, hash);
-  if (seen && seen.pass && isPass(seen.pass)) {
-    const existing = await readLead(sb, seen.pass);
-    if (existing && Date.parse(existing.expires_at || 0) > now) {
-      return json({ ok: true, pass: seen.pass, brain_url: Deno.env.get("BRAIN_URL") || "", reused: true });
-    }
-  }
-
-  /* five attempts at a name nobody else is holding. A collision here is already about as likely as
-     a dropped phone landing on its camera, and a row that overwrites a stranger's is the one
-     failure this demo is not allowed */
-  let pass = "";
-  for (let i = 0; i < 5; i += 1) {
-    const candidate = makePass();
-    if (!(await readLead(sb, candidate))) {
-      pass = candidate;
-      break;
-    }
-  }
-  if (!pass) return json({ ok: false, error: "busy" }, 503);
-
-  const lead = buildLead({ pass, contact: form.contact, source: body?.source, now });
-  try {
-    await writeLead(sb, lead, hash);
-  } catch {
-    return json({ ok: false, error: "storage" }, 500);
-  }
-
-  return json({ ok: true, pass, brain_url: Deno.env.get("BRAIN_URL") || "" });
+  return json({ ok: true, lead: checked.lead });
 });

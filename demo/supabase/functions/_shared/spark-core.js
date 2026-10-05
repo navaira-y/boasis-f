@@ -1,16 +1,17 @@
 /* SPARK demo · the rules, with no server in them
  *
- * One JSON file per person, `leads/<pass>.json`, in a private bucket or in `data/leads/` on
- * boasis.ae itself: the form creates it, every step inside the Brain updates it, and a person
- * who walks away halfway leaves everything up to that point behind. Either way it is the same
- * file with the same shape, and it is meant to be read on its own: the name, the number, the
- * words they typed, and what the page said back, in one place. That is the plan's shape, and this file holds
+ * One record per person, kept as it is written: a row in the Supabase table `spark_leads`, whose
+ * `data` column is this object, or the file `data/leads/PASSxxxxxxxx.json` on boasis.ae itself.
+ * The form creates it, every step inside the Brain updates it, and a person who walks away halfway
+ * leaves everything up to that point behind. Either way it is the same object with the same shape,
+ * meant to be read on its own: the name, the number, the words they typed, and what the page said
+ * back, in one place. That is the plan's shape, and this file holds
  * every decision in it that is worth getting wrong or right: what counts as a person, what a
- * pass looks like, what a lead file contains, how a step merges, and when a pass expires.
+ * pass looks like, what a lead record contains, how a step merges, and when a pass expires.
  *
- * It is deliberately pure and synchronous. The Deno functions in the folders next door do
- * nothing but move bytes to and from Storage and call these, so the whole thing can be
- * tested in plain Node, which is what the night before an event allows.
+ * It is deliberately pure and synchronous. The Deno functions in the folders next door do nothing
+ * but move bytes to and from the database, and lib/spark.js does the same with a folder, so the
+ * whole thing can be tested in plain Node, which is what the night before an event allows.
  */
 
 export const STEPS = ['describe', 'mira', 'activities', 'package'];
@@ -80,6 +81,8 @@ export function readForm(body) {
   };
 }
 
+/* The object every back end stores. `pass` is also its name: a row key in Supabase, a file name
+   on the site, and the only thing the visitor's address bar carries. */
 export function buildLead({ pass, contact, source, now }) {
   const at = new Date(now).toISOString();
   return {

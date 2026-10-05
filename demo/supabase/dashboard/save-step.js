@@ -1,32 +1,42 @@
 /* save-step · one file, to paste into the Supabase dashboard
  *
- * GENERATED, do not edit here: scripts/make-supabase-single.js writes this from
- * demo/supabase/functions/_shared/spark-core.js (the rules, inlined as they stand) and the body
- * further down this script. Re-run it after a change and commit both copies. The CLI version in
- * demo/supabase/functions/save-step is the same door, kept apart only so a folder deploy and a
- * pasted file cannot argue about who is right.
+ * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
+ * demo/supabase/functions/save-step/index.js (the door, unchanged) with _shared/spark-core.js and _shared/spark-supabase.js
+ * inlined above it, because a function pasted in the browser has no folder beside it to import
+ * from. The folder version and this one are the same code; a test recomposes it and fails if the
+ * two ever disagree, so neither can be quietly edited into a second opinion about a person's row.
  *
- * Secrets this one needs (4): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BUCKET, ALLOW_ORIGIN
- *   SUPABASE_SERVICE_ROLE_KEY is a key that can write anywhere in the project. It lives in this
- *   function and nowhere else: never in the page, never in the Brain, never in the repo.
+ * Run it: Supabase dashboard → your project → Edge Functions → save-step → paste → Save, and
+ * "Deploy" if it asks. Then the secrets below, on Project Settings → Edge Functions → Secrets, or
+ * in the function's own page, and nothing is set in the code.
+ *
+ * Secrets this one reads (3): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN
+ *   SUPABASE_SERVICE_ROLE_KEY can read and write anywhere in the project, which is why the table
+ *   has row level security enabled with no policies: the anon key that a browser holds gets nothing.
+ *   This key stays in the function and is never in the page, never in the Brain, never in the repo.
+ *   EMAIL_SALT only has to be long, random and remembered: lose it and a person who scans the QR
+ *   twice gets a fresh row instead of their own, and nothing else changes.
  */
 // deno-lint-ignore-file no-explicit-any
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /* ── the rules, inlined from _shared/spark-core.js, as written there ── */
+
 /* SPARK demo · the rules, with no server in them
  *
- * One JSON file per person, `leads/<pass>.json`, in a private bucket or in `data/leads/` on
- * boasis.ae itself: the form creates it, every step inside the Brain updates it, and a person
- * who walks away halfway leaves everything up to that point behind. Either way it is the same
- * file with the same shape, and it is meant to be read on its own: the name, the number, the
- * words they typed, and what the page said back, in one place. That is the plan's shape, and this file holds
+ * One record per person, kept as it is written: a row in the Supabase table `spark_leads`, whose
+ * `data` column is this object, or the file `data/leads/PASSxxxxxxxx.json` on boasis.ae itself.
+ * The form creates it, every step inside the Brain updates it, and a person who walks away halfway
+ * leaves everything up to that point behind. Either way it is the same object with the same shape,
+ * meant to be read on its own: the name, the number, the words they typed, and what the page said
+ * back, in one place. That is the plan's shape, and this file holds
  * every decision in it that is worth getting wrong or right: what counts as a person, what a
- * pass looks like, what a lead file contains, how a step merges, and when a pass expires.
+ * pass looks like, what a lead record contains, how a step merges, and when a pass expires.
  *
- * It is deliberately pure and synchronous. The Deno functions in the folders next door do
- * nothing but move bytes to and from Storage and call these, so the whole thing can be
- * tested in plain Node, which is what the night before an event allows.
+ * It is deliberately pure and synchronous. The Deno functions in the folders next door do nothing
+ * but move bytes to and from the database, and lib/spark.js does the same with a folder, so the
+ * whole thing can be tested in plain Node, which is what the night before an event allows.
  */
 
 const STEPS = ['describe', 'mira', 'activities', 'package'];
@@ -96,6 +106,8 @@ function readForm(body) {
   };
 }
 
+/* The object every back end stores. `pass` is also its name: a row key in Supabase, a file name
+   on the site, and the only thing the visitor's address bar carries. */
 function buildLead({ pass, contact, source, now }) {
   const at = new Date(now).toISOString();
   return {
@@ -184,44 +196,129 @@ function checkPass(pass, lead, now) {
   return { ok: true, lead };
 }
 
-/* ── the door ── */
+/* ── the table, inlined from _shared/spark-supabase.js, as written there ── */
 
-const BUCKET = () => Deno.env.get("BUCKET") || "leads";
-const ALLOW = () => Deno.env.get("ALLOW_ORIGIN") || "*";
-const CORS = () => ({
-  "Access-Control-Allow-Origin": ALLOW(),
-  "Access-Control-Allow-Headers": "content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-});
-const client = () =>
-  createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), {
+/* SPARK demo · the table, and nothing else
+ *
+ * The rules live in spark-core.js and know nothing about any server. This file is the thin part
+ * that only the edge functions need: a client from the secrets, one table name, and the read and
+ * write of a row. Keeping it apart means create-pass, save-step and get-lead do not each invent
+ * their own column list, and the one file per person is written the same way from all three.
+ *
+ * The table is `public.spark_leads`, created by demo/supabase/spark.sql. One row per person, `pass`
+ * as the key, and `data` holding the whole record exactly as the file version of this demo holds it,
+ * so the same JSON is what the advisor reads whichever back end is in use. The flat columns beside it
+ * are copies of the fields worth sorting and counting the morning after, and they are written from
+ * that same object rather than from anything the caller sends.
+ */
+
+const TABLE = "spark_leads";
+
+function client() {
+  return createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
-const json = (body, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS(), "Content-Type": "application/json" } });
-
-async function readJson(sb, p) {
-  const { data } = await sb.storage.from(BUCKET()).download(p).catch(() => ({ data: null }));
-  if (!data) return null;
-  try {
-    return JSON.parse(await data.text());
-  } catch {
-    return null;
-  }
 }
 
-async function writeJson(sb, p, obj) {
-  const res = await sb.storage
-    .from(BUCKET())
-    .upload(p, new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" }), {
-      upsert: true,
-      contentType: "application/json",
-    });
+/* the two doors the browser uses are on another origin, so they answer a preflight and name the
+   hosts they will talk to. ALLOW_ORIGIN is a comma separated list, because the form is on
+   boasis.ae and the Brain is on brain.boasis.ae, and both need the same two doors. */
+function allowList() {
+  return (Deno.env.get("ALLOW_ORIGIN") || "").split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function cors(req) {
+  const wanted = req.headers.get("origin") || "";
+  const list = allowList();
+  const origin = list.includes(wanted) ? wanted : (list[0] || "*");
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+/* the lead object, plus the columns you will actually filter on. Everything in the row comes from
+   the object the core built, so a caller cannot name a column: it sends four form fields or one
+   step, and this is what ends up beside it. */
+function rowOf(lead) {
+  const c = lead.contact || {};
+  const b = lead.brain || {};
+  const p = b.package || {};
+  const price = Number(p.price_aed);
+  return {
+    pass: lead.pass,
+    full_name: c.full_name ?? null,
+    email: c.email ?? null,
+    phone: c.phone ?? null,
+    country_code: c.country_code ?? null,
+    residence: c.residence ?? null,
+    consent: c.consent === true,
+    source: lead.source ?? null,
+    last_step: b.last_step ?? null,
+    steps_reached: b.steps_reached ?? [],
+    turns: (b.log ?? []).length + (b.mira ?? []).length,
+    price_aed: Number.isFinite(price) ? price : null,
+    created_at: lead.created_at ?? null,
+    updated_at: lead.updated_at ?? null,
+    expires_at: lead.expires_at ?? null,
+    data: lead,
+  };
+}
+
+async function writeLead(sb, lead, emailHash) {
+  const row = rowOf(lead);
+  if (emailHash) row.email_hash = emailHash;
+  const res = await sb.from(TABLE).upsert(row, { onConflict: "pass" });
   if (res.error) throw res.error;
 }
 
+async function readLead(sb, pass) {
+  const { data } = await sb.from(TABLE).select("data").eq("pass", pass).maybeSingle();
+  return data ? data.data : null;
+}
+
+/* the same address, a second scan: the newest row for that hash, and the caller decides whether the
+   pass in it still works. Not a unique index, because a pass is allowed to expire and the same
+   person to be given a fresh one the next day. */
+async function readByEmailHash(sb, hash) {
+  const { data } = await sb.from(TABLE)
+    .select("pass, expires_at")
+    .eq("email_hash", hash)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  return data && data[0] ? data[0] : null;
+}
+
+async function emailHashOf(email) {
+  const salt = Deno.env.get("EMAIL_SALT") || "spark-demo";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + "|" + email));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ── save-step, from save-step/index.js, as written there ── */
+
+/* save step · the Brain telling us how far the person got
+ *
+ * The Brain UI calls this after each step with the pass it was handed and the part of the journey
+ * that just happened: what the person typed, what Mira said back, and how the step ended. The pass
+ * is the whole credential, so no account and no token, and an unknown, expired or malformed pass
+ * writes nothing at all.
+ *
+ * The merge is additive and the row is rewritten whole, so a person who walks away at step two
+ * leaves a smaller record rather than a broken one, and a lost request costs one step instead of
+ * the visit.
+ *
+ * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN. No salt and no Brain address, on
+ * purpose: this door only ever updates a row that already exists, and it is told nothing about
+ * where to send anyone.
+ */
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS() });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
+  const json = (body, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors(req), "Content-Type": "application/json" } });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
 
   let body = null;
@@ -231,22 +328,21 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "json" }, 400);
   }
 
-  /* the pass is the whole credential, and it becomes an object name, so its shape is settled
-     before one character of it is used: no slash, no dot, nothing that leaves leads/ */
+  /* the pass becomes a row key, so its shape is settled before a single character of it is used:
+     PASS plus eight characters from an alphabet with no I, O, 0 or 1, no slash, no dot */
   const pass = String(body?.pass || "");
   if (!isPass(pass)) return json({ ok: false, error: "pass" }, 400);
 
   const sb = client();
-  const p = "leads/" + pass + ".json";
-  const checked = checkPass(pass, await readJson(sb, p), Date.now());
+  const checked = checkPass(pass, await readLead(sb, pass), Date.now());
   if (!checked.ok) return json({ ok: false, error: checked.error }, checked.error === "pass" ? 400 : 404);
 
   const next = applyStep(checked.lead, String(body?.step || ""), body?.data || {}, Date.now());
   if (!next) return json({ ok: false, error: "step" }, 400);
 
   try {
-    await writeJson(sb, p, next);
-  } catch (e) {
+    await writeLead(sb, next);
+  } catch {
     return json({ ok: false, error: "storage" }, 500);
   }
 

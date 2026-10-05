@@ -23,8 +23,10 @@ lib/spark.js                          the three doors the demo needs, on this se
 scripts/spark-leads.js                read the leads: a list, one person, or a CSV
 scripts/spark-stub.js                 the same rules on a laptop, no Supabase needed
 scripts/make-qr.js                    the stand QR, made here rather than at a web generator
+scripts/make-supabase-single.js       the three Supabase functions, each as one file to paste in
+demo/supabase/spark.sql               the one table: one row per person
 scripts/make-supabase-single.js       the two Supabase functions, each written as one file to paste
-demo/supabase/dashboard/              those two files, generated, not edited by hand
+demo/supabase/dashboard/              those three, generated from the folders, never edited here
 docs/qr/try-mira.png                  the code, 1200px, for screens and slides
 docs/qr/try-mira.svg                  the same code as vector, for print, with the orb inside it
 docs/qr/try-mira-card.html            the one file to open and crop: the picture is inside it
@@ -184,8 +186,9 @@ under it, so the folder is on the server and never on the web. The second file e
 person who reloads, or scans the QR twice, is handed the same pass and the same record rather
 than a second stranger. The address itself never appears in a file name, only its hash.
 
-The same shape also goes into a private Supabase bucket, if that is preferred: the two functions
-in `demo/supabase/functions` write `leads/PASSR4RK96R4.json` and nothing else. It is the same
+The same object also goes into Supabase, if that is preferred: `demo/supabase/spark.sql` makes a
+table `spark_leads` with **one row per person**, keyed by the pass, and a `data` column that is
+this object entire. It is the same
 module and the same rules either way, so the choice is only about where the bytes sit. See
 "Both back ends" below.
 
@@ -224,13 +227,17 @@ Not stored, because the plan keeps the application part out of this demo: no pas
 Emirates ID, no KYC video. The page has no field for them and the merge has no step that
 would accept them.
 
-A bucket rather than a table is the plan's call and it is the right one for two days: the
-Brain keeps its sessions in memory and gains no database, so a JSON object per person is the
-smallest thing both sides can agree on. Two consequences to accept, both written into the code:
+One object per person, rather than rows of columns, is what makes both back ends the same demo: the
+Brain keeps its sessions in memory and gains no database, so one JSON record is the smallest thing
+both sides can agree on. On Supabase it is one row whose `data` column holds that object, and the
+flat columns beside it are copies made from it, so a query can sort by step or count how many asked
+about visas without anyone having to agree on a schema first. Two consequences to accept, both
+written into the code:
 
-- nothing queries across leads. `steps_reached` inside each file is what you read afterwards.
-- a step is a read, a merge and a write. The merge is additive and never deletes, so the worst
-  a collision can do is lose one step of one person, not the file.
+- the record is written whole, so nothing queries across half a person's journey. The columns are a
+  summary, and `data` is the truth.
+- a step is a read, a merge and a write. The merge is additive and never deletes, so the worst a
+  collision can do is lose one step of one person, not the record.
 
 ### Reading them
 
@@ -278,7 +285,8 @@ stay unfound.
 `hp` is a field no person can see; anything in it is refused. Both are checked in the function,
 not only in the page, because the page is the least trusted part of the system.
 
-The answer carries no bucket path and accepts none. The caller cannot name a file.
+The answer carries no row key, no file name and no table name, and accepts none: the caller cannot
+name the thing it writes, only the four fields the form has.
 
 ## save step
 
@@ -318,8 +326,9 @@ pass is the whole credential: no account, no token, and the pass shape is checke
 
 ## Tonight, in order
 
-There is nothing to sign up to. The back end is in this repo, in the folder the site already uses
-for its leads.
+The default is the folder the site already keeps its waitlist in, so there is nothing to sign up
+to. If you decided on Supabase instead, the steps are the section "Supabase, all of it in the
+browser, no CLI" further down, and from step 3 below onward nothing else about this list changes.
 
 1. **Merge, and the page is live.** `js/try-mira.js` already points the form at `/api/spark-pass`
    and the frame at `https://brain.boasis.ae`, so there is no key to paste and no address to
@@ -351,8 +360,8 @@ for its leads.
 6. **Rehearse without the site at all:** `node scripts/spark-stub.js`, open
    `http://localhost:8090`. Same page at the same address, same rules module, files in a temp
    folder, plus a one-step stub Brain so the handoff can be walked through and the JSON seen on
-   disk. The stub answers the two paths the Supabase pair uses, and the page is rewritten to them
-   on the way out, so the rehearsal is not a different site.
+   disk. The stub answers the three paths the Supabase functions use, at the same names, and the
+   page is rewritten to them on the way out, so the rehearsal is not a different site.
 
 ## Both back ends
 
@@ -360,61 +369,73 @@ The same rules, in two shapes, chosen by where you want the files:
 
 | | on boasis.ae | in Supabase |
 | --- | --- | --- |
-| what | `lib/spark.js`, mounted in `server.js` | the two functions in `demo/supabase/functions` |
-| where a lead sits | `data/leads/PASSxxxxxxxx.json` | `leads/PASSxxxxxxxx.json` in a private bucket |
-| to switch it on | merge, done | project, bucket, two functions, six secrets |
-| to read the leads | `node scripts/spark-leads.js` on the server | the console, or `supabase storage ls` |
-| what it costs | stand traffic on the site's own box, and the disk it writes | a second host the venue wifi has to reach |
+| what writes | `lib/spark.js`, mounted in `server.js` | three functions in `demo/supabase/functions` |
+| where a lead sits | `data/leads/PASSxxxxxxxx.json`, one file each | one row in `public.spark_leads`, `data` holds the record |
+| to switch it on | merge, done | project, one SQL paste, three function pastes, five secrets |
+| to read the leads | `node scripts/spark-leads.js` on the server | Table editor for a grid, SQL for anything else, Download result for a CSV |
+| what it costs | stand traffic on the site's own box, and the disk it writes | a second host the venue wifi must reach, and a project to keep an eye on |
 
 ### Supabase, all of it in the browser, no CLI
 
-Nothing here needs a Supabase account, and none exists today: no project, no bucket, nothing
-deployed. This is the route to take if you would rather the leads sit somewhere you can open in a
-browser than in a folder on the web server. Twenty minutes, and the only machine you touch is the
-one with the browser.
+Nothing here needs a Supabase account, and none exists until you make one. Take this route if you
+would rather read the leads in a browser, sort them, and download a CSV, than open a folder on the
+web server. Twenty minutes, four pastes, and the only machine you touch is the one with the browser.
 
-1. supabase.com → **New project**. Name `boasis-spark`, region **Frankfurt** (nearest to Dubai),
-   set the database password and keep it somewhere. Wait for the provisioning to finish.
-2. **Project Settings → API**. Copy two values: the `Project URL`
-   (`https://<ref>.supabase.co`) and the `service_role` key. The service key can write anywhere in
-   that project, so it goes into a function secret and into nothing else. The `anon` key is not
-   needed by anything in this demo.
-3. **Storage → New bucket** `leads`. Private. Public URLs **off**. File size limit 1 MB.
-4. **Edge Functions → New function**, name it `create-pass`, and paste the whole of
-   `demo/supabase/dashboard/create-pass.js`. Save. Same again for `save-step` with
-   `demo/supabase/dashboard/save-step.js`.
-   Those two files are generated, and a test fails if the folder version and these disagree, so
-   do not type into them: after a change to `demo/supabase/functions/_shared/spark-core.js` run
-   `node scripts/make-supabase-single.js` and paste again.
-5. **Function secrets** (the same page, or Project Settings → Edge Functions → Secrets). On
-   `create-pass`: `SUPABASE_URL` = the Project URL from step 2, `SUPABASE_SERVICE_ROLE_KEY` = the
-   key from step 2, `EMAIL_SALT` = any long random string (lose it and the "same person, second
-   scan" lookup stops working, nothing else), `BUCKET=leads`,
-   `ALLOW_ORIGIN=https://boasis.ae`, `BRAIN_URL=https://brain.boasis.ae`.
-   On `save-step`: the same `SUPABASE_URL`, the same service key, `BUCKET=leads`,
-   `ALLOW_ORIGIN=https://boasis.ae`. It needs no salt and no Brain address, and it must not have
-   them: it only ever updates a file that already exists.
-6. **One line in the page.** Top of `js/try-mira.js`, where it says
-   `endpoint: '/api/spark-pass'`, put the URL the function page shows you:
+The store is one table, `public.spark_leads`, **one row per person**. The columns worth sorting on
+(`full_name`, `email`, `phone`, `last_step`, `steps_reached`, `turns`, `price_aed`, `updated_at`)
+are written out of the record itself, and `data` is the record entire: every step, what the person
+typed and what Mira said back, in order. The same object the folder back end keeps, so nothing
+about a person is split over two places.
+
+1. **supabase.com** → Sign up with your own email → **New project**. Name `boasis-spark`, region
+   **Frankfurt** (nearest to Dubai), set a database password and keep it. Wait until it says active.
+2. **SQL Editor** (left side) → **New query** → paste the whole of `demo/supabase/spark.sql` →
+   **Run**. It answers "There are no rows to show", which is right: it makes a table, not data.
+   Safe to run twice, because every statement in it is `if not exists`.
+3. **Project Settings → API** → copy two values into a note: the **Project URL**
+   (`https://<ref>.supabase.co`) and the **service_role** key. That key reads and writes the whole
+   project, so it goes into a function secret and into nothing else. The `anon` key is wanted by
+   nothing in this demo.
+4. **Edge Functions → New function** → name it `create-pass` → paste the whole of
+   `demo/supabase/dashboard/create-pass.js` → Save, and Deploy if it asks. Then the same twice
+   more: `save-step` from `demo/supabase/dashboard/save-step.js`, and `get-lead` from
+   `demo/supabase/dashboard/get-lead.js`.
+   Those three are generated from the folders in `demo/supabase/functions`, and a test fails if the
+   two copies ever disagree, so never type into the `dashboard/` copies. After a change to a rule:
+   `node scripts/make-supabase-single.js`, then paste again.
+5. **Edge Functions → Secrets** → add, on all three: `SUPABASE_URL` = the URL from step 3,
+   `SUPABASE_SERVICE_ROLE_KEY` = the key from step 3,
+   `ALLOW_ORIGIN=https://boasis.ae,https://brain.boasis.ae`. Then two more, on `create-pass` only:
+   `EMAIL_SALT` = any long random string you keep, and `BRAIN_URL=https://brain.boasis.ae`.
+   `save-step` and `get-lead` are given neither the salt nor the Brain address on purpose: one only
+   updates a row that already exists and the other only reads it, and a door that cannot do more
+   than it must is the cheaper thing to trust.
+6. **One line in the page**, then merge. Top of `js/try-mira.js`, where it says
+   `endpoint: '/api/spark-pass'`, put the URL the function page shows for `create-pass`:
    `endpoint: 'https://<ref>.supabase.co/functions/v1/create-pass'`. `brainUrl` stays
-   `https://brain.boasis.ae`. The page's content policy in `server.js` already has
-   `connect-src 'self' https://*.supabase.co` on `/try-mira`, so the form is allowed to reach the
-   function and nothing else on that page may; pin the wildcard to
-   `https://<ref>.supabase.co` if you want it named exactly.
-7. **Merge**, then test on a phone on the venue wifi: submit, and Mira appears in the page. Then
-   Storage → `leads` → the object for that pass → download, and it is the same JSON that
-   `scripts/spark-leads.js` reads.
+   `https://brain.boasis.ae`. `server.js` already gives `/try-mira` a
+   `connect-src 'self' https://*.supabase.co`, the only host the page may speak to; pin that
+   wildcard to `https://<ref>.supabase.co` if you want it named exactly.
+7. **Table editor** → `spark_leads`. That is the stand, as a grid. For the cut the client will ask
+   for, **SQL Editor** → Run → **Download result** as CSV:
 
-**Reading leads out of the bucket.** Download the objects from the Storage console into a folder
-and point the reader at it: `node scripts/spark-leads.js --dir=./that-folder`. Same file shape,
-same output, no second tool. If you would rather not click, the Supabase CLI does `supabase
-storage cp -r leads ./that-folder`, but that is the CLI again, which this route exists to avoid.
+   ```sql
+   select full_name, email, phone, last_step, turns, price_aed, updated_at
+   from public.spark_leads
+   order by updated_at desc;
+   ```
 
-For two days at a stand, the folder on the web server is still the honest answer, because it is
-already wired, already tested, and needs nothing from anyone on the night. Supabase buys a place
-to open in a browser and a disk that is not yours, and costs a project, six secrets, and a second
-host the venue wifi has to reach. If the leads matter as a record after the event rather than as
-a folder to copy off a box, that is a good reason to want it.
+**Why a browser key cannot read that table.** Supabase grants `anon` and `authenticated` on new
+tables in `public/`, so the SQL also runs `enable row level security` and then stops. No policy, so
+those two roles read zero rows and write nothing, and only the functions, holding the service key,
+can move a row. There is deliberately no `create policy` line in that file, and if a query typed in
+the dashboard comes back empty the fix is the editor or the service key, never a policy that opens
+the table to the web.
+
+For two days at a stand the folder on the web server is still the honest answer: wired, tested,
+and it needs nothing from anyone on the night. Supabase buys the grid, the sorting, the CSV and a
+disk that is not yours, and costs a project somebody keeps an eye on and a second host the venue
+wifi has to reach.
 
 ## Closing it
 

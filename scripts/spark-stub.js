@@ -87,6 +87,15 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/functions/v1/save-step') {
     return readBody(req, (b) => { try { saveStep(JSON.parse(b || '{}'), res); } catch (e) { json(res, 400, { ok: false, error: 'json' }); } });
   }
+  /* the door the Brain reads, at the address it has in production, so a rehearsal exercises the
+     call the real UI will make rather than a friendlier one invented for the laptop */
+  if (req.method === 'GET' && url.pathname === '/functions/v1/get-lead') {
+    const pass = String(url.searchParams.get('pass') || '');
+    if (!core.isPass(pass)) return json(res, 400, { ok: false, error: 'pass' });
+    const checked = core.checkPass(pass, readObj(leadPath(pass)), Date.now());
+    return checked.ok ? json(res, 200, { ok: true, lead: checked.lead })
+      : json(res, checked.error === 'pass' ? 400 : 404, { ok: false, error: checked.error });
+  }
   if (url.pathname === '/file') {
     const pass = String(url.searchParams.get('pass') || '');
     if (!core.isPass(pass)) return json(res, 400, { ok: false, error: 'pass' });
