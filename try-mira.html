@@ -137,6 +137,16 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .done.on{display:grid}
 .done .ok{width:56px; height:56px; border-radius:50%; background:rgba(95,211,232,.14); border:1px solid rgba(95,211,232,.4); color:var(--bo-teal); display:grid; place-items:center; font-size:26px; margin:0 auto}
 .done a.cta{text-decoration:none}
+.done .fine a{color:var(--bo-teal)}
+/* once the pass is handed over, the page becomes the window into the Brain: the four points step
+   aside and the frame takes the width, so nobody reads a full app down a half column. The frame
+   starts blank and is only given the address a moment later, so the Brain is never loaded for a
+   person who never filled the form. */
+.main.opened{grid-template-columns:minmax(0,1fr)}
+.main.opened .side{display:none}
+.brain{margin:4px 0 0; border:1px solid rgba(255,255,255,.14); border-radius:20px; overflow:hidden;
+  background:var(--bo-night); box-shadow:0 26px 70px -34px rgba(0,0,0,.8)}
+.brain iframe{display:block; width:100%; height:min(78vh,780px); border:0; background:var(--bo-night)}
 
 /* The country code, and the pill the phone sits in: every rule below is copied out of
    css/site.css as it is written there, and the control is driven by the site's own
@@ -250,6 +260,8 @@ footer .brand{font-size:16px; color:var(--heading)}
   .main{grid-template-columns:1fr; gap:14px; padding:0 0 48px}
   #start{order:-1}
   .card{padding:22px 18px; border-radius:20px}
+  .brain iframe{height:min(74vh,680px)}
+  .main.opened{padding-bottom:26px}
   .card h2{font-size:24px}
   .offer{padding:20px 18px}
   .offer h3{font-size:19px}
@@ -361,9 +373,10 @@ footer .brand{font-size:16px; color:var(--heading)}
     </div>
     <div class="done" id="doneView" aria-live="polite">
       <div class="ok">✓</div>
-      <h2>Mira is ready for you</h2>
-      <p class="lead">If she didn't open automatically, click below.</p>
-      <a class="cta" id="miraLink" href="#"><span class="dot"></span>Open Mira</a>
+      <h2>Mira is open, right here</h2>
+      <p class="lead">Answer her in this window. Every step is saved as you go, so you can close this, come back later, and pick up where you stopped.</p>
+      <div class="brain"><iframe id="brainFrame" title="Mira" src="about:blank"></iframe></div>
+      <p class="fine">Not showing? <a id="miraLink" href="#" target="_blank" rel="noopener">Open Mira in a new tab</a>. It is the same page and your pass is in the link.</p>
     </div>
   </section>
 </main>

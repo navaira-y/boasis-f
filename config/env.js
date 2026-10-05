@@ -139,6 +139,9 @@ const config = {
      many requests through one bucket on purpose. */
   limits: {
     forms: num('RATE_LIMIT_FORMS_PER_MIN', 8),
+    /* the SPARK demo, counted apart from the forms: at a stand a hall of phones shares one
+       address, and a minted pass or a saved step must not spend anyone's contact form. */
+    spark: num('RATE_LIMIT_SPARK_PER_MIN', 40),
     visits: num('RATE_LIMIT_VISITS_PER_MIN', 60),
     /* The caps below count the whole site, so they hold even when the per-visitor bucket
        is fooled. Generous on purpose: a quiet day never comes near them, and a flood stops
@@ -152,6 +155,16 @@ const config = {
 
   /* where the sign-ups are kept, as JSON. Swap for a DB when this grows. */
   dataDir: str('DATA_DIR', path.join(ROOT, 'data')),
+
+  /* the SPARK demo, which lives in this folder: see lib/spark.js for the three doors and
+     docs/SPARK.md for what the Brain has to send and to show. */
+  spark: {
+    brainUrl: str('SPARK_BRAIN_URL', 'https://brain.boasis.ae'),
+    /* who may call the two doors the Brain uses from a browser. Comma separated, exact
+       origins, no trailing slash: https://boasis.ae,https://brain.boasis.ae */
+    origins: str('SPARK_ORIGINS', 'https://boasis.ae,https://brain.boasis.ae')
+      .split(',').map(x => x.trim()).filter(Boolean),
+  },
 };
 
 /* Refuse to run mail half-set-up: credentials with no usable sender is a silent failure

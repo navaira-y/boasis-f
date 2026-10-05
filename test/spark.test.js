@@ -256,13 +256,18 @@ test('the form asks only what the plan says it may ask', () => {
   assert.match(html, /<p class="err" data-note><\/p>/, 'and one place for a sentence the fields cannot carry');
 });
 
-test('the two addresses a person has to paste are empty on purpose', () => {
-  const cfg = /var CFG = window\.SPARK = \{([\s\S]*?)\};/.exec(JS());
+test('the two addresses are this site and the Brain, and nothing else', () => {
+  const js = JS();
+  const cfg = /var CFG = window\.SPARK = \{([\s\S]*?)\};/.exec(js);
   assert.ok(cfg, 'the script declares its config in one block, at the top');
-  assert.match(cfg[1], /endpoint: ''/, 'the Supabase function url is left blank, not guessed');
-  assert.match(cfg[1], /brainUrl: ''/, 'and so is the Brain address, which the client still owes');
+  assert.match(cfg[1], /endpoint: '\/api\/spark-pass'/, 'the form posts to this site own door, so nothing has to be pasted on the night');
+  assert.match(cfg[1], /brainUrl: 'https:\/\/brain\.boasis\.ae'/, 'and the Brain is the address the client wrote, and no other');
   assert.match(cfg[1], /source: 'ai-everything-2026'/, 'while the source is fixed, because that is what the reports are cut by');
-  assert.ok(!/https?:\/\/(?!fonts)/.test(cfg[1]), 'and neither one is filled in by a developer guessing later');
+  assert.equal((cfg[1].match(/https?:\/\//g) || []).length, 1, 'one host is named in that block');
+  assert.ok(!/supabase/i.test(cfg[1]), 'and the bucket stays out of the page: nobody at a stand has a reason to know it exists');
+  /* the honest failure is kept on purpose: take the endpoint away, and the page says the demo is
+     not open rather than posting at a guess or leaving a person pressing a dead button */
+  assert.match(js, /if \(!CFG\.endpoint\) \{[\s\S]{0,160}The demo is not open on this page yet/, 'a page that is not connected says so');
 });
 
 test('the local rehearsal serves what the site serves, at the same address', async () => {
@@ -432,10 +437,148 @@ test('the stand QR reads, and the web cannot fetch it back', async (t) => {
   }
 });
 
+/* ── the back end, on this server ─────────────────────────────────────────────
+   The plan's shape: one file per person, the form opens it, every step in the Brain adds to
+   it, and what the person typed and what the page said back both land in it. These run against
+   the real server in a temp DATA_DIR, so the folder, the guard, the limits and the shape are
+   all the shipped ones. */
+let sparkPass = '';
+const post = async (p, body, headers) => {
+  const r = await fetch(base + p, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}), body: JSON.stringify(body) });
+  return { s: r.status, j: await r.json().catch(() => null), h: r.headers };
+};
+
+test('the form, the pass, and one file that holds the whole visit', async () => {
+  const good = { full_name: 'Lena Bisht', email: 'Lena@Corp.com ', phone: '0551112222', country_code: '+971', residence: 'uae', consent: 'true', hp: '', _t: 9000, source: 'ai-everything-2026' };
+
+  const r = await post('/api/spark-pass', good);
+  assert.equal(r.s, 200, 'a real person gets a pass, saw ' + r.s + ' ' + JSON.stringify(r.j));
+  assert.match(r.j.pass, /^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/, 'the pass is the shape the Brain will be handed');
+  assert.equal(r.j.brain_url, 'https://brain.boasis.ae', 'and the answer says where the person goes: the Brain, as configured');
+  sparkPass = r.j.pass;
+
+  assert.equal((await post('/api/spark-pass', Object.assign({}, good, { hp: 'bot' }))).j.error, 'bot', 'the field no person can see');
+  assert.equal((await post('/api/spark-pass', Object.assign({}, good, { _t: 300 }))).j.error, 'too-fast', 'and nobody types four fields in a third of a second');
+  assert.equal((await post('/api/spark-pass', Object.assign({}, good, { email: 'nope' }))).j.error, 'email', 'an address that is not an address');
+  assert.equal((await post('/api/spark-pass', Object.assign({}, good, { consent: 'false' }))).j.error, 'consent', 'and no box ticked is no lead');
+  assert.equal((await post('/api/spark-pass', { full_name: 'x'.repeat(500), email: 'a@b.co', phone: '12345', consent: 'true', _t: 9000 })).j.error, 'phone', 'a number of five digits is a wrong number, and nothing is stored for it');
+
+  /* the same address, scanned twice: the person gets their own pass back, not a second file */
+  const again = await post('/api/spark-pass', good);
+  assert.equal(again.j.reused, true, 'a second scan says reused');
+  assert.equal(again.j.pass, sparkPass, 'and hands back the same pass, so the journey is the same journey');
+  const lower = await post('/api/spark-pass', Object.assign({}, good, { email: 'lena@corp.com' }));
+  assert.equal(lower.j.pass, sparkPass, 'and the address is matched without its capital letter');
+
+  /* the Brain, saving after each step, with what Mira said in it */
+  const s1 = await post('/api/spark-step', { pass: sparkPass, step: 'describe', data: {
+    description: 'A small import business, two partners, need the visa count.',
+    output: 'Three activities fit: general trading, e commerce, consulting.',
+    log: [{ in: 'Can I do it without an office?', out: 'Not for trading, but a flexi desk in a free zone covers it.' }],
+  } });
+  assert.equal(s1.s, 200, 'a step is saved, saw ' + s1.s + ' ' + JSON.stringify(s1.j));
+  assert.equal(s1.j.version, 2, 'the file grew: the form made version one, this step is version two');
+  assert.deepEqual(s1.j.steps_reached, ['describe'], 'and it says how far they got');
+
+  const s2 = await post('/api/spark-step', { pass: sparkPass, step: 'activities', data: {
+    shown: ['General trading', 'E commerce'], picked: ['General trading'], confirmed: true,
+    log: [{ in: 'General trading', out: 'That one needs a physical premises.' }],
+  } });
+  assert.equal(s2.s, 200, 'the next step lands too');
+  assert.deepEqual(s2.j.steps_reached, ['describe', 'activities'], 'and the list of steps keeps the order they happened in');
+
+  assert.equal((await post('/api/spark-step', { pass: sparkPass, step: 'not a step', data: {} })).j.error, 'step', 'a step that is not one of the four writes nothing');
+  assert.equal((await post('/api/spark-step', { pass: 'PASSAAAAAAAA', step: 'describe', data: {} })).s, 404, 'a pass with no file behind it is nothing, and nothing is created for it');
+  assert.equal((await post('/api/spark-step', { pass: '../../data/x', step: 'describe', data: {} })).j.error, 'pass', 'and a name that could walk out of the folder never reaches it');
+
+  /* one file, read back both ways: the Brain asking, and the folder on disk */
+  const lead = await (await get('/api/spark-lead?pass=' + sparkPass)).json();
+  assert.equal(lead.ok, true, 'the Brain can read where the person stopped, so a reload is not a restart');
+  assert.equal(lead.lead.contact.full_name, 'Lena Bisht', 'the name they typed');
+  assert.equal(lead.lead.contact.email, 'lena@corp.com', 'their address, as every other form here keeps it: lower case');
+  assert.equal(lead.lead.contact.phone, '+971 551112222', 'and their number, with the trunk zero taken out');
+  assert.equal(lead.lead.brain.description, 'A small import business, two partners, need the visa count.', 'what they put into the first step');
+  assert.equal(lead.lead.brain.output.describe, 'Three activities fit: general trading, e commerce, consulting.', 'what the page gave back for it');
+  assert.equal(lead.lead.brain.log.length, 2, 'the whole exchange, in order');
+  assert.equal(lead.lead.brain.log[0].in, 'Can I do it without an office?', 'both halves of every turn');
+  assert.equal(lead.lead.brain.activities.picked[0], 'General trading', 'and what they chose');
+  assert.equal((await get('/api/spark-lead?pass=PASSAAAAAAAA')).status, 404, 'a pass nobody was given reads nothing');
+  assert.equal((await get('/api/spark-lead?pass=' + encodeURIComponent('../'))).status, 400, 'and a string that is not a pass never touches the disk');
+
+  const onDisk = path.join(DATA, 'leads', sparkPass + '.json');
+  assert.ok(fs.existsSync(onDisk), 'it is a file you can copy, at ' + sparkPass + '.json');
+  assert.equal(fs.statSync(onDisk).mode & 0o077, 0, 'and it is readable by the owner only, on a shared box');
+  assert.equal(JSON.parse(fs.readFileSync(onDisk, 'utf8')).brain.last_step, 'activities', 'the file on disk is the same record the endpoint answered with');
+  assert.equal((await get('/data/leads/' + sparkPass + '.json')).status, 404, 'and the web cannot fetch a person out of it');
+});
+
+test('the two doors the Brain uses answer the browser they belong to', async () => {
+  const pre = (origin) => fetch(base + '/api/spark-step', { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
+  assert.equal((await pre('https://brain.boasis.ae')).headers.get('access-control-allow-origin'), 'https://brain.boasis.ae',
+    'the Brain, which is on another subdomain, is allowed to post a step');
+  const stranger = await pre('https://elsewhere.example');
+  assert.equal(stranger.status, 204, 'a preflight is answered rather than left to hang');
+  assert.equal(stranger.headers.get('access-control-allow-origin'), null, 'and it is answered with nothing that lets the caller read the reply');
+  const fromPage = await get('/api/spark-lead?pass=' + sparkPass);
+  assert.equal(fromPage.headers.get('cache-control'), 'no-store', 'a person\'s record is never cached on shared machine at a stand');
+});
+
+test('the page keeps the person on it, with the Brain inside', () => {
+  const html = HTML();
+  const js = JS();
+  assert.match(html, /<iframe id="brainFrame" title="Mira" src="about:blank"><\/iframe>/, 'the frame is in the page, and empty until a pass is handed over');
+  assert.match(html, /id="miraLink"[^>]*target="_blank"/, 'and there is a way out for a browser that will not frame it');
+  assert.match(html, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/, 'once the form is in, the frame takes the whole width');
+  assert.match(html, /\.main\.opened \.side\{display:none\}/, 'and the four points step aside rather than sit next to a window the person is inside');
+  assert.match(html, /\.brain iframe\{display:block; width:100%; height:min\(78vh,780px\)/, 'the window is as tall as the screen allows, not a strip');
+  assert.match(html, /@media \(max-width:699px\)\{[\s\S]*?\.brain iframe\{height:min\(74vh,680px\)/, 'and on a phone it gives the home bar its share');
+
+  assert.ok(!/window\.location\.href\s*=/.test(js), 'the page does not send anyone away any more: Mira opens where they are');
+  assert.match(js, /'&embed=1'/, 'and the Brain is told it is inside a page, so it can keep its own header out');
+  assert.match(js, /classList\.add\('opened'\)/, 'the page opens itself up at that moment');
+  assert.match(js, /endpoint: '\/api\/spark-pass'/, 'the form posts to this site, so nothing has to be pasted on the night');
+  assert.match(js, /brainUrl: 'https:\/\/brain\.boasis\.ae'/, 'and the Brain is brain.boasis.ae, as the client wrote it');
+});
+
+test('the entrance may frame the Brain and nothing else', async () => {
+  const csp = (await get('/try-mira')).headers.get('content-security-policy') || '';
+  assert.match(csp, /frame-src 'self' https:\/\/brain\.boasis\.ae;/, 'the Brain is framed here, and only the Brain');
+  assert.ok(!/frame-src[^;]*\*/.test(csp), 'no wildcard in a frame list: the pass is in that address bar');
+  assert.match(csp, /frame-ancestors 'none'/, 'and nobody frames this page, so the form cannot be borrowed by another site');
+});
+
+test('one file per person is also a list you can read the morning after', (t) => {
+  if (!sparkPass) return t.skip('the test above did not make a lead');
+  const run = (args) => {
+    const r = require('child_process').spawnSync(process.execPath, [path.join(ROOT, 'scripts/spark-leads.js')].concat(args), { encoding: 'utf8', env: Object.assign({}, process.env, { DATA_DIR: DATA }) });
+    assert.equal(r.status, 0, 'it exits quietly, saw:\n' + r.stderr);
+    return r.stdout;
+  };
+  const list = run([]);
+  assert.match(list, /Lena Bisht/, 'the stand list has the name');
+  assert.match(list, new RegExp(sparkPass), 'and the pass, because that is what an advisor needs to open the file');
+  assert.match(list, /1 person, 2 exchanges of question and answer/, 'and it counts what is inside rather than leaving you to find out');
+  const one = run(['--pass=' + sparkPass]);
+  assert.match(one, /LENA BISHT/, 'one person reads as one page of text');
+  assert.match(one, /What they said about the business[\s\S]*small import business/, 'what they typed');
+  assert.match(one, /What each step ended with[\s\S]*Three activities fit/, 'what the page said back');
+  assert.match(one, /in   Can I do it without an office\?/, 'and the exchange between the two');
+  const csv = run(['--csv']);
+  assert.match(csv.split('\n')[0], /^pass,created_at,updated_at,[\s\S]*,log_turns,final_answer,unreadable$/, 'a CSV with a header a spreadsheet understands');
+  assert.match(csv, /"PASSR4RK96R4"|"/ , 'and quoted fields, because a company name has commas in it');
+  assert.ok(csv.includes('Lena@Corp.com') === false && csv.includes('"lena@corp.com"'), 'one row per person, the address as it was kept');
+  assert.ok(!fs.existsSync(path.join(ROOT, 'leads.csv')), 'the script writes no file itself: the output goes where you point it');
+});
+
 test('the handover says what to click, and the contract is in it', () => {
   const doc = read('docs/SPARK.md');
   for (const need of ['leads/', 'create-pass', 'save-step', 'noindex', 'BUCKET', 'SUPABASE_SERVICE_ROLE_KEY',
-    'X-Robots-Tag', 'connect-src', 'full_name', 'try-mira.html', 'js/try-mira.js']) {
+    'X-Robots-Tag', 'connect-src', 'full_name', 'try-mira.html', 'js/try-mira.js',
+    /* the part that changed on 5 October: the leads are files on boasis.ae, the record holds the
+       whole exchange, and the Brain is framed rather than left. A handover missing any of those
+       three sentences is a handover that sends someone to build the wrong thing. */
+    '/api/spark-pass', '/api/spark-step', '/api/spark-lead', 'data/leads', 'spark-leads.js',
+    'frame-ancestors', 'embed=1', '"log"', '"output"', 'RATE_LIMIT_SPARK_PER_MIN', 'Both back ends']) {
     assert.ok(doc.includes(need), 'docs/SPARK.md must name ' + need);
   }
   assert.ok(!/service_role[^]{0,120}browser|page[^]{0,40}service_role/.test(doc), 'the doc must never put the service key in the page');

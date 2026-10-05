@@ -19,6 +19,8 @@ demo/supabase/functions/create-pass     the function the form posts to
 demo/supabase/functions/save-step     the function the Brain UI posts to after every step
 demo/supabase/functions/_shared/spark-core.js
                                       every rule, pure and testable in Node
+lib/spark.js                          the three doors the demo needs, on this server, in data/
+scripts/spark-leads.js                read the leads: a list, one person, or a CSV
 scripts/spark-stub.js                 the same rules on a laptop, no Supabase needed
 scripts/make-qr.js                    the stand QR, made here rather than at a web generator
 docs/qr/try-mira.png                  the code, 1200px, for screens and slides
@@ -164,16 +166,26 @@ behind it, and a code is a promise to a 404.
 
 ## The one file per person
 
-A private bucket, one object per lead, named by the pass, and updated by every step:
+One file per lead, named by the pass, written by the form and added to by every step. The whole
+visit ends up in it: the name, the number, what the person typed, and what the page said back.
+
+By default it lives on boasis.ae itself, in the folder the site already keeps its waitlist and its
+contact messages in:
 
 ```
-leads/PASSR4RK96R4.json
-by-email/<sha256 of salt + address>.json      → { "pass": "PASSR4RK96R4" }
+data/leads/PASSR4RK96R4.json
+data/spark-by-email/<sha256 of salt + address>.json      → { "pass": "PASSR4RK96R4" }
 ```
 
-The second prefix exists so that a person who reloads, or scans the QR twice, is handed the
-same pass and the same file rather than a second stranger. The address itself never appears in
-an object name.
+`DATA_DIR` moves it, `data/` is in `.gitignore`, and `lib/protect.js` refuses to serve anything
+under it, so the folder is on the server and never on the web. The second file exists so that a
+person who reloads, or scans the QR twice, is handed the same pass and the same record rather
+than a second stranger. The address itself never appears in a file name, only its hash.
+
+The same shape also goes into a private Supabase bucket, if that is preferred: the two functions
+in `demo/supabase/functions` write `leads/PASSR4RK96R4.json` and nothing else. It is the same
+module and the same rules either way, so the choice is only about where the bytes sit. See
+"Both back ends" below.
 
 ```json
 {
@@ -194,10 +206,17 @@ an object name.
     "description": "what they typed, as typed",
     "mira": [ { "at": "…", "question": "…", "answer": "…" } ],
     "activities": { "shown": ["…"], "picked": ["…"], "confirmed": true },
-    "package": { "shareholders": ["…"], "visas": ["…"], "premises": "…", "price_aed": 15000, "confirmed": false }
+    "package": { "shareholders": ["…"], "visas": ["…"], "premises": "…", "price_aed": 15000, "confirmed": false },
+    "log":    [ { "at": "…", "in": "what the person typed", "out": "what the page said" } ],
+    "output": { "describe": "…", "package": "the estimate as the step ended with it" }
   }
 }
 ```
+
+`log` and `output` are the part that makes it one book rather than a form receipt: every turn of
+the conversation, in order, plus how each step ended. Both are capped so that one person's file
+stays a page (60 turns, 6 KB each), and both are optional: a Brain that only knows the four tidy
+fields still produces a complete record.
 
 Not stored, because the plan keeps the application part out of this demo: no passport, no
 Emirates ID, no KYC video. The page has no field for them and the merge has no step that
@@ -210,6 +229,34 @@ smallest thing both sides can agree on. Two consequences to accept, both written
 - nothing queries across leads. `steps_reached` inside each file is what you read afterwards.
 - a step is a read, a merge and a write. The merge is additive and never deletes, so the worst
   a collision can do is lose one step of one person, not the file.
+
+### Reading them
+
+On the server, or from a copy of the folder:
+
+```
+node scripts/spark-leads.js                      every lead, newest first, one line each
+node scripts/spark-leads.js --pass=PASSR4RK96R4  one person, the whole visit, as a page of text
+node scripts/spark-leads.js --csv > leads.csv    all of it, for SPARK or for Sheets
+node scripts/spark-leads.js --day=2026-10-06     one day of the event
+```
+
+It writes nothing, so it is safe to run beside a live stand. The output is names and phone
+numbers: read it in a terminal, send a CSV to one address, and do not leave either in the repo,
+in a chat, or in an email to a list.
+
+## The three doors
+
+```
+POST /api/spark-pass    the form, and it answers with the pass and where to take the person
+POST /api/spark-step    the Brain, after every step
+GET  /api/spark-lead    the Brain, when it wants to know where that person stopped
+```
+
+Mounted by `require('./lib/spark')(app, …)` in `server.js`, implemented in `lib/spark.js`, and
+named in the guard's `API_ROUTES` list, which is closed by default: a route mounted but not named
+there is a 404 that looks healthy in the code, and a test compares the two lists so that cannot
+stay unfound.
 
 ## create pass
 
@@ -237,11 +284,30 @@ The answer carries no bucket path and accepts none. The caller cannot name a fil
 needs:
 
 ```
-{ "pass":"PASSR4RK96R4", "step":"mira", "data":{ "question":"…", "answer":"…" } }
+{ "pass":"PASSR4RK96R4", "step":"mira",
+  "data":{ "question":"…", "answer":"…",
+           "output":"how that step ended",
+           "log":[ { "in":"what the person typed", "out":"what Mira said" } ] } }
 
 200 { "ok":true, "version":4, "steps_reached":["describe","mira"] }
 400 { "ok":false, "error":"pass" | "step" | "json" }     404 { "ok":false, "error":"unknown" | "expired" }
 ```
+
+## read lead
+
+```
+GET /api/spark-lead?pass=PASSR4RK96R4
+
+200 { "ok":true, "lead":{ …the file above, as it stands… } }
+400 { "ok":false, "error":"pass" }        404 { "ok":false, "error":"unknown" | "expired" }
+```
+
+This is what makes the journey resumable: a person who closes the page and opens the QR again
+comes back to their own step. It is answered `no-store`, it is rate limited with the other two,
+and it is CORS-closed to the origins in `SPARK_ORIGINS`. Like everything else here, the pass is
+the credential: whoever holds it reads and updates that one file, which is what a browser at
+another subdomain can do without a login. A pass is eight characters, lives a day, and is not
+written in any link the site publishes.
 
 `step` is one of `describe`, `mira`, `activities`, `package`. Anything else is refused. The
 pass is the whole credential: no account, no token, and the pass shape is checked
@@ -250,25 +316,29 @@ pass is the whole credential: no account, no token, and the pass shape is checke
 
 ## Tonight, in order
 
-1. **Supabase.** New project, region Frankfurt. Storage, new bucket `leads`, **private**, public
-   URLs off, file size limit 1 MB.
-2. **Functions.** Deploy `demo/supabase/functions` with the CLI. Secrets on both functions:
-   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EMAIL_SALT` (any long random string),
-   `BUCKET=leads`, `ALLOW_ORIGIN=https://boasis.ae`. On `create-pass` also `BRAIN_URL`, the Brain
-   address with the demo route, e.g. `https://brain.boasis.ae/demo`.
-   The service key lives only in the functions. It is never in the page, and the page never
-   needs the anon key either: the browser talks to a function, the function holds the write.
-   `ALLOW_ORIGIN` has to name the site, because the page and the function are different origins.
-3. **The page config.** At the top of `js/try-mira.js`:
-   `endpoint` = the `create-pass` URL, `brainUrl` = the same `BRAIN_URL` you set above. Empty
-   means not connected, and the page then says so out loud rather than pretending. This is an
-   external file and not an inline block, because the site's content policy forbids inline script
-   on every page; `server.js` gives `/try-mira` its own copy of that policy with `connect-src`
-   widened to `https://*.supabase.co` and nothing else. Pin it to one project by replacing the
-   wildcard with `https://<project-ref>.supabase.co`.
-4. **Merge, and the page is live.** There is no DNS to wait for and no certificate to issue, which
-   is what the shared domain buys. Check it once on a phone on the venue wifi: open
-   `boasis.ae/try-mira`, submit, and the Brain opens with `?pass=` in the address bar.
+There is nothing to sign up to. The back end is in this repo, in the folder the site already uses
+for its leads.
+
+1. **Merge, and the page is live.** `js/try-mira.js` already points the form at `/api/spark-pass`
+   and the frame at `https://brain.boasis.ae`, so there is no key to paste and no address to
+   type. The folder `data/leads` is made by the app on the first submit.
+2. **Only if the Brain address is not that one:** `SPARK_BRAIN_URL=https://…` in the site's
+   `.env`, and `SPARK_ORIGINS=https://boasis.ae,https://brain.boasis.ae` if the Brain is served
+   from another name. `RATE_LIMIT_SPARK_PER_MIN` is 40 and covers all three doors, counted apart
+   from the site's own forms so that a hall of phones behind one address cannot spend the contact
+   form's budget. Restart the app after changing any of them.
+3. **The Brain side, three things, all small.** The pass check on `boasis-brain` is what closes
+   the demo off from anyone without a pass. Then, on the pages we frame:
+   - send `Content-Security-Policy: frame-ancestors https://boasis.ae` and no
+     `X-Frame-Options` on the framed route, or the frame stays blank and the page's own link
+     under it is how people get in;
+   - read `?pass=` and keep the header and the account menu out when `?embed=1` is there;
+   - after every step, `POST https://boasis.ae/api/spark-step` with `pass`, `step`, and a `data`
+     object holding what the person typed, what Mira said, and how the step ended. That is the
+     whole write, and it is what makes the file the record of the visit rather than of the form.
+4. **Check it on a phone, on the venue wifi.** Open `boasis.ae/try-mira`, fill it in, and Mira
+   should appear in the page, under the same header, with the four points gone. Then
+   `node scripts/spark-leads.js --pass=…` on the server and the answer is the visit.
 5. **Optional, for a busy stand:** one line in Nginx in front of boasis.ae, and the log to read
    afterwards.
 
@@ -276,29 +346,64 @@ pass is the whole credential: no account, no token, and the pass shape is checke
    limit_req_zone $binary_remote_addr zone=spark:2m rate=12r/m;
    location = /try-mira { limit_req zone=spark burst=12 nodelay; try_files $uri =404; access_log /var/log/nginx/spark-demo.log; }
    ```
-6. **Rehearse without any of it:** `node scripts/spark-stub.js`, open
-   `http://localhost:8090`. Same page at the same address, same rules, files in a temp folder,
-   plus a one-step stub Brain so the handoff can be walked through and the JSON seen on disk.
+6. **Rehearse without the site at all:** `node scripts/spark-stub.js`, open
+   `http://localhost:8090`. Same page at the same address, same rules module, files in a temp
+   folder, plus a one-step stub Brain so the handoff can be walked through and the JSON seen on
+   disk. The stub answers the two paths the Supabase pair uses, and the page is rewritten to them
+   on the way out, so the rehearsal is not a different site.
+
+## Both back ends
+
+The same rules, in two shapes, chosen by where you want the files:
+
+| | on boasis.ae | in Supabase |
+| --- | --- | --- |
+| what | `lib/spark.js`, mounted in `server.js` | the two functions in `demo/supabase/functions` |
+| where a lead sits | `data/leads/PASSxxxxxxxx.json` | `leads/PASSxxxxxxxx.json` in a private bucket |
+| to switch it on | merge, done | project, bucket, two functions, six secrets |
+| to read the leads | `node scripts/spark-leads.js` on the server | the console, or `supabase storage ls` |
+| what it costs | stand traffic on the site's own box, and the disk it writes | a second host the venue wifi has to reach |
+
+To use the bucket instead of the folder, deploy the functions, set their secrets
+(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EMAIL_SALT`, `BUCKET=leads`,
+`ALLOW_ORIGIN=https://boasis.ae`, and `BRAIN_URL` on `create-pass`), then point `endpoint` in
+`js/try-mira.js` at the `create-pass` URL and add the project host to the page's `connect-src` in
+`server.js`. The service key stays in the functions and never reaches the page, and the anon key
+is not needed. Nothing else changes: the files come out identical, because the module that
+decides what goes in them is shared.
+
+For two days at a stand, the folder is the honest answer. It is what this repo is set up for
+tonight.
 
 ## Closing it
 
-Three things, and it is gone: `try-mira.html`, `js/try-mira.js`, and the `Disallow: /try-mira`
-lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap
-entry mentions it, so there is nothing to unpublish and no redirect to leave behind. The Supabase
-functions are on their own host, so deleting the page is enough to stop new passes; the bucket
-stays for the owner to read, keep or empty.
+Four things, and it is gone: `try-mira.html`, `js/try-mira.js`, the three `/api/spark-*` lines
+(the `require('./lib/spark')` call in `server.js`, and the three names in `API_ROUTES` in
+`lib/protect.js`, which is what keeps the guard closed by default), and the `Disallow: /try-mira`
+lines in `robots.txt`. Nothing on the site ever linked to it and no sitemap entry mentions it, so
+there is nothing to unpublish and no redirect to leave behind.
+
+Then read the folder and empty it, on the owner's schedule rather than the deploy's:
+
+```
+node scripts/spark-leads.js --csv > spark-leads.csv     # while the files are still there
+rm -rf data/leads data/spark-by-email                    # and after the follow up is done
+```
+
+The QR is not part of the site, so it needs nothing here: it is a picture of an address, and when
+the address is gone it stops working by itself.
 
 `js/countries.js` and `js/yara-orb.js` are not part of the demo and stay: the home page dialogs,
 `/early-access` and `/contact` all use them. Only the two files named above belong to this page.
 
 ## Open, and who owes what
 
-- **the Brain address.** The client has not given the Mira link yet, so `brainUrl` is empty and
-  the function has no `BRAIN_URL`. Until one of them is filled in, a visitor gets their pass,
-  the page tells them plainly that Mira is not open yet, and nothing is lost: the lead file
-  exists and the pass works the moment the address appears. This is the one thing that must be
-  set before the doors open.
-- **the Supabase project, and the bucket name.** Built for a new project and `leads`.
+- **the Brain, framed.** `brain.boasis.ae` is what `brainUrl` says now, and the page frames it.
+  That needs one header on the Brain's side (`frame-ancestors https://boasis.ae`) and one look at
+  `?embed=1`. Until the header is there the frame is blank, and the line under it, "Open Mira in
+  a new tab", is how a person gets in. Nothing else about the demo waits on it.
+- **a pass check on the Brain.** `boasis-brain` has to answer `/api/spark-lead?pass=` or refuse
+  the journey. Without it the entrance is a nice form that leads to an open door.
 - **how long a pass lives.** 24 hours, `MAX_AGE_HOURS = 24` in `spark-core.js`, one line to
   change. To be confirmed with the client, since it only matters if someone fills the form on
   day one and opens Mira on day two.

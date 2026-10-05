@@ -1,8 +1,10 @@
 /* SPARK demo · the rules, with no server in them
  *
- * One JSON file per person, `leads/<pass>.json`, in a private Supabase bucket: the form
- * creates it, every step inside the Brain updates it, and a person who walks away halfway
- * leaves everything up to that point behind. That is the plan's shape, and this file holds
+ * One JSON file per person, `leads/<pass>.json`, in a private bucket or in `data/leads/` on
+ * boasis.ae itself: the form creates it, every step inside the Brain updates it, and a person
+ * who walks away halfway leaves everything up to that point behind. Either way it is the same
+ * file with the same shape, and it is meant to be read on its own: the name, the number, the
+ * words they typed, and what the page said back, in one place. That is the plan's shape, and this file holds
  * every decision in it that is worth getting wrong or right: what counts as a person, what a
  * pass looks like, what a lead file contains, how a step merges, and when a pass expires.
  *
@@ -88,7 +90,7 @@ export function buildLead({ pass, contact, source, now }) {
     expires_at: new Date(now + MAX_AGE_HOURS * 3600 * 1000).toISOString(),
     source: String(source || 'ai-everything-2026').slice(0, 40),
     contact,
-    brain: { steps_reached: [], description: '', mira: [], activities: {}, package: {} },
+    brain: { steps_reached: [], description: '', mira: [], activities: {}, package: {}, log: [], output: {} },
   };
 }
 
@@ -102,7 +104,9 @@ export function applyStep(lead, step, data, now) {
   if (!STEPS.includes(step)) return null;
   const out = JSON.parse(JSON.stringify(lead));
   const at = new Date(now).toISOString();
-  const b = out.brain || (out.brain = { steps_reached: [], description: '', mira: [], activities: {}, package: {} });
+  const b = out.brain || (out.brain = { steps_reached: [], description: '', mira: [], activities: {}, package: {}, log: [], output: {} });
+  if (!Array.isArray(b.log)) b.log = [];
+  if (!b.output || typeof b.output !== 'object') b.output = {};
   const d = data && typeof data === 'object' ? data : {};
 
   if (step === 'describe') {
@@ -129,6 +133,19 @@ export function applyStep(lead, step, data, now) {
       confirmed: d.confirmed === true ? true : !!((b.package || {}).confirmed),
     };
   }
+
+  /* what the person put in and what the page gave back, kept as it happened, next to the tidy
+     fields above. The four branches keep the parts an advisor reads; this keeps the exchange,
+     so one file is the whole visit rather than half of it. The caps are the size of a stand
+     conversation, and they are what stops one file growing without limit. */
+  if (Array.isArray(d.log)) {
+    const added = d.log.slice(-20).map(e => {
+      const x = e && typeof e === 'object' ? e : {};
+      return { at: String(x.at || at).slice(0, 40), in: String(x.in || '').slice(0, 1200), out: String(x.out || '').slice(0, 6000) };
+    }).filter(e => e.in || e.out);
+    b.log = [...b.log, ...added].slice(-60);
+  }
+  if (d.output !== undefined) b.output[step] = String(d.output).slice(0, 6000);
 
   if (!b.steps_reached.includes(step)) b.steps_reached.push(step);
   b.last_step = step;

@@ -73,7 +73,7 @@ const BRAIN_PAGE = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><
 <script>
 var p=new URLSearchParams(location.search).get('pass')||'';
 document.getElementById('f').addEventListener('submit',async function(e){e.preventDefault();
- var r=await fetch('/functions/v1/save-step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,step:'describe',data:{description:document.getElementById('d').value}})});
+ var r=await fetch('/functions/v1/save-step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,step:'describe',data:{description:document.getElementById('d').value,output:'Three activities fit: general trading, e commerce, consulting.',log:[{in:document.getElementById('d').value,out:'Three activities fit, and each one needs its own paper.'}]}})});
  var j=await r.json(); document.getElementById('out').textContent=JSON.stringify(j,null,2);
  var g=await fetch('/file?pass='+encodeURIComponent(p)); document.getElementById('out').textContent=await g.text();});
 </script></body></html>`;
@@ -111,7 +111,12 @@ const server = http.createServer(async (req, res) => {
     /* the shipped file keeps its endpoint empty on purpose; the stub is the one that says
        "post here", so nothing about running a demo locally ever reaches the deploy */
     const out = /js[\/]try-mira\.js$/.test(file)
-      ? Buffer.from(String(buf).replace("endpoint: '',", "endpoint: '/functions/v1/create-pass',"))
+      /* whatever the shipped page points at is replaced, rather than one exact string being
+         looked for: the page ships pointed at this site's own door now, and the stub answers at
+         its own, and the rehearsal must not depend on the address in the file */
+      ? Buffer.from(String(buf)
+          .replace(/endpoint: '[^']*'/, "endpoint: '/functions/v1/create-pass'")
+          .replace(/brainUrl: '[^']*'/, "brainUrl: '/brain'"))
       : buf;
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'X-Robots-Tag': 'noindex, nofollow' });
     res.end(out);

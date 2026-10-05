@@ -1,6 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 const { inspect, noteTrap } = require('../lib/protect');
+const ROOT = path.resolve(__dirname, '..');
 
 const ok = p => inspect(p).ok;
 
@@ -118,9 +121,20 @@ test('a bare page name is a page, and nothing else gets in with it', () => {
   /* `/api` and `/api/` normalise to the same bare name, and the fallback answers both in
      JSON — an API path must never answer with a page (test/seo.test.js checks it live) */
   assert.equal(ok('/api'), true, 'a bare name, answered by the fallback, not by static');
-  for (const p of ['/api/health', '/api/first-visit', '/api/waitlist', '/api/contact', '/api/demo', '/api/manage']) {
+  for (const p of ['/api/health', '/api/first-visit', '/api/waitlist', '/api/contact', '/api/demo', '/api/manage',
+                   '/api/spark-pass', '/api/spark-step', '/api/spark-lead']) {
     assert.equal(ok(p), true, p + ' is a real route, and the API is reached over the guard');
   }
+  /* the guard names the doors one by one, so an endpoint mounted in server.js but not named
+     there answers 404 while looking entirely healthy in the code. That cost ten minutes, so the
+     two lists are compared rather than trusted to a memory. */
+  const mounted = ['server.js', 'lib/spark.js']                       // the demo's own doors are mounted from lib/
+    .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8'))
+    .join('\n')
+    .split('\n').map(l => /app\.(?:get|post)\('([^']+)'/.exec(l))
+    .filter(m => m && m[1].startsWith('/api/'));
+  assert.ok(mounted.length >= 12, 'and the routes are read out of the two files that mount them, saw ' + mounted.length);
+  for (const m of mounted) assert.equal(ok(m[1]), true, m[1] + ' is mounted, so the guard has to know it');
   for (const p of ['/server.js', '/.env', '/config/env', '/lib/mailer', '/package.json',
                    '/js/site', '/css/site', '/assets/logo/orb-160', '/blog.html/x',
                    '/blog\\u0000', '/api/unknown', '/api/health/extra', '/api/manage/x', '/api/verify-email/send/x',

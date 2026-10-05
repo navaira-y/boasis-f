@@ -325,6 +325,20 @@ app.post('/api/manage', gateForms, formGate, async (req, res) => {
   res.json({ ok: true, confirmed: r.sent > 0 });
 });
 
+/* ── the SPARK demo: one file per person, kept here ──────────────────────────
+   The page at /try-mira mints a pass, the Brain saves after every step, and both write into
+   data/leads/, which the guard already refuses to serve. The rules are the ones the Supabase
+   pair next door imports, so the demo has one rulebook and not two opinions. */
+require('./lib/spark')(app, {
+  dataDir: DATA,
+  brainUrl: config.spark.brainUrl,
+  origins: config.spark.origins,
+  salt: SALT,
+  limitPerMin: config.limits.spark,
+  bucket,
+  log: (m) => console.log('[spark] ' + m),
+});
+
 /* ── malformed input is a client error, not a stack trace ──────────────────────
    Without this, one attacker posting "{" in a loop fills Hostinger's log file,
    which is a cheap denial of service and makes real errors impossible to find. */
@@ -360,10 +374,15 @@ const DEMO_PAGE = /^\/try-mira(?:\.html)?\/?$/;   // the printed address, its fi
 app.use((req, res, next) => {
   if (!DEMO_PAGE.test(req.path)) return next();
   if (req.path === '/try-mira/') return res.redirect(301, '/try-mira');   // a typed slash is the same page
+  /* The Brain is shown inside this page after the form, so the origin named in SPARK_BRAIN_URL
+     is framed by it. 'self' is in the list because the rehearsal stub answers /brain on the same
+     host, and an explicit frame-src replaces the default rather than adding to it. */
+  const frameSrc = (u => { try { return new URL(u).origin; } catch (e) { return ''; } })(config.spark.brainUrl);
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
     + " font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self';"
     + " connect-src 'self' https://*.supabase.co;"
+    + " frame-src 'self'" + (frameSrc ? ' ' + frameSrc : '') + ';'
     + " frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');   // said twice: in the header, and in the page's own meta tag
   next();

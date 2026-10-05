@@ -1,10 +1,13 @@
 /* SPARK demo · the entrance page at boasis.ae/try-mira
  *
- * One job: turn four fields into a pass, then send the person to the Brain with it.
- * Nothing here saves the journey. The pass is created by the Supabase function named in
- * window.SPARK.endpoint, which writes leads/<pass>.json with the contact part; every step
- * inside the Brain updates that same file (plan, task 2 and 4). If a person walks away at
- * step two, the file holds step two.
+ * One job: turn four fields into a pass, then open the Brain inside this page with it. The
+ * person never wonders where they went.
+ *
+ * Nothing here saves the journey either. window.SPARK.endpoint mints the pass and starts the
+ * file; every step inside the Brain updates that same file, including what the person typed and
+ * what Mira said back. If a person walks away at step two, the file holds step two. Two back
+ * ends answer that same contract: /api/spark-pass on this server (lib/spark.js, files under
+ * data/leads/), or the Supabase pair of the same name if the client would rather have the bucket.
  *
  * There is no email check and no waiting on purpose: the plan is that the visitor is inside
  * Mira within seconds. The gates that stay are the honeypot, the consent box, the pass
@@ -14,18 +17,18 @@
   'use strict';
 
   /* ── the two addresses, written here and nowhere else ───────────────────────
-     endpoint  the Supabase function that mints the pass and starts the lead file
-     brainUrl  where the Brain lives. The client still owes this link; until it is pasted,
-               a pass is handed out and the page says Mira is not open yet, rather than
-               sending a person to a blank address.
+     endpoint  what turns the four fields into a pass and starts the person's file. It points
+               at this site's own door, so there is nothing to configure on the night.
+     brainUrl  where the Brain lives, and what the page then frames. SPARK_BRAIN_URL on the
+               server answers the same question for the pass response, and wins when it is set.
      They live in this file and not in an inline script, because every page on this site is
      served under a policy that forbids inline script, and the demo should not be the reason
      to loosen it for the others. server.js gives /try-mira its own copy of that header with
      the function host added to it. An empty endpoint is a page that is not connected, and it
      says so out loud when pressed rather than posting at something guessed. */
   var CFG = window.SPARK = {
-    endpoint: '',
-    brainUrl: '',
+    endpoint: '/api/spark-pass',
+    brainUrl: 'https://brain.boasis.ae',
     source: 'ai-everything-2026'
   };
   var form = document.getElementById('eventForm');
@@ -79,13 +82,21 @@
 
   var busy = false;
   function go(pass, brainUrl) {
-    var url = brainUrl + (brainUrl.indexOf('?') < 0 ? '?' : '&') + 'pass=' + encodeURIComponent(pass);
+    var url = brainUrl + (brainUrl.indexOf('?') < 0 ? '?' : '&')
+      + 'pass=' + encodeURIComponent(pass) + '&embed=1';   // embed=1 says "you are inside a page, keep your own chrome out"
     var link = document.getElementById('miraLink');
     if (link) link.href = url;
+    var frame = document.getElementById('brainFrame');
+    if (frame && frame.getAttribute('src') !== url) frame.setAttribute('src', url);
     document.getElementById('formView').style.display = 'none';
     document.getElementById('doneView').classList.add('on');
+    var main = document.querySelector('.main');
+    if (main) main.classList.add('opened');   // the four points step aside, the frame gets the width
+    if (frame) { try { frame.contentWindow.focus(); } catch (e) { /* framed, and not ours to focus */ } }
+    /* no window.location on purpose: the person stays on the page they were handed, and the
+       stand's screen keeps the header, so walking back is not needed. The link underneath is
+       for the cases a frame cannot win, like a browser that refuses framing. */
     try { sessionStorage.setItem('spark.pass', JSON.stringify({ pass: pass, url: url })); } catch (e) { /* private mode: the page still works */ }
-    setTimeout(function () { window.location.href = url; }, 600);   // seconds, not a ceremony
   }
 
   /* came back by accident, or re-scanned the QR: the pass they were given is still theirs */
@@ -95,7 +106,7 @@
     if (!raw) return;
     try {
       var s = JSON.parse(raw);
-      if (s && s.pass && s.url) go(s.pass, s.url.replace(/[?&]pass=[^&]*/, '').replace(/[?&]$/, ''));
+      if (s && s.pass && s.url) go(s.pass, s.url.replace(/[?&](?:pass|embed)=[^&]*/g, '').replace(/[?&]$/, ''));
     } catch (e) { /* a stale entry is no reason to stop the form */ }
   })();
 

@@ -56,6 +56,7 @@ security hole in the wrong direction — too *low* only makes the per-visitor li
 |---|---|---|---|
 | `RATE_LIMIT_FORMS_PER_MIN` | 8 | one visitor | one person or script hammering the forms |
 | `RATE_LIMIT_VISITS_PER_MIN` | 60 | one visitor | a loop on the first-visit check |
+| `RATE_LIMIT_SPARK_PER_MIN` | 40 | one visitor, in a bucket of its own | the SPARK demo at a stand: a hall of phones behind one address, and nothing to do with the form budget above |
 | `GLOBAL_FORMS_PER_MIN` | 60 | the whole site | a flood from many addresses at once |
 | `GLOBAL_FORMS_PER_DAY` | 2000 | the whole site | a slow flood over a day |
 | `GLOBAL_CAPTCHA_PER_MIN` | 600 | the whole site | a loop asking for puzzles |

@@ -557,6 +557,7 @@ const challenge = () => {
       /* the config block in the page assigns window.SPARK last, so the test address is put
          in after load, which is also where a person would paste it */
       if ('endpoint' in o) dom.window.SPARK.endpoint = o.endpoint; else dom.window.SPARK.endpoint = SPARK_URL;
+      if ('brainUrl' in o) dom.window.SPARK.brainUrl = o.brainUrl;   // '' is the not-connected case
       await new Promise(r => setTimeout(r, 60));
       return dom.window;
     };
@@ -620,7 +621,10 @@ const challenge = () => {
     ok(typeof post.body._t === 'number' && post.body.consent === 'on', 'the clock and the consent ride along for the function to judge');
     ok(!('miraLink' in (post.body || {})), 'and no pass is invented in the browser');
     const link = w.document.getElementById('miraLink');
-    ok(link.href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'the pass from the function is what the Brain is given, saw ' + link.href);
+    const frame = w.document.getElementById('brainFrame');
+    ok(link.href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4&embed=1', 'the pass from the function is what the Brain is given, saw ' + link.href);
+    ok(frame.getAttribute('src') === link.href, 'the window and the way out of it are the same address, so they cannot disagree');
+    ok(w.document.querySelector('.main').classList.contains('opened'), 'and the page opens up for it: the four points step aside');
     ok(w.document.getElementById('doneView').classList.contains('on'), 'and the page changes to the ready screen');
     ok(w.document.getElementById('formView').style.display === 'none', 'with the form put away');
     ok(JSON.parse(w.sessionStorage.getItem('spark.pass')).pass === 'PASSR4RK96R4', 'the pass is remembered for the walk back');
@@ -646,7 +650,7 @@ const challenge = () => {
     await new Promise(r => setTimeout(r, 100));
     ok(/could not be opened just now/.test(note(nopass)), 'an answer with no pass in it is treated as the failure it is');
 
-    const noBrain = await spark(b => ({ ok: true, pass: 'PASSR4RK96R4' }));
+    const noBrain = await spark(b => ({ ok: true, pass: 'PASSR4RK96R4' }), { brainUrl: '' });
     fill(noBrain, HUMAN);
     submit(noBrain);
     await new Promise(r => setTimeout(r, 100));
@@ -655,7 +659,8 @@ const challenge = () => {
     /* a person who came back, or re-scanned, is not asked for their details twice */
     const again = await spark(null, { endpoint: '', seed: { pass: 'PASSR4RK96R4', url: 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4' } });
     ok(again.document.getElementById('doneView').classList.contains('on'), 'their pass is still theirs: the ready screen is showing at once');
-    ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4', 'with the same link, no new pass asked for');
+    ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4&embed=1', 'with the same link, no new pass asked for');
+    ok(again.SPARK_posts.length === 0, 'and no second pass is minted for a person who only came back');
     ok(again.SPARK_posts.length === 0, 'and nothing was sent to the function on the way there');
   }
 
