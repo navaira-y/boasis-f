@@ -19,8 +19,11 @@
   'use strict';
 
   /* ── the two addresses, written here and nowhere else ───────────────────────
-     endpoint  what turns the four fields into a pass and starts the person's file. It points
-               at this site's own door, so there is nothing to configure on the night.
+     endpoint  what turns the four fields into a pass and starts the person's file. It points at
+               the Supabase function create-pass, which is what is deployed for boasis-spark. The
+               site's own door, /api/spark-pass, answers the same way with the same rules and the
+               same record shape, so moving back to it is this one line. server.js is given the
+               same project host for connect-src, and a test fails if the two hosts ever differ.
      brainUrl  where the Brain lives, and what the page then frames. SPARK_BRAIN_URL on the
                server answers the same question for the pass response, and wins when it is set.
      They live in this file and not in an inline script, because every page on this site is
@@ -29,7 +32,7 @@
      the function host added to it. An empty endpoint is a page that is not connected, and it
      says so out loud when pressed rather than posting at something guessed. */
   var CFG = window.SPARK = {
-    endpoint: '/api/spark-pass',
+    endpoint: 'https://grsbhupjihwvidxbkymu.supabase.co/functions/v1/create-pass',
     brainUrl: 'https://brain.boasis.ae',
     source: 'ai-everything-2026'
   };

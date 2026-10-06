@@ -330,9 +330,12 @@ The default is the folder the site already keeps its waitlist in, so there is no
 to. If you decided on Supabase instead, the steps are the section "Supabase, all of it in the
 browser, no CLI" further down, and from step 3 below onward nothing else about this list changes.
 
-1. **Merge, and the page is live.** `js/try-mira.js` already points the form at `/api/spark-pass`
-   and the frame at `https://brain.boasis.ae`, so there is no key to paste and no address to
-   type. The folder `data/leads` is made by the app on the first submit.
+1. **Merge, and the page is live.** The form points at the `create-pass` function of the
+   `boasis-spark` project, and the frame at `https://brain.boasis.ae`, so there is no key to paste
+   and no address to type. No Supabase account is needed to run the demo at all: `endpoint` in
+   `js/try-mira.js` back to `'/api/spark-pass'` moves it to this server, where `data/leads` is
+   made by the app on the first submit. `SPARK_PROJECT_URL` in the site's `.env` moves the
+   `connect-src` allowance with it, and a test fails if the two hosts disagree.
 2. **Only if the Brain address is not that one:** `SPARK_BRAIN_URL=https://…` in the site's
    `.env`, and `SPARK_ORIGINS=https://boasis.ae,https://brain.boasis.ae` if the Brain is served
    from another name. `RATE_LIMIT_SPARK_PER_MIN` is 40 and covers all three doors, counted apart
@@ -410,12 +413,17 @@ about a person is split over two places.
    `save-step` and `get-lead` are given neither the salt nor the Brain address on purpose: one only
    updates a row that already exists and the other only reads it, and a door that cannot do more
    than it must is the cheaper thing to trust.
-6. **One line in the page**, then merge. Top of `js/try-mira.js`, where it says
-   `endpoint: '/api/spark-pass'`, put the URL the function page shows for `create-pass`:
-   `endpoint: 'https://<ref>.supabase.co/functions/v1/create-pass'`. `brainUrl` stays
-   `https://brain.boasis.ae`. `server.js` already gives `/try-mira` a
-   `connect-src 'self' https://*.supabase.co`, the only host the page may speak to; pin that
-   wildcard to `https://<ref>.supabase.co` if you want it named exactly.
+6. **One line in the page**, then merge. Top of `js/try-mira.js`, `endpoint` is the URL the
+   function page shows for `create-pass`, and `brainUrl` stays `https://brain.boasis.ae`.
+   `/try-mira` is served with `connect-src 'self' <that project host>` and nothing else, taken
+   from `SPARK_PROJECT_URL` in `config/env.js`, which defaults to the `boasis-spark` project. Change
+   one, change both: the test that reads them is there to make that unmissable.
+
+   **And one setting on each function:** Settings → **Verify JWT with legacy secret** → off. It
+   arrives on, and with it on, the page's request is refused before our code runs, because the page
+   holds no key of any kind on purpose. `save-step` and `get-lead` are the same: the pass in the body
+   is the whole credential, and it is checked in the function, where a 400 for a bad pass is a
+   sentence rather than a browser error.
 7. **Table editor** → `spark_leads`. That is the stand, as a grid. For the cut the client will ask
    for, **SQL Editor** → Run → **Download result** as CSV:
 

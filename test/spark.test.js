@@ -260,11 +260,13 @@ test('the two addresses are this site and the Brain, and nothing else', () => {
   const js = JS();
   const cfg = /var CFG = window\.SPARK = \{([\s\S]*?)\};/.exec(js);
   assert.ok(cfg, 'the script declares its config in one block, at the top');
-  assert.match(cfg[1], /endpoint: '\/api\/spark-pass'/, 'the form posts to this site own door, so nothing has to be pasted on the night');
+  assert.match(cfg[1], /endpoint: 'https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/create-pass'/,
+    'the form posts to the deployed Supabase function, at its real address, not a placeholder');
   assert.match(cfg[1], /brainUrl: 'https:\/\/brain\.boasis\.ae'/, 'and the Brain is the address the client wrote, and no other');
   assert.match(cfg[1], /source: 'ai-everything-2026'/, 'while the source is fixed, because that is what the reports are cut by');
-  assert.equal((cfg[1].match(/https?:\/\//g) || []).length, 1, 'one host is named in that block');
-  assert.ok(!/supabase/i.test(cfg[1]), 'and the bucket stays out of the page: nobody at a stand has a reason to know it exists');
+  assert.equal((cfg[1].match(/https?:\/\//g) || []).length, 2, 'two hosts and no more: where the pass comes from, and where the person goes');
+  assert.ok(!/(?:anon|publishable|legacy|eyJ)[A-Za-z0-9_-]*|key\s*:\s*['"]/.test(cfg[1]),
+    'and no key of any kind is in the page: the function is the caller, and the pass is the credential');
   /* the honest failure is kept on purpose: take the endpoint away, and the page says the demo is
      not open rather than posting at a guess or leaving a person pressing a dead button */
   assert.match(js, /if \(!CFG\.endpoint\) \{[\s\S]{0,160}The demo is not open on this page yet/, 'a page that is not connected says so');
@@ -536,8 +538,22 @@ test('the page keeps the person on it, with the Brain inside', () => {
   assert.ok(!/window\.location\.href\s*=/.test(js), 'the page does not send anyone away any more: Mira opens where they are');
   assert.match(js, /'&embed=1'/, 'and the Brain is told it is inside a page, so it can keep its own header out');
   assert.match(js, /classList\.add\('opened'\)/, 'the page opens itself up at that moment');
-  assert.match(js, /endpoint: '\/api\/spark-pass'/, 'the form posts to this site, so nothing has to be pasted on the night');
+  assert.match(js, /endpoint: 'https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/create-pass'/, 'the form posts to the function that is deployed, by its real address');
   assert.match(js, /brainUrl: 'https:\/\/brain\.boasis\.ae'/, 'and the Brain is brain.boasis.ae, as the client wrote it');
+});
+
+test('the page is allowed to speak to the one host it posts to', async () => {
+  /* the invariant that matters: an endpoint the policy forbids is a form that hangs at the stand,
+     and a policy wider than the endpoint is a page that can talk to somewhere nobody chose */
+  const cfg = /var CFG = window\.SPARK = \{([\s\S]*?)\};/.exec(JS())[1];
+  const host = /endpoint: '(https:\/\/[^']+)\/functions/.exec(cfg);
+  assert.ok(host, 'the endpoint is an https URL to a function');
+  const origin = new URL(host[1]).origin;
+  const csp = (await get('/try-mira')).headers.get('content-security-policy') || '';
+  const connect = (/connect-src([^;]*)/.exec(csp) || [, ''])[1];
+  assert.ok(connect.includes(origin), 'connect-src names that host exactly, saw ' + connect.trim());
+  assert.ok(!/\*\.supabase\.co/.test(connect), 'and it is pinned, not a wildcard over every project on Supabase');
+  assert.match(connect.trim(), /^'self' https:\/\/[a-z0-9]+\.supabase\.co$/, 'two entries, no more');
 });
 
 test('the entrance may frame the Brain and nothing else', async () => {

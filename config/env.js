@@ -164,6 +164,11 @@ const config = {
        origins, no trailing slash: https://boasis.ae,https://brain.boasis.ae */
     origins: str('SPARK_ORIGINS', 'https://boasis.ae,https://brain.boasis.ae')
       .split(',').map(x => x.trim()).filter(Boolean),
+    /* the Supabase project the page is allowed to speak to. It is the same host written as
+       `endpoint` in js/try-mira.js, kept here so the policy can name it exactly instead of
+       allowing every *.supabase.co, and a test checks the two agree. A new project is one value
+       in each place, or SPARK_PROJECT_URL here plus the line there. */
+    projectUrl: str('SPARK_PROJECT_URL', 'https://grsbhupjihwvidxbkymu.supabase.co'),
   },
 };
 
