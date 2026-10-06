@@ -21,7 +21,16 @@ export const TOO_FAST_MS = 1200;          // nobody types four fields faster tha
 /* No look-alike pairs: a pass read off a screen at a loud stand has to survive being typed. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-export function makePass(random = Math.random) {
+/* The letters come from the platform's own random source when there is one, which there is in
+   Deno on Supabase and in Node 19 and up, and 256 over 32 divides exactly so no letter is
+   favoured. Math.random is only the fallback for a caller that hands in its own generator. */
+function pick() {
+  const c = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+  if (c && typeof c.getRandomValues === 'function') return () => c.getRandomValues(new Uint8Array(1))[0] / 256;
+  return Math.random;
+}
+
+export function makePass(random = pick()) {
   let out = 'PASS';
   for (let i = 0; i < 8; i += 1) out += ALPHABET[Math.floor(random() * ALPHABET.length)];
   return out;

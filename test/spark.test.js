@@ -316,6 +316,23 @@ test('the local rehearsal serves what the site serves, at the same address', asy
   }
 });
 
+test('a pass is cut from the platform random, not from Math.random', async () => {
+  const k = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  const had = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  let n = 0;
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: { getRandomValues(a) { n += 1; for (let i = 0; i < a.length; i += 1) a[i] = (i * 37 + 11) % 256; return a; } },
+  });
+  try {
+    const p = k.makePass();
+    assert.ok(k.isPass(p), 'and a pass cut that way is still a pass: ' + p);
+    assert.equal(n, 8, 'one draw per character, so eight of them');
+  } finally {
+    if (had) Object.defineProperty(globalThis, 'crypto', had); else delete globalThis.crypto;
+  }
+});
+
 test('the rules the whole demo stands on, in one module', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };
