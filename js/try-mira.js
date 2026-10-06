@@ -101,7 +101,7 @@
     /* no window.location on purpose: the person stays on the page they were handed, and the
        stand's screen keeps the header, so walking back is not needed. The link underneath is
        for the cases a frame cannot win, like a browser that refuses framing. */
-    remember(pass, brain);
+    remember(pass, brainUrl);      // what this page was opened with, so a resume needs no new answer
   }
 
   /* One thing is stored per browser: the pass. It lives in localStorage rather than in the tab,
@@ -116,8 +116,8 @@
   var LS = 'boasis.spark.v1';
   var DAY = 24 * 60 * 60 * 1000;
   var PASS_RE = /^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
-  function remember(pass, brain) {
-    try { localStorage.setItem(LS, JSON.stringify({ pass: pass, brain: brain, at: Date.now() })); }
+  function remember(pass, brainUrl) {
+    try { localStorage.setItem(LS, JSON.stringify({ pass: pass, brain: brainUrl, at: Date.now() })); }
     catch (e) { /* private mode: the page still works, the form is just there when they come back */ }
   }
   function forget() { try { localStorage.removeItem(LS); } catch (e) {} }

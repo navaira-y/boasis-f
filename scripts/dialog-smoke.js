@@ -543,7 +543,8 @@ const challenge = () => {
           ambient(w);
           /* the pass a returning visitor was already given, seeded before the page's own
              script runs, which is exactly the order a real browser leaves it in */
-          if (o.seed) w.sessionStorage.setItem('spark.pass', JSON.stringify(o.seed));
+          if (o.seed) w.localStorage.setItem('boasis.spark.v1',
+            JSON.stringify({ pass: o.seed.pass, brain: o.seed.brain, at: Date.now() }));
           w.SPARK_posts = [];
           w.fetch = async (url, opts) => {
             const body = JSON.parse(opts.body);
@@ -627,7 +628,12 @@ const challenge = () => {
     ok(w.document.querySelector('.main').classList.contains('opened'), 'and the page opens up for it: the four points step aside');
     ok(w.document.getElementById('doneView').classList.contains('on'), 'and the page changes to the ready screen');
     ok(w.document.getElementById('formView').style.display === 'none', 'with the form put away');
-    ok(JSON.parse(w.sessionStorage.getItem('spark.pass')).pass === 'PASSR4RK96R4', 'the pass is remembered for the walk back');
+    const kept = JSON.parse(w.localStorage.getItem('boasis.spark.v1') || 'null');
+    ok(kept && kept.pass === 'PASSR4RK96R4', 'the pass is kept in the browser, so a phone that was closed comes back to Mira');
+    ok(kept && kept.brain === 'https://brain.boasis.ae/demo', 'with the Brain address it was opened from, so a resume needs no new answer');
+    const thanks = w.SPARK_posts[1] || {};
+    ok(thanks.url === '/api/spark-thanks' && thanks.body.pass === 'PASSR4RK96R4', 'and the receipt is asked for, once, by the button');
+    ok(!('email' in thanks.body) && !('name' in thanks.body), 'with the pass alone: the address is read from the row, never carried here');
 
     const refused = await spark(b => ({ ok: false, error: 'email' }));
     fill(refused, HUMAN);
@@ -657,7 +663,7 @@ const challenge = () => {
     ok(/Mira is not open yet/.test(note(noBrain)), 'and a pass with nowhere to go is said, not sent to a blank screen');
 
     /* a person who came back, or re-scanned, is not asked for their details twice */
-    const again = await spark(null, { endpoint: '', seed: { pass: 'PASSR4RK96R4', url: 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4' } });
+    const again = await spark(null, { endpoint: '', seed: { pass: 'PASSR4RK96R4', brain: 'https://brain.boasis.ae/demo' } });
     ok(again.document.getElementById('doneView').classList.contains('on'), 'their pass is still theirs: the ready screen is showing at once');
     ok(again.document.getElementById('miraLink').href === 'https://brain.boasis.ae/demo?pass=PASSR4RK96R4&embed=1', 'with the same link, no new pass asked for');
     ok(again.SPARK_posts.length === 0, 'and no second pass is minted for a person who only came back');

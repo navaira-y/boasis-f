@@ -73,16 +73,27 @@ Content-Security-Policy: frame-ancestors https://boasis.ae
 
 and no `X-Frame-Options` header on that route. One host, exact, no wildcard, no `'self'` added.
 
-Next.js, `next.config.js`, add a matcher so it lands only on the framed route:
+Next.js, `next.config.js`, a matcher so it lands only on the framed route, whatever that route is
+called on your side:
 
 ```js
 async headers() {
-  return [{ source: '/:path*', headers: [
+  return [{ source: '/mira', headers: [
     { key: 'Content-Security-Policy', value: 'frame-ancestors https://boasis.ae' },
-    { key: 'X-Frame-Options', value: '' },
   ] }];
 }
 ```
+
+You cannot switch off `X-Frame-Options` by sending an empty value, that is not a thing headers do. If
+something above you sets it, a platform setting, a `security-headers` package, or nginx, turn it
+off for that route where it is set. Check what actually arrives, from cmd:
+
+```
+curl -sI https://brain.boasis.ae/mira | findstr /i "frame content-security"
+```
+
+You want one line, `Content-Security-Policy: frame-ancestors https://boasis.ae`, and no
+`X-Frame-Options` at all. Paste that output to us if it is unclear what is setting it.
 
 nginx:
 

@@ -596,6 +596,8 @@ test('a phone that was closed comes back to Mira, not to the form', () => {
   assert.match(js, /fetch\(u\)[\s\S]{0,700}forget\(\)/, 'and if the row says the visit is over, the form comes back rather than a blank box');
   assert.match(js, /Not you\? Start a new one/, 'the way off somebody else\'s session is on the screen, not in a manual');
   assert.match(js, /body: JSON\.stringify\(\{ pass: pass \}\)/, 'the receipt asks for one thing, the pass');
+  assert.match(js, /remember\(pass, brainUrl\);/, 'the store is written from the argument of the function that opens the frame');
+  assert.ok(!/remember\(pass, brain\)/.test(js), 'and not from a name that function does not have, which is how the resume once threw');
   assert.ok(!/spark-thanks[\s\S]{0,400}email/.test(js), 'no address travels to that door, the row is where it comes from');
 });
 
