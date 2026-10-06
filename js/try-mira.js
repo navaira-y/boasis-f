@@ -233,6 +233,10 @@
       return;
     }
     go(pass, brain);
-    if (!j.reused) receipt(pass);      // once per person, and the door reads the address itself
+    /* fired whether the pass is fresh or the one they already had: the door keeps one marker per
+       pass, so a person who clears their browser and fills the form again is not left without the
+       note, and a person who taps the button twice is not mailed twice. Reuse is the common case at
+       a stand, and a receipt they never got is worse than one they got twice. */
+    receipt(pass);
   }, { passive: false });
 })();

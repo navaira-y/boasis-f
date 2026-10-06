@@ -45,6 +45,7 @@ const built = [
   ['demo → visitor', T.demoToUser({ name: 'Amina Al Mazroui' })],
   ['manage → us', T.manageToOwner({ name: 'Amina Al Mazroui', email: 'amina@example.com', phone: '+971 50 123 4567', have: 'yes', count: '1-3', authority: 'SPARK Free Zone', at: new Date().toISOString() })],
   ['manage → visitor', T.manageToUser({ name: 'Amina Al Mazroui' })],
+  ['spark stand → visitor', T.sparkToUser({ name: 'Amina Al Mazroui', email: 'amina@example.com' })],
 ];
 for (const [label, m] of built) {
   const htmlOK = typeof m.html === 'string' && m.html.length > 800;
