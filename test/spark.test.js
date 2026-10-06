@@ -723,3 +723,18 @@ test('the handover says what to click, and the contract is in it', () => {
   assert.ok(!/service_role[^]{0,120}browser|page[^]{0,40}service_role/.test(doc), 'the doc must never put the service key in the page');
   assert.ok(!/spark\.boasis\.ae/.test(doc), 'and it no longer sends anyone to a host that was never bought');
 });
+
+test('after Submit in Mira, the next person gets the form and a pass of their own', () => {
+  const js = JS();
+  const next = /\(function nextPerson\(\) \{([\s\S]*?)\n  \}\)\(\);/.exec(js);
+  assert.ok(next, 'the entrance listens for the end of a visit');
+  const body = next[1];
+  assert.match(body, /ev\.origin !== brainOrigin/, 'only the Brain may end a visit');
+  assert.match(body, /ev\.source !== frame\.contentWindow/, 'and only from the frame on this page');
+  assert.match(body, /ev\.data\.type !== 'boasis-spark-done'/);
+  assert.match(body, /forget\(\);\s*window\.location\.reload\(\)/, 'the same as "Not you? Start a new one"');
+  assert.match(body, /\[\?&\]next=1/, 'a Brain opened on its own comes back with ?next=1');
+  assert.ok(!/ev\.data\.pass/.test(body), 'nothing is read from the message but its type');
+  assert.ok(js.indexOf('function nextPerson') < js.indexOf('function returning'),
+    '?next=1 forgets the pass before the page would open the last visit again');
+});
