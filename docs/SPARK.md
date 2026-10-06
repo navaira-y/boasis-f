@@ -406,13 +406,15 @@ about a person is split over two places.
    Those three are generated from the folders in `demo/supabase/functions`, and a test fails if the
    two copies ever disagree, so never type into the `dashboard/` copies. After a change to a rule:
    `node scripts/make-supabase-single.js`, then paste again.
-5. **Edge Functions → Secrets** → add, on all three: `SUPABASE_URL` = the URL from step 3,
+5. **Edge Functions → Secrets** → add all five, once: `SUPABASE_URL` = the URL from step 3,
    `SUPABASE_SERVICE_ROLE_KEY` = the key from step 3,
-   `ALLOW_ORIGIN=https://boasis.ae,https://brain.boasis.ae`. Then two more, on `create-pass` only:
-   `EMAIL_SALT` = any long random string you keep, and `BRAIN_URL=https://brain.boasis.ae`.
-   `save-step` and `get-lead` are given neither the salt nor the Brain address on purpose: one only
-   updates a row that already exists and the other only reads it, and a door that cannot do more
-   than it must is the cheaper thing to trust.
+   `ALLOW_ORIGIN=https://boasis.ae,https://brain.boasis.ae`, `EMAIL_SALT` = any long random string
+   you keep, and `BRAIN_URL=https://brain.boasis.ae`.
+   That page holds secrets for the project, with no picker for a single function, so all three
+   functions can see all five. Only `create-pass` reads the salt and the Brain address, and it is
+   the code, not the secret list, that decides what a door may do: `save-step` cannot mint a pass or
+   open a row that does not exist, and `get-lead` cannot write at all. Keep the service key off the
+   page and off the Brain, and that is the secret that actually matters.
 6. **One line in the page**, then merge. Top of `js/try-mira.js`, `endpoint` is the URL the
    function page shows for `create-pass`, and `brainUrl` stays `https://brain.boasis.ae`.
    `/try-mira` is served with `connect-src 'self' <that project host>` and nothing else, taken
