@@ -215,9 +215,14 @@ function checkPass(pass, lead, now) {
 const TABLE = "spark_leads";
 
 function client() {
-  return createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-  });
+  /* read, then checked, then used: a pasted function with a secret missing should say which one,
+     in its own log line, rather than hand the client a 500 and a stack about undefined */
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    throw new Error("set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as secrets for this function");
+  }
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
 /* the two doors the browser uses are on another origin, so they answer a preflight and name the
