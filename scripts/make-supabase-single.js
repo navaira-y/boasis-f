@@ -28,9 +28,11 @@ const OUT = path.join(ROOT, 'demo/supabase/dashboard');
 const SHARED = ['_shared/spark-core.js', '_shared/spark-supabase.js'];
 
 const FUNCS = [
-  { name: 'create-pass', secrets: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'ALLOW_ORIGIN', 'BRAIN_URL'] },
-  { name: 'save-step', secrets: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
-  { name: 'get-lead', secrets: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
+  /* the SPARK_ pair, because Supabase reserves SUPABASE_ for the two it injects itself; the code
+     reads either, so the header and the code have to keep those names together */
+  { name: 'create-pass', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'ALLOW_ORIGIN', 'BRAIN_URL'] },
+  { name: 'save-step', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
+  { name: 'get-lead', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
 ];
 
 const IMPORT = /^[ \t]*import[^\n]*?from[ \t]*["'][^"']+["'];?[ \t]*$/gm;
@@ -74,7 +76,10 @@ function compose(name) {
  * in the function's own page, and nothing is set in the code.
  *
  * Secrets this one reads (${fn.secrets.length}): ${fn.secrets.join(', ')}
- *   SUPABASE_SERVICE_ROLE_KEY can read and write anywhere in the project, which is why the table
+ *   Supabase will not let a secret be named SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY, because the
+ *   platform supplies those two to every function itself and reads them first if you set nothing.
+ *   Set the SPARK_ names below and it works whichever way the project is configured.
+ *   The service key can read and write anywhere in the project, which is why the table
  *   has row level security enabled with no policies: the anon key that a browser holds gets nothing.
  *   This key stays in the function and is never in the page, never in the Brain, never in the repo.
  *   EMAIL_SALT only has to be long, random and remembered: lose it and a person who scans the QR
