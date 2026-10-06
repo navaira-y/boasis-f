@@ -45,6 +45,12 @@ the whole conversation in it.
 Nothing you build needs a table, a column, a migration, an account, or a queue. Do not create a
 store for leads on your side. The row is not yours.
 
+### Two files come with this brief
+
+`docs/brain/spark-embed.js` is the whole browser side, written already, no dependency and no key,
+and `docs/brain/HOW-TO-ADD.md` says where to put it, the four edits, and the seven checks to prove
+it works. Read the brief first, then take the file, and do not rebuild what is in it.
+
 ### What you must add. Three jobs
 
 **1. Read two query parameters, once, on load.**
