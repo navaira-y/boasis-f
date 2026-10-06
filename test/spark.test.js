@@ -542,6 +542,63 @@ test('the two doors the Brain uses answer the browser they belong to', async () 
   assert.equal(fromPage.headers.get('cache-control'), 'no-store', 'a person\'s record is never cached on shared machine at a stand');
 });
 
+test('the thank you goes out once, to the address in the row and to no other', async () => {
+  assert.equal((await post('/api/spark-thanks', { pass: 'not a pass' })).j.error, 'pass', 'a string that is not a pass is refused before anything is read');
+  assert.equal((await post('/api/spark-thanks', { pass: 'PASSAAAAAAAA' })).s, 404, 'a pass nobody was given gets no mail');
+  const bribed = await post('/api/spark-thanks', { pass: 'PASSAAAAAAAA', email: 'someone@else.com' });
+  assert.equal(bribed.s, 404, 'and an address in the body changes nothing, because the door does not read one');
+
+  const ok = await post('/api/spark-thanks', { pass: sparkPass });
+  assert.equal(ok.s, 200, 'the real pass gets its receipt');
+  assert.equal(ok.j.sent, true, 'a dry run still reports the send, which is the rehearsal every mail here uses');
+
+  const again = await post('/api/spark-thanks', { pass: sparkPass });
+  assert.equal(again.j.sent, false, 'a second tap sends nothing');
+  assert.equal(again.j.reason, 'already', 'and it says so, so the page can stay quiet');
+
+  const marker = path.join(DATA, 'spark-thanks', sparkPass + '.json');
+  assert.ok(fs.existsSync(marker), 'the marker is a file, so a restart of the site does not mail a person twice');
+  assert.equal(fs.statSync(marker).mode & 0o077, 0, 'and it is readable by the owner only');
+  assert.ok(!fs.readFileSync(marker, 'utf8').includes('@'), 'it holds no address, only the fact that the pass was mailed');
+
+  const stranger = await fetch(base + '/api/spark-thanks', { method: 'OPTIONS', headers: { Origin: 'https://elsewhere.example' } });
+  assert.equal(stranger.headers.get('access-control-allow-origin'), null, 'no CORS on this door, so another site cannot borrow boasis.ae as its mailer');
+  assert.equal((await get('/api/spark-thanks')).status, 404, 'a GET is not a send, and the guard answers it as JSON');
+});
+
+test('the receipt wears the site mail theme and says what the salon file says', () => {
+  const T = require('../lib/mail-templates.js');
+  const m = T.sparkToUser({ name: 'Lena Bisht', email: 'lena@corp.com' });
+  assert.equal(m.subject, 'Boasis: following your visit at AI Everything', 'the subject the approved copy chose');
+  assert.match(m.html, /boasis\.ae\/assets\/logo\/orb-160\.png/, 'the logo is the one hosted on the site, because Gmail and Outlook only show an image they can fetch');
+  assert.ok(m.html.indexOf('orb-160.png') < m.html.indexOf('<h1'), 'and it is in the header block, above the words');
+  assert.match(m.html, /background:#0B0D12[\s\S]{0,600}orb-160\.png/, 'the night header, the same one the waitlist and demo mails wear');
+  assert.match(m.html, /Hi Lena,/, 'first name only, as the other visitor mails do');
+  assert.match(m.html, /one year of free company management/, 'the offer, in the same sentence');
+  assert.match(m.html, /href="https:\/\/boasis\.ae\/#manage"/, 'the button goes to the place the plan names');
+  assert.match(m.html, /word remove/, 'and there is a way out, in writing, for a list this small');
+  assert.ok(!/\{First name\}|undefined|\[object/.test(m.html), 'no placeholder and no object ever reaches a person');
+  assert.match(m.text, /^Thank you for your visit, and what happens next\./, 'the plain text says it too, in the same order');
+  assert.match(m.text, /word remove/);
+
+  const nasty = T.sparkToUser({ name: '<img src=x onerror=alert(1)> Lena', email: 'a@b.co' });
+  assert.ok(!/<img src=x/.test(nasty.html), 'a name is typed by a stranger at a stand, so it cannot open a tag');
+});
+
+test('a phone that was closed comes back to Mira, not to the form', () => {
+  const js = JS();
+  assert.match(js, /var LS = 'boasis\.spark\.v1'/, 'one key per browser, versioned');
+  assert.match(js, /localStorage\.setItem\(LS/, 'in local storage, so it survives the tab being closed');
+  assert.match(js, /Date\.now\(\) - Number\(s\.at \|\| 0\) > DAY/, 'a day old is dropped, which is the life the pass has');
+  assert.match(js, /PASS_RE\.test\(String\(s\.pass \|\| \'\'\)\)/, 'and it is only trusted in the shape of a pass');
+  assert.ok(!/sessionStorage/.test(js), 'one store, not two that can disagree about who is here');
+  assert.match(js, /function returning\(\) \{[\s\S]{0,300}go\(s\.pass/, 'a returning visitor is opened straight into the frame');
+  assert.match(js, /fetch\(u\)[\s\S]{0,700}forget\(\)/, 'and if the row says the visit is over, the form comes back rather than a blank box');
+  assert.match(js, /Not you\? Start a new one/, 'the way off somebody else\'s session is on the screen, not in a manual');
+  assert.match(js, /body: JSON\.stringify\(\{ pass: pass \}\)/, 'the receipt asks for one thing, the pass');
+  assert.ok(!/spark-thanks[\s\S]{0,400}email/.test(js), 'no address travels to that door, the row is where it comes from');
+});
+
 test('the page keeps the person on it, with the Brain inside', () => {
   const html = HTML();
   const js = JS();

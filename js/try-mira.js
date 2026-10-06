@@ -101,18 +101,89 @@
     /* no window.location on purpose: the person stays on the page they were handed, and the
        stand's screen keeps the header, so walking back is not needed. The link underneath is
        for the cases a frame cannot win, like a browser that refuses framing. */
-    try { sessionStorage.setItem('spark.pass', JSON.stringify({ pass: pass, url: url })); } catch (e) { /* private mode: the page still works */ }
+    remember(pass, brain);
   }
 
-  /* came back by accident, or re-scanned the QR: the pass they were given is still theirs */
-  (function returning() {
-    var raw = null;
-    try { raw = sessionStorage.getItem('spark.pass'); } catch (e) { return; }
-    if (!raw) return;
+  /* One thing is stored per browser: the pass. It lives in localStorage rather than in the tab,
+     because the thing that actually happens at a stand is a phone that is closed, locked, put in a
+     pocket, and opened again an hour later. That person must land on Mira, not on the form: a
+     second submission of the same four fields would only ask the door for another pass, and the
+     door is allowed to answer with a second row for the same name.
+
+     Not the address, deliberately. An IP at a conference is one address for the whole hall, so
+     keying a person to it would hand the next stranger's phone the conversation they just had.
+     The pass is kept for the day the pass itself is worth, then it is dropped. */
+  var LS = 'boasis.spark.v1';
+  var DAY = 24 * 60 * 60 * 1000;
+  var PASS_RE = /^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
+  function remember(pass, brain) {
+    try { localStorage.setItem(LS, JSON.stringify({ pass: pass, brain: brain, at: Date.now() })); }
+    catch (e) { /* private mode: the page still works, the form is just there when they come back */ }
+  }
+  function forget() { try { localStorage.removeItem(LS); } catch (e) {} }
+  function remembered() {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; }
+    if (!s || !PASS_RE.test(String(s.pass || '')) || Date.now() - Number(s.at || 0) > DAY) { forget(); return null; }
+    return s;
+  }
+
+  /* where the same door reads the row back. The site's own answer and the Supabase one are the
+     same shape on purpose, so this line does not care which is deployed. */
+  function leadUrl(pass) {
+    var base = String(CFG.endpoint || '');
+    if (!base) return '/api/spark-lead?pass=' + encodeURIComponent(pass);
+    if (!/create-pass/.test(base)) return '';
+    return base.replace(/create-pass[^/]*$/, 'get-lead') + '?pass=' + encodeURIComponent(pass);
+  }
+
+  /* the receipt, fired and forgotten: the mail is a courtesy to the person, the journey in front
+     of them is the thing, so nothing here waits for it or reports it. Same origin, and the door
+     sends at most one mail per pass however often the page is opened. */
+  function receipt(pass) {
+    if (!pass) return;
     try {
-      var s = JSON.parse(raw);
-      if (s && s.pass && s.url) go(s.pass, s.url.replace(/[?&](?:pass|embed)=[^&]*/g, '').replace(/[?&]$/, ''));
-    } catch (e) { /* a stale entry is no reason to stop the form */ }
+      fetch('/api/spark-thanks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass: pass }),        // the pass only: the address is read from the row
+      }).catch(function () {});
+    } catch (e) { /* no mail is better than a stuck button */ }
+  }
+
+  /* came back by accident, or re-scanned the QR, or closed the phone: their pass is still theirs,
+     so open the box they were in and never show them the form again. */
+  (function returning() {
+    var s = remembered();
+    if (!s) return;
+    go(s.pass, s.brain || CFG.brainUrl || '');
+    var u = leadUrl(s.pass);
+    if (!u) return;
+    fetch(u).then(function (r) { return r.json().catch(function () { return null; }); }).then(function (j) {
+      /* the door says unknown or expired for a pass it does not have: that visit is over, so the
+         form is the honest screen. Anything else, including no answer at all, keeps them in Mira. */
+      if (j && j.ok === false) {
+        forget();
+        document.getElementById('doneView').classList.remove('on');
+        document.getElementById('formView').style.display = '';
+        var main = document.querySelector('.main');
+        if (main) main.classList.remove('opened');
+        tell('Your visit at the stand has closed. Fill the four fields once more and Mira opens again.');
+      }
+    }).catch(function () {});
+  })();
+
+  /* a stand is a shared device sometimes, so the way out of somebody else's session is one tap
+     and it is written where the person is already looking for a way out */
+  (function againLink() {
+    var fine = document.querySelector('#doneView .fine');
+    if (!fine) return;
+    var a = document.createElement('a');
+    a.href = '#';
+    a.textContent = 'Not you? Start a new one';
+    a.addEventListener('click', function (ev) { ev.preventDefault(); forget(); window.location.reload(); });
+    fine.appendChild(document.createTextNode(' '));
+    fine.appendChild(a);
   })();
 
   if (!form) return;
@@ -162,5 +233,6 @@
       return;
     }
     go(pass, brain);
+    if (!j.reused) receipt(pass);      // once per person, and the door reads the address itself
   }, { passive: false });
 })();

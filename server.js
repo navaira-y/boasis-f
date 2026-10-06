@@ -333,6 +333,7 @@ require('./lib/spark')(app, {
   dataDir: DATA,
   brainUrl: config.spark.brainUrl,
   origins: config.spark.origins,
+  projectUrl: config.spark.projectUrl,     // so the receipt door can look the row up without a key
   salt: SALT,
   limitPerMin: config.limits.spark,
   bucket,
