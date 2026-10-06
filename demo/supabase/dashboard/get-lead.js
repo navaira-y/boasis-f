@@ -149,6 +149,16 @@ function applyStep(lead, step, data, now) {
   if (!b.output || typeof b.output !== 'object') b.output = {};
   const d = data && typeof data === 'object' ? data : {};
 
+  /* Once all four steps are in, this row is the record an advisor reads the morning after, and a
+     person who presses "start a new business" inside the framed Brain must not replace the company
+     they were just asked about. So a finished row keeps what it holds and answers `frozen`, while
+     Mira turns go on being appended, because a second round of questions is interest rather than
+     damage, and the caps above are what stop that growing without limit. */
+  if (step !== 'mira' && STEPS.every(s => (b.steps_reached || []).includes(s))) {
+    b.frozen = true;
+    return out;
+  }
+
   if (step === 'describe') {
     b.description = String(d.description || d.text || '').slice(0, 4000);
   } else if (step === 'mira') {

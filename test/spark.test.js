@@ -198,6 +198,8 @@ test('the page wears the site look: one sky, glass panels, and the four points o
   assert.ok(!/data-endpoint/.test(html), 'no address in the markup for the form to post at: it is in the script, where it can be read');
   assert.equal((html.match(/<script src="\/js\//g) || []).length, 3, 'three external scripts and no inline one, because a policy of this site forbids inline script on every page');
   assert.ok(html.indexOf('/js/countries.js') < html.indexOf('/js/try-mira.js'), 'the shared picker loads before the page script that calls it');
+  assert.match(html, /<script src="\/js\/try-mira\.js\?v=\d+"><\/script>/,
+    'a phone that opened this page an hour ago must not be left running the script from before the deploy');
   assert.ok(!/<script(?![^>]*\bsrc=)/.test(html), 'and not one line of inline script: the light above is css, so it needs none');
   assert.match(html, /<p class="err" data-note><\/p>/, 'one empty line for a sentence the fields cannot carry, hidden while empty');
   assert.match(html, /<link rel="icon" href="\/assets\/icons\/favicon\.ico" sizes="any">\s*<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/icons\/favicon-32\.png">\s*<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/, 'the site own three icons in the head, so the tab is not blank');
@@ -333,6 +335,31 @@ test('a pass is cut from the platform random, not from Math.random', async () =>
   }
 });
 
+test('a finished row cannot be rewritten by a second run, but it keeps listening', async () => {
+  const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  let lead = c.buildLead({ pass: 'PASSAAAAAAAA', contact: { full_name: 'Lena', email: 'l@x.co' }, source: 't', now: 0 });
+  for (const [s, d] of [
+    ['describe', { description: 'A small import business.' }],
+    ['mira', { question: 'Office?', answer: 'Not yet.' }],
+    ['activities', { picked: ['General trading'], confirmed: true }],
+    ['package', { price_aed: 30, confirmed: true }],
+  ]) lead = c.applyStep(lead, s, d, 1000);
+  assert.equal(lead.brain.steps_reached.length, 4, 'the journey is complete');
+
+  const again = c.applyStep(lead, 'describe', { description: 'A different company entirely' }, 5000);
+  assert.equal(again.brain.description, 'A small import business.', 'a second run does not replace what the stand was told');
+  assert.equal(again.brain.frozen, true, 'and the answer says the row was closed to that');
+  assert.equal(again.version, lead.version, 'and nothing was written at all, so the time on the row stays honest');
+
+  const more = c.applyStep(again, 'mira', { question: 'One more question', answer: 'And an answer' }, 6000);
+  assert.equal(more.brain.mira.length, 2, 'Mira still appends, because curiosity is not damage');
+  assert.equal(more.version, lead.version + 1, 'and that write does move the version');
+
+  const doors = read('demo/supabase/dashboard/save-step.js') + read('lib/spark.js');
+  assert.equal((doors.match(/frozen: next\.brain\.frozen === true/g) || []).length, 2,
+    'both doors answer with it, so the Brain never has to guess which one it talked to');
+});
+
 test('the rules the whole demo stands on, in one module', async () => {
   const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
   const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };
@@ -393,7 +420,9 @@ test('the lead file grows and never shrinks', async () => {
   assert.equal(lead.version, 7, 'every write counts itself, so a stale reader can see it is stale');
 
   assert.equal(c.applyStep(lead, 'kyc', {}, now), null, 'a step outside the four is refused, not stored');
-  assert.equal(c.applyStep(lead, 'describe', { description: 'x'.repeat(9000) }, now).brain.description.length, 4000, 'and nothing arrives bigger than the file can carry');
+  const big = c.applyStep(c.buildLead({ pass: 'PASSABCDEFGH', contact: { full_name: 'L', email: 'l@x.co' }, now }), 'describe', { description: 'x'.repeat(9000) }, now);
+  assert.equal(big.brain.description.length, 4000, 'and nothing arrives bigger than the file can carry');
+  assert.equal(lead.brain.description, 'A small import business.', 'while a finished row keeps the words it was given, for a second run');
 
   /* the pass is the only credential there is, so its checks are the whole door */
   assert.equal(c.checkPass('PASSABCDEFGH', lead, now).ok, true, 'in the hour it works');

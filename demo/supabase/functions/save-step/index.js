@@ -48,5 +48,10 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "storage" }, 500);
   }
 
-  return json({ ok: true, version: next.version, steps_reached: next.brain.steps_reached });
+  return json({
+    ok: true,
+    version: next.version,
+    steps_reached: next.brain.steps_reached,
+    frozen: next.brain.frozen === true,
+  });
 });

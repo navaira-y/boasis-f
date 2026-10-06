@@ -157,5 +157,20 @@ If you send no CSP today, do not start one for this, the one directive above is 
 7. Your `git diff`: one new file, one stylesheet rule, four calls, one header. No schema, no
    dependency, no key.
 
+## A finished row does not get rewritten
+
+Once all four steps are in, the row is the record an advisor reads, so a write that would *replace*
+a step it already has is ignored and the reply carries `"frozen": true`:
+
+```js
+{ "ok": true, "version": 7, "steps_reached": ["describe","mira","activities","package"], "frozen": true }
+```
+
+Mira turns keep being appended either way, because a second round of questions is interest and not
+damage. So if your "start a new business" button posts again after that, nothing is lost and nothing
+breaks, and you may show your own line, in your words, rather than restarting the journey for a
+person who has already finished it. Do not build a store or an id of your own out of `frozen`, it is
+one boolean.
+
 Then tell us the branch name and which route carries the header. If any of this cannot be done as
 written, say what got in the way rather than inventing a fifth step.
