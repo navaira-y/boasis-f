@@ -10,8 +10,11 @@
  * "Deploy" if it asks. Then the secrets below, on Project Settings → Edge Functions → Secrets, or
  * in the function's own page, and nothing is set in the code.
  *
- * Secrets this one reads (5): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL
- *   SUPABASE_SERVICE_ROLE_KEY can read and write anywhere in the project, which is why the table
+ * Secrets this one reads (5): SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL
+ *   Supabase will not let a secret be named SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY, because the
+ *   platform supplies those two to every function itself and reads them first if you set nothing.
+ *   Set the SPARK_ names below and it works whichever way the project is configured.
+ *   The service key can read and write anywhere in the project, which is why the table
  *   has row level security enabled with no policies: the anon key that a browser holds gets nothing.
  *   This key stays in the function and is never in the page, never in the Brain, never in the repo.
  *   EMAIL_SALT only has to be long, random and remembered: lose it and a person who scans the QR
@@ -214,13 +217,24 @@ function checkPass(pass, lead, now) {
 
 const TABLE = "spark_leads";
 
+/* Supabase reserves its own prefix on the secrets screen and hands those two values to every
+   function itself, so "SUPABASE_URL" cannot be typed in. Ours are read first, and if you did not
+   set them the platform's own values are used, which is the usual case and needs nothing from
+   anyone. Either way a missing value says which one it wanted, rather than a 500 and a stack
+   about undefined. */
+function secret(names) {
+  for (const n of names) {
+    const v = Deno.env.get(n);
+    if (v) return v;
+  }
+  return "";
+}
+
 function client() {
-  /* read, then checked, then used: a pasted function with a secret missing should say which one,
-     in its own log line, rather than hand the client a 500 and a stack about undefined */
-  const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = secret(["SPARK_SUPABASE_URL", "SUPABASE_URL"]);
+  const key = secret(["SPARK_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
   if (!url || !key) {
-    throw new Error("set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as secrets for this function");
+    throw new Error("set SPARK_SUPABASE_URL and SPARK_SERVICE_ROLE_KEY as Edge Function secrets (or let the platform supply SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)");
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
@@ -314,7 +328,8 @@ async function emailHashOf(email) {
  * Run as a Supabase edge function, either from this folder with the CLI or as the one generated
  * file in demo/supabase/dashboard/create-pass.js, pasted in the browser. Both are this file.
  *
- * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL.
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL.
+ * (The two SUPABASE_ names with no SPARK_ in front are read too, if you set neither.)
  * The service key can write anywhere in the project, so it lives here and nowhere else: not in
  * the page, not in the Brain, not in the repo.
  */

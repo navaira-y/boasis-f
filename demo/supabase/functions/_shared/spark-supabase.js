@@ -16,13 +16,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export const TABLE = "spark_leads";
 
+/* Supabase reserves its own prefix on the secrets screen and hands those two values to every
+   function itself, so "SUPABASE_URL" cannot be typed in. Ours are read first, and if you did not
+   set them the platform's own values are used, which is the usual case and needs nothing from
+   anyone. Either way a missing value says which one it wanted, rather than a 500 and a stack
+   about undefined. */
+export function secret(names) {
+  for (const n of names) {
+    const v = Deno.env.get(n);
+    if (v) return v;
+  }
+  return "";
+}
+
 export function client() {
-  /* read, then checked, then used: a pasted function with a secret missing should say which one,
-     in its own log line, rather than hand the client a 500 and a stack about undefined */
-  const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = secret(["SPARK_SUPABASE_URL", "SUPABASE_URL"]);
+  const key = secret(["SPARK_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
   if (!url || !key) {
-    throw new Error("set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as secrets for this function");
+    throw new Error("set SPARK_SUPABASE_URL and SPARK_SERVICE_ROLE_KEY as Edge Function secrets (or let the platform supply SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)");
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }

@@ -9,7 +9,7 @@
  * leaves a smaller record rather than a broken one, and a lost request costs one step instead of
  * the visit.
  *
- * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN. No salt and no Brain address, on
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN. No salt and no Brain address, on
  * purpose: this door only ever updates a row that already exists, and it is told nothing about
  * where to send anyone.
  */

@@ -8,7 +8,8 @@
  * Run as a Supabase edge function, either from this folder with the CLI or as the one generated
  * file in demo/supabase/dashboard/create-pass.js, pasted in the browser. Both are this file.
  *
- * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL.
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, EMAIL_SALT, ALLOW_ORIGIN, BRAIN_URL.
+ * (The two SUPABASE_ names with no SPARK_ in front are read too, if you set neither.)
  * The service key can write anywhere in the project, so it lives here and nowhere else: not in
  * the page, not in the Brain, not in the repo.
  */

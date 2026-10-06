@@ -406,10 +406,20 @@ about a person is split over two places.
    Those three are generated from the folders in `demo/supabase/functions`, and a test fails if the
    two copies ever disagree, so never type into the `dashboard/` copies. After a change to a rule:
    `node scripts/make-supabase-single.js`, then paste again.
-5. **Edge Functions → Secrets** → add all five, once: `SUPABASE_URL` = the URL from step 3,
-   `SUPABASE_SERVICE_ROLE_KEY` = the key from step 3,
-   `ALLOW_ORIGIN=https://boasis.ae,https://brain.boasis.ae`, `EMAIL_SALT` = any long random string
-   you keep, and `BRAIN_URL=https://brain.boasis.ae`.
+5. **Edge Functions → Secrets** → **Bulk save**, these five, once for the whole project:
+
+   ```
+   SPARK_SUPABASE_URL=https://<ref>.supabase.co
+   SPARK_SERVICE_ROLE_KEY=<the service_role key from step 3>
+   ALLOW_ORIGIN=https://boasis.ae,https://brain.boasis.ae
+   EMAIL_SALT=<any long random string you keep, and keep it>
+   BRAIN_URL=https://brain.boasis.ae
+   ```
+
+   You cannot name a secret `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY`: the screen says "Name
+   must not start with the SUPABASE_ prefix", because the platform hands those two to every function
+   itself. Each function looks for the `SPARK_` name first and falls back to the platform's own
+   value, so both work, and the `SPARK_` pair is the one you can read and change.
    That page holds secrets for the project, with no picker for a single function, so all three
    functions can see all five. Only `create-pass` reads the salt and the Brain address, and it is
    the code, not the secret list, that decides what a door may do: `save-step` cannot mint a pass or

@@ -9,7 +9,7 @@
  * is touched. The row it returns belongs to whoever holds the pass, which is the trust the whole
  * demo runs on: see the note in lib/spark.js for why, and what to do if that ever reads wrong.
  *
- * Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOW_ORIGIN.
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN.
  */
 // deno-lint-ignore-file no-explicit-any
 import { checkPass, isPass } from "../_shared/spark-core.js";
