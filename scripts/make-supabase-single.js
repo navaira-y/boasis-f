@@ -33,6 +33,9 @@ const FUNCS = [
   { name: 'create-pass', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'ALLOW_ORIGIN', 'BRAIN_URL'] },
   { name: 'save-step', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
   { name: 'get-lead', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
+  /* the site's own mirror, which shares the project and the service key but none of the SPARK
+     rules, so it is written as one file that imports nothing from a folder: `standalone` */
+  { name: 'save-lead', standalone: true, secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'LEADS_PUSH_KEY'] },
 ];
 
 const IMPORT = /^[ \t]*import[^\n]*?from[ \t]*["'][^"']+["'];?[ \t]*$/gm;
@@ -56,13 +59,45 @@ function take(rel) {
 }
 
 function compose(name) {
-  const parts = [take(`${name}/index.js`), ...SHARED.map(take)];
+  const fn = FUNCS.find(f => f.name === name);
+  const door = take(`${name}/index.js`);
+
+  /* a standalone door is its own file already: nothing to inline, so the composed copy is its body
+     with a header that says where it came from and which secrets it wants */
+  if (fn.standalone) {
+    const alone = `/* ${name} · one file, to paste into the Supabase dashboard
+ *
+ * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
+ * demo/supabase/functions/${name}/index.js, which is the whole function as written there. It needs
+ * no folder beside it and imports nothing from one, so this file and that one are the same code and
+ * a test recomposes it and fails if the two ever disagree.
+ *
+ * Run it: Supabase dashboard → your project → Edge Functions → ${fn.name} → paste → Save, and
+ * "Deploy" if it asks. Then the secrets below, on Project Settings → Edge Functions → Secrets, or
+ * in the function's own page, and nothing is set in the code.
+ *
+ * Secrets this one reads (${fn.secrets.length}): ${fn.secrets.join(', ')}
+ *   SPARK_SUPABASE_URL and SPARK_SERVICE_ROLE_KEY are the pair the other functions already have, so
+ *   on a project that has run the SPARK setup there is one new value here, LEADS_PUSH_KEY.
+ *   Set it to a long random string, put the same string in LEADS_PUSH_KEY on boasis.ae, and the
+ *   mirror writes. Leave it unset on either side and the site goes on storing its JSON files alone:
+ *   this door answers 500 config, and a visitor never hears about it.
+ *   The service key can read and write anywhere in the project, which is why the table
+ *   has row level security enabled with no policies: the anon key that a browser holds gets nothing.
+ *   This key stays in the function and is never in the page, never in the Brain, never in the repo.
+ */
+// deno-lint-ignore-file no-explicit-any
+`;
+    return alone + '\n' + door.absolute.join('\n') +
+      (door.absolute.length ? '\n\n' : '') + door.body + '\n';
+  }
+
+  const parts = [door, ...SHARED.map(take)];
   const imports = [...new Set(parts.flatMap(m => m.absolute))];
-  const door = parts[0].body;
+  const doorBody = parts[0].body;
   const core = parts[1].body;
   const store = parts[2].body;
 
-  const fn = FUNCS.find(f => f.name === name);
   const head = `/* ${name} · one file, to paste into the Supabase dashboard
  *
  * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
@@ -91,7 +126,7 @@ function compose(name) {
   return head + '\n' + imports.join('\n') +
     '\n\n/* ── the rules, inlined from _shared/spark-core.js, as written there ── */\n\n' + core +
     '\n\n/* ── the table, inlined from _shared/spark-supabase.js, as written there ── */\n\n' + store +
-    '\n\n/* ── ' + name + ', from ' + name + '/index.js, as written there ── */\n\n' + door + '\n';
+    '\n\n/* ── ' + name + ', from ' + name + '/index.js, as written there ── */\n\n' + doorBody + '\n';
 }
 
 function main() {

@@ -18,6 +18,12 @@ const { guard, securityHeaders, formGateLimit, globalGate, noteTrap } = require(
 const captcha = require('./lib/captcha');
 const emailVerify = require('./lib/email-verify');
 const mail = require('./lib/mailer');
+const { makeLeads } = require('./lib/leads');
+
+/* the mirror into Supabase, one door for all four forms. Off until LEADS_PUSH_KEY is set, and a
+   failure here is one log line: the file under DATA_DIR was written first and is the copy that
+   counts. See lib/leads.js and docs/LEADS.md. */
+const leads = makeLeads({ config, log: (m) => console.log('[leads] ' + m) });
 
 const app = express();
 const PORT = config.port;
@@ -142,6 +148,10 @@ app.get('/api/health', (req, res) => {
        rate limits are counting per visitor as intended; a Hostinger address means the
        header is being read further in than it should be (see TRUST_PROXY in docs/LIMITS.md). */
     yourIp: req.ip || null, proxyHops: config.trustProxy,
+    /* the mirror into Supabase, so one look in a browser says whether the copies are arriving:
+       which host they go to, how many landed, how many did not, and what the last refusal said.
+       No address, no names, nothing about anyone but the count. */
+    leads: leads.status(),
   });
 });
 
@@ -254,6 +264,7 @@ app.post('/api/waitlist', gateForms, formGate, async (req, res) => {
   const list = readJson(waitlistFile, []);
   if (!list.some(e => e.email === record.email)) list.push(record);   // a repeat join is not a new lead
   writeJson(waitlistFile, list);
+  await leads.push('waitlist', record);                                 // the copy a deploy cannot lose
 
   // never awaited before responding... but awaited here so a crash surfaces in this request's log
   const r = await mail.notifyWaitlist(record, { ip: ipHash(req) });   // the hash, never the address
@@ -274,6 +285,7 @@ app.post('/api/contact', gateForms, formGate, async (req, res) => {
   const list = readJson(contactFile, []);
   list.push(record);
   writeJson(contactFile, list);
+  await leads.push('contact', record);                                  // the copy a deploy cannot lose
 
   const r = await mail.notifyContact(record);
   res.json({ ok: true, confirmed: r.sent > 0 });
@@ -295,6 +307,7 @@ app.post('/api/demo', gateForms, formGate, async (req, res) => {
   const list = readJson(demoFile, []);
   list.push(record);
   writeJson(demoFile, list);
+  await leads.push('demo', record);                                     // the copy a deploy cannot lose
 
   const r = await mail.notifyDemo(record);
   res.json({ ok: true, confirmed: r.sent > 0 });
@@ -321,6 +334,7 @@ app.post('/api/manage', gateForms, formGate, async (req, res) => {
   writeJson(manageFile, list);
 
   if (config.verify.require) emailVerify.consume(in_.email, req.body.emailv);   // one token, one signup
+  await leads.push('early_access', record);                               // the copy a deploy cannot lose
   const r = await mail.notifyManage(record);
   res.json({ ok: true, confirmed: r.sent > 0 });
 });

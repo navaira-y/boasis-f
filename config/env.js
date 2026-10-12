@@ -170,6 +170,15 @@ const config = {
        in each place, or SPARK_PROJECT_URL here plus the line there. */
     projectUrl: str('SPARK_PROJECT_URL', 'https://grsbhupjihwvidxbkymu.supabase.co'),
   },
+
+  /* the mirror that copies every accepted form into Supabase, see lib/leads.js and docs/LEADS.md.
+     One value turns it on: the key. The URL then falls back to the SPARK project above, because that
+     project is already ours, already outside Hostinger's build folder, and already configured. */
+  leads: {
+    url: str('LEADS_PUSH_URL', ''),
+    key: str('LEADS_PUSH_KEY', ''),
+    timeoutMs: num('LEADS_PUSH_TIMEOUT_MS', 2000),
+  },
 };
 
 /* Refuse to run mail half-set-up: credentials with no usable sender is a silent failure
