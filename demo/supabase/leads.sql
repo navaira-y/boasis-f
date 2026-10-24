@@ -1,7 +1,8 @@
 -- the site's sign-ups · the one table the mirror writes, run in the Supabase SQL editor
 --
 -- Every form on boasis.ae keeps its own JSON file and, once the mirror is on, also puts a row here:
--- the early access form, the two dialogs on the home page and the contact form. `data` is the record
+-- the early access form, the two dialogs on the home page, the contact form, and the Sharjah Next
+-- stand page (kind 'sharjah_next'). `data` is the record
 -- exactly as the site wrote it, and the four columns beside it are copies of what you sort and filter
 -- on the morning after, written by the function from that same object, so they cannot drift.
 --

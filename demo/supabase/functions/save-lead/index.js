@@ -1,8 +1,8 @@
 /* save-lead · the site's form sign-ups, kept in a table as well as a file
  *
  * boasis.ae posts here after it has already written its own copy, so this is the one that a deploy
- * cannot lose and that the dashboard can hand you as a CSV. Four kinds come through: the early
- * access form, the two dialogs on the home page, and the contact form. The whole record arrives as
+ * cannot lose and that the dashboard can hand you as a CSV. Five kinds come through: the early
+ * access form, the two dialogs on the home page, the contact form, and the Sharjah Next stand page. The whole record arrives as
  * JSON and is stored as JSON, with the few columns beside it that you actually sort and filter on,
  * written from that same object rather than from anything the caller claims.
  *
