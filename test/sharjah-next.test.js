@@ -206,7 +206,7 @@ test('the email and the number are checked by the site\'s rules, on the page and
   assert.match(js, /data\.phone=digits\(data\.phone\);/, 'what is posted is the number alone, the code travelling beside it');
   /* the length a number has to reach is the picked country's, and it is written beside the list */
   const cjs = read('js/countries.js');
-  assert.match(cjs, /const LENGTHS = \{[\s\S]{0,2400}AE: \[8, 9\][\s\S]*?IN: \[10, 10\]/, 'the ranges are there: eight to nine for the Emirates, ten for India');
+  assert.match(cjs, /const LENGTHS = \{[\s\S]{0,2400}AE: \[9, 9\][\s\S]*?IN: \[10, 10\]/, 'the pairs are there: nine for a UAE mobile, ten for India');
   assert.match(cjs, /BY_CODE\[dial\] = had \? \[Math\.min/, 'two countries on one code take the wider range, never the narrower');
   assert.match(cjs, /const LOOSE = \[7, 15\];/, 'and a code the table does not know falls back to the door\'s own rule');
   /* the table itself, read back rather than trusted: a pair outside the door's range would be a
@@ -222,7 +222,9 @@ test('the email and the number are checked by the site\'s rules, on the page and
     assert.ok(w, iso + ' is in the list and has no length pair, so it falls back and the point of the check is lost');
     assert.ok(w[0] >= 7 && w[1] <= 15 && w[0] <= w[1], iso + ' ' + w.join('-') + ' must sit inside the door\'s 7 to 15, or the page expects what the server refuses');
   }
-  assert.deepEqual([pairs.AE, pairs.IN, pairs.PK], [[8, 9], [10, 10], [9, 10]], 'and the three numbers this stand will see most are the ones their plans say: 9 for a UAE mobile, 10 for India, 9 or 10 for Pakistan');
+  assert.deepEqual([pairs.AE, pairs.IN, pairs.PK], [[9, 9], [10, 10], [10, 10]],
+    'and the three this stand will see most are mobiles, not landlines: nine for the Emirates, ten for India, ten for Pakistan');
+  assert.equal(pairs.AE[0], 9, 'eight under +971 is a landline, and a lead nobody can WhatsApp is not a lead');
   assert.match(cjs, /return \{ init, lengthOf, ok, LENGTHS \};/, 'exported, so every page that asks for a number can ask the same file');
   assert.match(js, /CP\.ok\(code\(\), d\)\.valid/, 'this page asks it, rather than holding its own copy of what India looks like');
   assert.match(js, /addEventListener\('codechange', rejudgePhone\)/, 'and it rejudges the number the moment the country changes, without waiting for a keystroke');

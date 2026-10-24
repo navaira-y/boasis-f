@@ -580,11 +580,12 @@ under that field rather than under the button. The control for the code is the s
 file the two home dialogs, `/early-access`, `/contact` and `/try-mira` use, so the list of countries is
 never a second truth. The design's eighteen-option `<select>` went out with it, and its flags with it:
 the closed control says `AE +971`, the way the rest of the site says it. That file also carries
-`LENGTHS`, the shortest and longest national number per country, so the page calls a number invalid
-until it reaches the length of the country in the picker (nine digits for +971, ten for +91) and
-rejudges the moment the country changes; the door deliberately keeps the loose seven to fifteen, so a
+`LENGTHS`, the length of a MOBILE number in each country, mobile only because a stand is collecting
+numbers somebody can WhatsApp rather than their office. So the page calls a number invalid until it
+reaches the length of the country in the picker (nine digits for +971, ten for +91, and eight under
++971 is a landline, which is refused) and rejudges the moment the country changes; the door deliberately keeps the loose seven to fifteen, so a
 wrong entry in that table costs a hint, never a lead. The fifty-nine pairs come from Google's
-libphonenumber metadata, fixed-line and mobile together, clamped into the door's seven to fifteen, and
+libphonenumber metadata, the mobile type alone, floored at the door's seven, and
 `/sharjah-next.test.js` reads the same table shape back so it cannot be quietly edited into a wall.
 
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with

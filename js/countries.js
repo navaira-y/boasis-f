@@ -23,37 +23,38 @@ window.BoasisCountryPicker = (function () {
      already, so these are the country's other names, nothing more. */
   const ALIASES = { AE: 'uae emirates', GB: 'uk britain england', SA: 'ksa', US: 'usa america' };
 
-  /* How long a number is, in digits after the code, once any local trunk zero is dropped. Two
-     digits per country: the shortest and the longest thing that can legitimately be dialed into it,
-     because a country with short area codes and long mobiles needs a range and not a number (a
-     German landline can be seven digits and a mobile eleven). Keyed by ISO, since that is how the
-     list above is written, and read by dial code below, because the dial code is all a form posts.
+  /* How long a MOBILE number is, in digits after the code, once any local trunk zero is dropped.
+     Mobile only, on purpose: a stand is collecting people you can WhatsApp, not their office, and a
+     range that also covers landlines is a range that lets an incomplete mobile through (the Emirates
+     lands line is nine digits, its landlines are eight, and eight is not an answer at a desk).
+     Countries with two lengths in use keep the range, because Austrian and Indonesian mobiles really
+     are that loose. Keyed by ISO, since that is how the list above is written, and read by dial code
+     below, because the dial code is all a form posts.
+
      Nothing in here is a wall: it is what a page says while a person is still typing, and the door
      behind it keeps the loose seven to fifteen, so a real lead is never lost to this table being a
-     digit off.
-
-     Where the numbers come from, so that they can be re-checked instead of argued about: Google's
-     libphonenumber metadata, each country's fixed-line and mobile lengths taken together, then
-     pulled inside the door's seven to fifteen so a page is never expecting less than the server
-     will keep. Went through all fifty-nine of them in October 2026 that way. A country missing
-     here is not a wall either: it falls back to seven to fifteen. */
+     digit off. Where the pairs come from, so they can be re-checked instead of argued about: Google's
+     libphonenumber metadata, the mobile type alone for each country, with the floor pulled up to the
+     door's seven so a page never asks for less than the server will keep. All fifty-nine read off it
+     in October 2026. A country that ever goes missing here falls back to seven to fifteen, not to a
+     wall. */
   const LENGTHS = {
-    /* the Gulf, which is most of what is dialed at this stand */
-    AE: [8, 9], SA: [9, 9], QA: [8, 8], BH: [8, 8], KW: [8, 8], OM: [8, 8],
+    /* the Gulf */
+    AE: [9, 9], SA: [9, 9], QA: [8, 8], BH: [8, 8], KW: [8, 8], OM: [8, 8],
     /* the rest of the Arab world, and the neighbours */
-    EG: [8, 10], JO: [8, 9], LB: [7, 8], IQ: [8, 10], IL: [8, 12], PS: [8, 9], SY: [8, 9], IR: [7, 10],
-    UZ: [9, 9], AZ: [9, 9], MA: [9, 9], TN: [8, 8], DZ: [8, 9],
-    /* Europe, wide where a country has short area codes as well as long mobiles */
-    GB: [9, 10], DE: [7, 15], FR: [9, 9], IT: [7, 12], ES: [9, 9], NL: [9, 11], BE: [8, 9],
-    GR: [10, 10], CH: [9, 9], AT: [7, 13], DK: [8, 8], SE: [7, 9], NO: [8, 8], PL: [7, 9],
+    EG: [10, 10], JO: [9, 9], LB: [7, 8], IQ: [10, 10], IL: [9, 9], PS: [9, 9], SY: [9, 9], IR: [10, 10],
+    UZ: [9, 9], AZ: [9, 9], MA: [9, 9], TN: [8, 8], DZ: [9, 9],
+    /* Europe */
+    GB: [10, 10], DE: [10, 11], FR: [9, 9], IT: [9, 10], ES: [9, 9], NL: [9, 11], BE: [9, 9],
+    GR: [10, 10], CH: [9, 9], AT: [7, 13], DK: [8, 8], SE: [9, 9], NO: [8, 8], PL: [9, 9],
     PT: [9, 9], RU: [10, 10],
     /* the Americas */
-    US: [10, 10], MX: [10, 10], AR: [10, 11], BR: [10, 11], CL: [9, 9], CO: [8, 10],
+    US: [10, 10], MX: [10, 10], AR: [10, 11], BR: [10, 11], CL: [9, 9], CO: [10, 10],
     /* Asia */
-    IN: [10, 10], PK: [9, 10], TW: [8, 9], JP: [9, 10], KR: [7, 10], CN: [7, 11], SG: [8, 8],
-    MY: [8, 10], TH: [8, 9], PH: [7, 10], ID: [7, 12], LK: [9, 9],
+    IN: [10, 10], PK: [10, 10], TW: [9, 9], JP: [10, 10], KR: [9, 10], CN: [11, 11], SG: [8, 8],
+    MY: [9, 10], TH: [9, 9], PH: [10, 10], ID: [9, 12], LK: [9, 9],
     /* Africa and Oceania */
-    AU: [9, 9], NZ: [8, 10], ZA: [7, 9], NG: [10, 10], KE: [7, 9], GH: [9, 9],
+    AU: [9, 9], NZ: [8, 10], ZA: [7, 9], NG: [10, 10], KE: [9, 9], GH: [9, 9],
   };
 
   /* One alphabet for matching, so 'Türkiye' and 'turkiye' are the same word and a stray
