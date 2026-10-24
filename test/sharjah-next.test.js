@@ -60,7 +60,9 @@ test('the event page answers at its address, with its own headers', async () => 
     assert.match(html, /id="snForm"/, p + ' hands out the form the design drew');
     assert.equal(r.headers.get('x-robots-tag'), 'noindex, nofollow', p + ' is refused to the index in the header as well as the page');
     const csp = r.headers.get('content-security-policy') || '';
-    assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post for a pass, and that is the only widening');
+    assert.match(csp, /connect-src 'self';/, p + ' may reach nothing but this host, because its lead goes to our own door');
+    assert.ok(!/supabase\.co/.test(csp), p + ' is not given leave to reach the database at all');
+    assert.match(csp, /frame-src[^;]*brain\.boasis\.ae/, p + ' frames Mira, and that is the one thing widened for it');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script stays forbidden on it');
   }
   const r2 = await get('/js/sharjah-next.js');
@@ -157,29 +159,26 @@ test('the form asks what the design asked, in the fields the record already has'
   const js = JS();
   assert.match(js, /data\.full_name=\(data\.first_name\.trim\(\)\+' '\+data\.last_name\.trim\(\)\)/,
     'the two names are joined into the one field every door here reads, so the record does not change shape');
-  assert.match(js, /data\.page=PAGE/, 'and the page says which table the row belongs in');
 });
 
-test('the button walks through the real door, and the pass goes with the person', () => {
+test('the button records the lead, sends the three mails, and opens Mira in the card', () => {
   const h = HTML(), js = JS();
-  assert.match(h, /data-endpoint="https:\/\/grsbhupjihwvidxbkymu\.supabase\.co\/functions\/v1\/create-pass"/,
-    'the form posts at the deployed function, the same door /try-mira uses, over https');
-  assert.ok(!/supabase\.co/.test(js), 'the script holds no host of its own, so there is only one place to look');
-  assert.match(js, /const MIRA_URL = 'https:\/\/brain\.boasis\.ae'/, 'Mira is the Brain, not the placeholder the design guessed at');
-  assert.match(js, /const SEND = true/, 'and the switch the shared preview needed is on, so the record is written');
+  assert.match(h, /data-endpoint="\/api\/sharjah-lead"/, 'the page posts to this site\'s own door, the same host, no key and no second origin');
+  assert.ok(!/supabase\.co/.test(h + js), 'nothing in the page names a database, because the browser has no business in one');
   assert.match(js, /const SOURCE = 'sharjah-next-2026'/, 'the row is stamped with the offer it came from');
-  assert.match(js, /const PAGE = 'sharjah-next'/, 'plus which table it belongs in');
-  assert.match(js, /LS='boasis\.sharjah-next\.v1'/, 'its own localStorage key, so the two entrances never hand over each other\'s visit');
-  assert.notEqual(js.match(/LS='([^']+)'/)[1], read('js/try-mira.js').match(/LS = '([^']+)'/)[1],
-    'that key is genuinely different from the other page\'s');
-  assert.match(js, /function brainUrl\(pass\)[\s\S]*\+'pass='\+encodeURIComponent\(pass\)/,
-    'and the pass travels in the address, which is the only way a record follows a person to Mira');
-  assert.match(js, /keepalive:true/, 'the receipt is fired so it survives the jump');
+  assert.match(js, /data\.full_name=\(data\.first_name\.trim\(\)\+' '\+data\.last_name\.trim\(\)\)/,
+    'the two names the design drew arrive as the one name every form here writes');
+  assert.ok(!/data\.page=/.test(js), 'no table is named by the visitor, because the backend is not decided yet');
+  assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
+  assert.match(js, /openFrame\(url, ref\)/, 'and Mira is put in the card where the form was, with that reference');
+  assert.match(h, /<iframe[^>]*id="miraFrame"[^>]*data-src="https:\/\/brain\.boasis\.ae\/"[^>]*referrerpolicy="no-referrer"/,
+    'the frame carries no referrer and starts empty, so a person who only reads the offer asks the Brain for nothing');
+  assert.ok(!/location\.href\s*=/.test(js), 'the page no longer jumps: the record, the receipt and Mira stay on one screen');
+  const code = js.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');   // the header names what is not wired, on purpose
+  assert.ok(!/localStorage|PASS_RE|get-lead|create-pass/.test(code), 'no pass, no resume, nothing kept in the browser, until the backend is settled');
   assert.match(js, /if\(F\['hp'\]\.value\) return/, 'the honeypot is honoured before anything is posted');
   assert.match(js, /if\(!valid\(\)\) return/, 'and nothing is posted until the fields the design asked for are filled');
   assert.match(js, /data\._t=Math\.max\(1,Date\.now\(\)-opened\)/, 'with how long the form was open, for the door to judge');
-  assert.equal((h.match(/supabase\.co/g) || []).length, 1, 'one project host in the page, no second opinion about where to post');
-  assert.ok(!/boasis\.ae\/mira/.test(js + h), 'and no placeholder address left where Mira was guessed at');
 });
 
 test('the page cannot be talked into showing, sending or opening anything it was not given', () => {
@@ -192,13 +191,12 @@ test('the page cannot be talked into showing, sending or opening anything it was
   assert.ok(/e\.textContent=ek\?t\(ek\):''/.test(js), 'the field errors are text, so a name cannot be a tag');
   assert.ok(/function say\(msg\)[\s\S]*n\.textContent=msg/.test(js), 'and so is the note about the door itself');
   assert.ok(!/\beval\(|new Function|document\.write/.test(js), 'and nothing is compiled or written into the document');
-  assert.match(js, /PASS_RE=\/\^PASS\[/, 'a kept pass is eight characters from the alphabet the door uses');
-  assert.ok(/function clean\(v\)/.test(js) && /\.slice\(0,64\)/.test(js) && /\[\^A-Za-z0-9_-\]/.test(js),
-    'whatever the door answers is trimmed to one safe word before it is stored or put in an address');
+  assert.ok(/function cleanRef\(v\)/.test(js) && /\.slice\(0,40\)/.test(js) && /\[\^A-Za-z0-9_-\]/.test(js),
+    'a reference is clipped to one safe word before it is shown or framed');
   assert.ok(/function safeBase/.test(js) && /\^https\?:/.test(js),
     'and the Brain address is checked to be an http(s) page before it becomes a link or a location');
-  assert.match(js, /location\.href=url/, 'the only thing the page navigates to is that checked address');
-  assert.ok(!/location\.href=[^u]/.test(js), 'and nothing else');
+  assert.ok(!/location\.href\s*=|location\.assign|window\.open/.test(js),
+    'the page never navigates anywhere: the record, the three mails and Mira stay on one screen');
   assert.ok(!/fetch\([^)]*\?[^)]*full_name/.test(js), 'nothing is put in an address, where a shoulder and a history would read it');
   assert.match(h, /<meta name="robots" content="noindex, nofollow">/, 'hidden from the index, in the page');
   assert.ok(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes('Disallow: /sharjah-next'), 'and in the robots file');
@@ -210,15 +208,15 @@ test('the page cannot be talked into showing, sending or opening anything it was
 let JSDOM = null;
 try { JSDOM = require('jsdom').JSDOM; } catch (e) { /* skip below */ }
 
-test('the page as shipped fills itself, validates, joins the names and hands Mira a pass', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
+test('the page as shipped fills itself, validates, joins the names and opens Mira in the card', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
   const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
   const w = dom.window, posts = [];
   w.__pwned = false;
   w.alert = () => { w.__pwned = true; };
   w.fetch = (u, o) => {
     posts.push({ url: String(u), body: (o && o.body) || '' });
-    if (String(u).includes('create-pass')) {
-      return Promise.resolve({ json: () => Promise.resolve({ ok: true, pass: 'PASSAB12CD34', brain_url: 'https://brain.boasis.ae' }) });
+    if (u.includes('/api/sharjah-lead')) {
+      return Promise.resolve({ json: () => Promise.resolve({ ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' }) });
     }
     return Promise.resolve({ json: () => Promise.resolve({ ok: true }) });
   };
@@ -236,25 +234,21 @@ test('the page as shipped fills itself, validates, joins the names and hands Mir
   await new Promise(r => setTimeout(r, 250));
 
   const sent = posts.map(p => p.url);
-  assert.ok(sent.some(p => p.includes('/functions/v1/create-pass')), 'the button posts for a pass at the door, not at a demo endpoint');
-  assert.ok(sent.some(p => p.endsWith('/api/spark-thanks')), 'and asks once for the receipt');
-  const create = posts.find(p => p.url.includes('create-pass')) || { body: '{}' };
+  assert.deepEqual(sent, ['/api/sharjah-lead'], 'one call, to this site\'s own door, and nothing else leaves the page');
+  const create = posts.find(p => p.url.includes('sharjah-lead')) || { body: '{}' };
   const body = JSON.parse(create.body);
   assert.equal(body.full_name, "Navaira <img src=x onerror=\"window.__pwned=1\"> O'Brien",
     'the two fields the design drew arrive as the one name every door here reads, quotes and all, unfixed');
-  assert.equal(body.page, 'sharjah-next', 'the row says which entrance it came from, which is all that picks its table');
   assert.equal(body.source, 'sharjah-next-2026', 'and which offer it came for');
   assert.equal(body.consent, 'on', 'the tick box travels, because the row is the proof somebody agreed');
   assert.ok(!('hp' in body), 'the honeypot field is never posted');
   assert.equal(body.country_code, '+971', 'and the dial code the pill was showing when they pressed it');
   assert.ok(Number(body._t) >= 1, 'with how long the form was open, for the door to judge');
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
-  assert.equal(d.getElementById('miraLink').href, 'https://brain.boasis.ae/?pass=PASSAB12CD34',
-    'with the pass in the address, which is the one thing that makes Mira their Mira');
+  assert.equal(d.getElementById('miraFrame').getAttribute('src'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
+    'Mira opens in the card, carrying the reference the mails show');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
-  const stored = JSON.parse(w.localStorage.getItem('boasis.sharjah-next.v1'));
-  assert.equal(stored.pass, 'PASSAB12CD34', 'the pass is kept under this page\'s own key, so a returning phone goes back to the Brain');
-  assert.match(JSON.stringify(stored), /"at":\d+/, 'with the hour it was given, because it stops being a key after a day');
+  assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
 });
 
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {

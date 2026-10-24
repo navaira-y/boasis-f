@@ -14,7 +14,7 @@
 
 create table if not exists public.site_leads (
   id            bigint generated always as identity primary key,
-  kind          text        not null check (kind in ('early_access','waitlist','demo','contact')),
+  kind          text        not null check (kind in ('early_access','waitlist','demo','contact','sharjah_next')),
   full_name     text,
   email         text,                                    -- lower cased, as every form here keeps it
   phone         text,                                    -- dial code + number, spaces as typed
@@ -27,6 +27,14 @@ create table if not exists public.site_leads (
 comment on table public.site_leads is 'boasis.ae form sign-ups, mirrored by the save-lead edge function · append only';
 
 create index if not exists site_leads_kind_at_idx on public.site_leads (kind, at desc);
+
+/* The Sharjah Next stand page posts kind 'sharjah_next'. A table created before that name existed
+   still holds the older check, and this pair is what widens it. Safe to paste twice: it drops the
+   constraint by name and puts it back, and it reads every row first, so if a value outside the list
+   is already in the table the paste fails loudly instead of stranding those rows. */
+alter table public.site_leads drop constraint if exists site_leads_kind_check;
+alter table public.site_leads add constraint site_leads_kind_check
+  check (kind in ('early_access','waitlist','demo','contact','sharjah_next'));
 create index if not exists site_leads_email_idx   on public.site_leads (lower(email));
 
 -- the lock, same as spark_leads: Supabase grants the browser roles on new tables in public/, so

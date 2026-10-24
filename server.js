@@ -351,6 +351,9 @@ require('./lib/spark')(app, {
   salt: SALT,
   limitPerMin: config.limits.spark,
   bucket,
+  /* the Sharjah Next lead goes into the same Supabase copy the other four forms make, and that
+     mirror lives here rather than in lib/spark.js, because this is where its key is configured */
+  pushLead: (kind, record) => leads.push(kind, record),
   log: (m) => console.log('[spark] ' + m),
 });
 
@@ -398,10 +401,16 @@ app.use((req, res, next) => {
      is framed by it. 'self' is in the list because the rehearsal stub answers /brain on the same
      host, and an explicit frame-src replaces the default rather than adding to it. */
   const frameSrc = (u => { try { return new URL(u).origin; } catch (e) { return ''; } })(config.spark.brainUrl);
+  /* The Sharjah Next page does not talk to Supabase at all, so it is not given leave to: its lead goes
+     to /api/sharjah-lead on this same host, which is what 'self' already covers. connect-src is the one
+     part of a policy a page can use to reach somewhere it should not, so each page gets only what it
+     does, and the trial stays wider because that page really does post for a pass. */
+  const snPage = /^\/sharjah-next(?:\.html)?$/.test(req.path);
+  const connect = snPage ? "'self'" : "'self' " + String(config.spark.projectUrl || '').replace(/\/+$/, '');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
     + " font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self';"
-    + " connect-src 'self' " + String(config.spark.projectUrl || '').replace(/\/+$/, '') + ";"
+    + " connect-src " + connect + ";"
     + " frame-src 'self'" + (frameSrc ? ' ' + frameSrc : '') + ';'
     + " frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');   // said twice: in the header, and in the page's own meta tag

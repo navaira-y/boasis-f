@@ -550,6 +550,18 @@ The rehearsal stub knows the page keeps its door in the markup: `scripts/spark-s
 `node scripts/spark-stub.js` rehearses this entrance against its own bucket and never reaches the live
 project, whichever file the address happens to live in.
 
+**What the stand page does today, and only that.** The Brain write back, the resumable journey and the
+pass are not wired into `/sharjah-next` yet, because the backend has not been explained. What is wired
+is the pair that is settled: the form posts to `POST /api/sharjah-lead` on this host, which validates it
+with the same `readForm` as everything else, writes `data/sharjah-next/SN-XXXXXX.json`, mirrors the row
+into `public.site_leads` as `kind = 'sharjah_next'`, sends the three mails, and answers with the
+reference and the Brain address. The page then frames `https://brain.boasis.ae/?src=sharjah-next&ref=SN-XXXXXX`
+inside the card where the form was, and stays put: no redirect, nothing in `localStorage`, no pass in an
+address. `demo/supabase/sharjah-next.sql` and the `page` to table map stay in the repo for the day the
+rest is decided, and nothing on this page depends on them. Because the page touches no database, its
+`Content-Security-Policy` is narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
+all, and `frame-src https://brain.boasis.ae` as the single widening.
+
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in

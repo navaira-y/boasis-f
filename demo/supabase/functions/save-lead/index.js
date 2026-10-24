@@ -22,7 +22,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const TABLE = "site_leads";
-const KINDS = ["early_access", "waitlist", "demo", "contact"];
+const KINDS = ["early_access", "waitlist", "demo", "contact", "sharjah_next"];
 const MAX_STR = 500;
 const MAX_BODY = 16 * 1024;                 // one sign-up is a few hundred bytes; a megabyte is a caller mistake
 

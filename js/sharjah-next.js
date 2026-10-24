@@ -1,12 +1,28 @@
-/* Mira's real address: the Brain, the same one /try-mira opens. Only an http(s) page is accepted,
-   below, because this string ends up in a link a person taps and in location.href. */
+/* The Sharjah Next page · boasis.ae/sharjah-next
+ *
+ * This is the script from the event team's design file (spark-email's sibling, sharjah-next.html), with
+ * its inline block lifted into this file because the site is served with script-src 'self'. Its palette,
+ * its dictionary, its validation, its Enter-to-next keys and its copy are theirs, unchanged.
+ *
+ * What the button does is settled for now, and it is small: the four fields are posted to
+ *
+ *   POST /api/sharjah-lead        { first+last as full_name, email, phone, country_code, consent, source, _t }
+ *
+ * on this same host. That door writes one JSON file per person, mirrors it into Supabase as kind
+ * 'sharjah_next' for the CSV, sends the three mails the team wrote, and answers with a reference
+ * (SN-XXXXXX) and the Brain's address. The page then puts the reference in the link, and Mira in the
+ * card where the form was, and stays where it is: no jump, nothing in the browser, no session to
+ * resume. The pass, get-lead and the write-back from the Brain stay un wired until the backend is
+ * explained; the files for them are already in demo/supabase and nothing here depends on them.
+ */
+/* Mira's real address: the Brain, the same one /try-mira opens. It is framed by this page after the
+   form, and only an http(s) address or a path on this host is accepted for it, below, because the
+   door's answer is what ends up in a src attribute. */
 const MIRA_URL = 'https://brain.boasis.ae';
-/* the switch the shared preview needed, on: the form sends and the person is taken to Mira */
+/* the switch the shared preview needed, on: the form records the lead and Mira appears */
 const SEND = true;
-/* which entrance this is, and where a pass is minted. `page` is the one extra field the door needs to
-   put the row in public.sharjah_next_leads rather than the AI Everything table. */
+/* which offer the row is stamped with, so the two stands can be counted apart in one table */
 const SOURCE = 'sharjah-next-2026';
-const PAGE = 'sharjah-next';
 
 const T={
  en:{
@@ -64,7 +80,6 @@ form.addEventListener('submit',async e=>{
   /* the two fields the design drew, joined into the one name every door on this site reads, so the
      record has the same shape as the other entrance's */
   data.full_name=(data.first_name.trim()+' '+data.last_name.trim()).replace(/\s+/g,' ').trim();
-  data.page=PAGE;
   data._t=Math.max(1,Date.now()-opened);   /* how long the form was open, for the door to judge */
   let j=null;
   try{
@@ -73,39 +88,46 @@ form.addEventListener('submit',async e=>{
       j=await r.json().catch(()=>null);
     }
   }catch(err){}
-  const pass=(j&&j.ok!==false)?clean(j.pass):'';
-  if(SEND&&!pass){if(btn) btn.disabled=false; say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail); return;}
-  if(pass){remember(pass); thanks(pass);}
-  const url=brainUrl(pass);
-  document.getElementById('miraLink').href=url;
+  /* the door answers with the reference the three mails show; without it nothing was written, so the
+     button comes back and the person is told, rather than being sent to Mira with no record */
+  const ref=(j&&j.ok!==false)?cleanRef(j.ref):'';
+  if(SEND&&!ref){if(btn) btn.disabled=false; say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail); return;}
+  const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
+  document.getElementById('miraLink').href=url||'#';
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
   const card=document.getElementById('start'); if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
-  /* en local, on reste sur l'écran de confirmation pour relire */
-  if(SEND) setTimeout(()=>{location.href=url},900);
+  /* and Mira opens in the card itself. No jump: the reference, the receipt and this conversation are
+     meant to be on one screen, on the phone they are holding at the stand. */
+  openFrame(url, ref);
 });
 
-/* ── the pass, and the few lines that carry a person to Mira and back ─────────
-     The pass is the whole credential: it is what the Brain needs to know whose journey this is and what
-     get-lead needs to hand the record back, so it goes in the address and nowhere else. One row per
-     person: the door reuses it, so a second scan hands back the same pass and the same visit. */
-const LS='boasis.sharjah-next.v1', DAY=24*60*60*1000, PASS_RE=/^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
-function clean(v){return String(v||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,64)}
-function safeBase(v){const s=String(v||'').trim();return /^https?:\/\/[^\s"'<>]+$/.test(s)?s.replace(/\/+$/,''):''}
-function brainUrl(pass){const base=safeBase(MIRA_URL);return base&&pass?base+(base.indexOf('?')<0?'?':'&')+'pass='+encodeURIComponent(pass):'#'}
-function remember(pass){try{localStorage.setItem(LS,JSON.stringify({pass:pass,at:Date.now()}))}catch(e){}}
-function forget(){try{localStorage.removeItem(LS)}catch(e){}}
-function kept(){
-  let s=null; try{s=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){return ''}
-  if(!s||!PASS_RE.test(String(s.pass||''))||Date.now()-Number(s.at||0)>DAY){forget();return ''}
-  return s.pass;
+/* ── what a submission leaves behind ────────────────────────────────────────────
+   The reference the mails and this page show is made by the door, in the shape the design drew. Until
+   the backend is settled it is the only identifier, so nothing here stores a pass, reads a record
+   back, or keeps anything in the browser: a second submission is a second person's row, and that is
+   what the stand wants while the rest is undecided. */
+function cleanRef(v){return String(v||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)}
+/* only an http(s) address, or a path on this very host, is ever framed or linked, whatever the door
+   answered: a line of code in a src attribute is still a line of code, and the rehearsal answers with
+   a relative address on purpose so that it never reaches the live Brain */
+function safeBase(v){
+  const s=String(v||'').trim();
+  if(!/^https?:\/\/[^\s"'<>]+$/.test(s)&&!/^\/[^\s"'<>]*$/.test(s)) return '';
+  return s.length>1?s.replace(/\/+$/,''):s;
 }
-/* one receipt per person, and the door marks the pass, so this is fired and forgotten; keepalive
-   because the page is about to leave for Mira */
-function thanks(pass){
-  if(!pass||!/^https?:/.test(location.protocol)) return;
-  try{fetch('/api/spark-thanks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:pass}),keepalive:true}).catch(function(){})}catch(e){}
+/* Mira appears where the form was. The address is written only now, so a person who reads the offer
+   and walks away never asks the Brain for anything. */
+function openFrame(url, ref){
+  const f=document.getElementById('miraFrame'); if(!f) return;
+  const base=safeBase(url)||safeBase(f.dataset.src)||safeBase(MIRA_URL);
+  if(!base) return;
+  /* the reference rides along, so Mira can greet the person by it, and it is checked to look like one
+     before it goes anywhere, because it came from a form field one hop away */
+  f.src=base+(base.indexOf('?')<0?'?':'&')+'src=sharjah-next'
+    +(/^[A-Za-z0-9-]{3,24}$/.test(String(ref||''))?'&ref='+encodeURIComponent(ref):'');
 }
+
 /* the design has no slot for a message that is not about a field, so one is made rather than adding
    markup to the page: same class the other errors use, so it looks like it belongs */
 function say(msg){
@@ -114,22 +136,6 @@ function say(msg){
     form.insertBefore(n,form.querySelector('.cta'))}
   if(n) n.textContent=msg||'';
 }
-/* came back, or re-scanned the same QR: the pass is still theirs, so Mira opens instead of the form */
-(function returning(){
-  const pass=kept(); if(!pass) return;
-  document.getElementById('miraLink').href=brainUrl(pass);
-  document.getElementById('formView').style.display='none';
-  document.getElementById('doneView').classList.add('on');
-  const door=(form.dataset.endpoint||'').replace(/create-pass[^/]*$/,'get-lead');
-  if(!SEND||!/^https?:/.test(door)) return;
-  fetch(door+'?pass='+encodeURIComponent(pass)).then(r=>r.json().catch(()=>null)).then(j=>{
-    if(!j||j.ok!==false) return;
-    forget();
-    document.getElementById('doneView').classList.remove('on');
-    document.getElementById('formView').style.display='';
-    say(T[L()].eGone);
-  }).catch(function(){});   /* no answer is not a reason to lose their place */
-})();
 
 const opened=Date.now();
 root.lang='en'; paint();
