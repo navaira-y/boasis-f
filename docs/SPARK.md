@@ -583,7 +583,9 @@ the closed control says `AE +971`, the way the rest of the site says it. That fi
 `LENGTHS`, the shortest and longest national number per country, so the page calls a number invalid
 until it reaches the length of the country in the picker (nine digits for +971, ten for +91) and
 rejudges the moment the country changes; the door deliberately keeps the loose seven to fifteen, so a
-wrong guess in that table costs a hint, never a lead.
+wrong entry in that table costs a hint, never a lead. The fifty-nine pairs come from Google's
+libphonenumber metadata, fixed-line and mobile together, clamped into the door's seven to fifteen, and
+`/sharjah-next.test.js` reads the same table shape back so it cannot be quietly edited into a wall.
 
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2

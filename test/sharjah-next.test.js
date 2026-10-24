@@ -209,6 +209,20 @@ test('the email and the number are checked by the site\'s rules, on the page and
   assert.match(cjs, /const LENGTHS = \{[\s\S]{0,2400}AE: \[8, 9\][\s\S]*?IN: \[10, 10\]/, 'the ranges are there: eight to nine for the Emirates, ten for India');
   assert.match(cjs, /BY_CODE\[dial\] = had \? \[Math\.min/, 'two countries on one code take the wider range, never the narrower');
   assert.match(cjs, /const LOOSE = \[7, 15\];/, 'and a code the table does not know falls back to the door\'s own rule');
+  /* the table itself, read back rather than trusted: a pair outside the door's range would be a
+     wall, and a country without a pair would be a hole */
+  const pairs = {};
+  for (const m of cjs.slice(cjs.indexOf('const LENGTHS'), cjs.indexOf('};', cjs.indexOf('const LENGTHS'))).matchAll(/([A-Z]{2}): \[(\d+), (\d+)\]/g)) {
+    pairs[m[1]] = [Number(m[2]), Number(m[3])];
+  }
+  const listed = [...new Set((cjs.match(/\['[A-Z]{2}', '/g) || []).map(t => t.slice(2, 4)))];
+  assert.equal(Object.keys(pairs).length, listed.length, Object.keys(pairs).length + ' pairs for ' + listed.length + ' countries, one each');
+  for (const iso of listed) {
+    const w = pairs[iso];
+    assert.ok(w, iso + ' is in the list and has no length pair, so it falls back and the point of the check is lost');
+    assert.ok(w[0] >= 7 && w[1] <= 15 && w[0] <= w[1], iso + ' ' + w.join('-') + ' must sit inside the door\'s 7 to 15, or the page expects what the server refuses');
+  }
+  assert.deepEqual([pairs.AE, pairs.IN, pairs.PK], [[8, 9], [10, 10], [9, 10]], 'and the three numbers this stand will see most are the ones their plans say: 9 for a UAE mobile, 10 for India, 9 or 10 for Pakistan');
   assert.match(cjs, /return \{ init, lengthOf, ok, LENGTHS \};/, 'exported, so every page that asks for a number can ask the same file');
   assert.match(js, /CP\.ok\(code\(\), d\)\.valid/, 'this page asks it, rather than holding its own copy of what India looks like');
   assert.match(js, /addEventListener\('codechange', rejudgePhone\)/, 'and it rejudges the number the moment the country changes, without waiting for a keystroke');
