@@ -84,7 +84,9 @@ document.getElementById('f').addEventListener('submit',async function(e){e.preve
 </script></body></html>`;
 
 const server = http.createServer(async (req, res) => {
-  if (!core) core = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  /* a file URL, because Node's ESM loader will not take a bare C:\ path: the same reason
+     lib/spark.js does it this way, and it is the line that made this stub fail on a Windows laptop */
+  if (!core) core = await import(require('url').pathToFileURL(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')).href);
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'POST' && url.pathname === '/functions/v1/create-pass') {
     return readBody(req, (b) => { try { createPass(JSON.parse(b || '{}'), res); } catch (e) { json(res, 400, { ok: false, error: 'json' }); } });

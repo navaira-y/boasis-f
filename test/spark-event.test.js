@@ -261,3 +261,18 @@ test('the night-before rehearsal runs this page too, and keeps the two crowds ap
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   }
 });
+
+test('no file is handed to import() as a bare path, because Windows reads C:\\ as a URL scheme', () => {
+  /* the bug this exists for: the rehearsal stub worked on the Linux box that builds this site and
+     died on the owner's laptop with ERR_UNSUPPORTED_ESM_URL_SCHEME, which is exactly the kind of
+     failure that only shows up on the night, on the machine you are actually using */
+  for (const f of ['lib/spark.js', 'scripts/spark-stub.js', 'test/spark.test.js', 'test/spark-event.test.js']) {
+    const src = read(f);
+    const bare = [...src.matchAll(/import\(\s*(?:path\.join|CORE\b|`)/g)];
+    assert.equal(bare.length, 0, f + ' must pass a file URL to import(), saw ' + bare.length + ' bare path' + (bare.length === 1 ? '' : 's'));
+  }
+  for (const f of ['lib/spark.js', 'scripts/spark-stub.js']) {
+    assert.ok(read(f).includes('pathToFileURL'), f + ' says out loud that the path is turned into a URL');
+  }
+});
+

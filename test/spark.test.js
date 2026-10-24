@@ -319,7 +319,7 @@ test('the local rehearsal serves what the site serves, at the same address', asy
 });
 
 test('a pass is cut from the platform random, not from Math.random', async () => {
-  const k = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  const k = await import(require('url').pathToFileURL(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')).href);
   const had = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
   let n = 0;
   Object.defineProperty(globalThis, 'crypto', {
@@ -336,7 +336,7 @@ test('a pass is cut from the platform random, not from Math.random', async () =>
 });
 
 test('a finished row cannot be rewritten by a second run, but it keeps listening', async () => {
-  const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  const c = await import(require('url').pathToFileURL(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')).href);
   let lead = c.buildLead({ pass: 'PASSAAAAAAAA', contact: { full_name: 'Lena', email: 'l@x.co' }, source: 't', now: 0 });
   for (const [s, d] of [
     ['describe', { description: 'A small import business.' }],
@@ -361,7 +361,7 @@ test('a finished row cannot be rewritten by a second run, but it keeps listening
 });
 
 test('the rules the whole demo stands on, in one module', async () => {
-  const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  const c = await import(require('url').pathToFileURL(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')).href);
   const ok = { full_name: 'Lena Bisht', email: 'LENA@corp.com', phone: '0551112222', country_code: '+971', consent: true, _t: 9000 };
 
   const good = c.readForm(ok);
@@ -398,7 +398,7 @@ test('the rules the whole demo stands on, in one module', async () => {
 });
 
 test('the lead file grows and never shrinks', async () => {
-  const c = await import(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js'));
+  const c = await import(require('url').pathToFileURL(path.join(ROOT, 'demo/supabase/functions/_shared/spark-core.js')).href);
   const now = Date.UTC(2026, 9, 5, 8);
   let lead = c.buildLead({ pass: 'PASSABCDEFGH', contact: { full_name: 'Lena Bisht', email: 'l@corp.com', phone: '+971 5', consent: true }, now });
   assert.equal(lead.brain.steps_reached.length, 0, 'it starts empty');
