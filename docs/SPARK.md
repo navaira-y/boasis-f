@@ -561,13 +561,25 @@ site's on the website's, and the paused pass flow has its own third table, `shar
 pass are not wired into `/sharjah-next` yet, because the backend has not been explained. What is wired
 is the pair that is settled: the form posts to `POST /api/sharjah-lead` on this host, which validates it
 with the same `readForm` as everything else, writes `data/sharjah-next/SN-XXXXXX.json`, mirrors the row
-into `public.site_leads` as `kind = 'sharjah_next'`, sends the three mails, and answers with the
-reference and the Brain address. The page then frames `https://brain.boasis.ae/?src=sharjah-next&ref=SN-XXXXXX`
+into `public.sharjah_next_leads` as `kind = 'sharjah_next'`, and answers with the reference and the
+Brain address. Nothing is mailed unless `SPARK_SN_MAIL` says otherwise. The page then frames `https://brain.boasis.ae/?src=sharjah-next&ref=SN-XXXXXX`
 inside the card where the form was, and stays put: no redirect, nothing in `localStorage`, no pass in an
 address. `demo/supabase/sharjah-next.sql` and the `page` to table map stay in the repo for the day the
 rest is decided, and nothing on this page depends on them. Because the page touches no database, its
 `Content-Security-Policy` is narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
 all, and `frame-src https://brain.boasis.ae` as the single widening.
+
+**The two fields a stand has to get right.** An address and a number are the whole value of a lead, so
+both pages check them by the site's own rule and nowhere else: `EMAIL_RE`, `PHONE_MIN = 7`,
+`PHONE_MAX = 15` live in `demo/supabase/functions/_shared/spark-core.js`, which `/api/sharjah-lead`
+imports, and `js/sharjah-next.js` repeats the same two expressions the way `js/contact.js` does, so what
+a visitor is allowed to send is exactly what the door keeps. The number box holds digits only and the dial
+code has its own control, and a refusal comes back as a field code (`email`, `phone`) that the page prints
+under that field rather than under the button. The control for the code is the site's own
+`js/countries.js`: the fifty-nine country list, the search box, and a hidden `country_code` input, the same
+file the two home dialogs, `/early-access`, `/contact` and `/try-mira` use, so the list of countries is
+never a second truth. The design's eighteen-option `<select>` went out with it, and its flags with it:
+the closed control says `AE +971`, the way the rest of the site says it.
 
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2

@@ -9,11 +9,17 @@
  *   POST /api/sharjah-lead        { first+last as full_name, email, phone, country_code, consent, source, _t }
  *
  * on this same host. That door writes one JSON file per person, mirrors it into Supabase as kind
- * 'sharjah_next' for the CSV, sends the three mails the team wrote, and answers with a reference
- * (SN-XXXXXX) and the Brain's address. The page then puts the reference in the link, and Mira in the
+ * 'sharjah_next' for the CSV, and answers with a reference (SN-XXXXXX) and the Brain's address.
+ * Nothing is mailed unless someone turns that on, and no row is ever updated from here. The page then puts the reference in the link, and Mira in the
  * card where the form was, and stays where it is: no jump, nothing in the browser, no session to
  * resume. The pass, get-lead and the write-back from the Brain stay un wired until the backend is
  * explained; the files for them are already in demo/supabase and nothing here depends on them.
+ *
+ * Two things were added to the design after the first read through, both of them borrowed rather
+ * than invented: the email and the number are checked by the same rules the site's own forms use
+ * (below, and again in spark-core.js at the door, so the page and the server cannot disagree), and
+ * the country code is the site's own picker from js/countries.js rather than the eighteen-option
+ * list the file came with, so it searches and holds sixty.
  */
 /* Mira's real address: the Brain, the same one /try-mira opens. It is framed by this page after the
    form, and only an http(s) address or a path on this host is accepted for it, below, because the
@@ -43,7 +49,9 @@ const T={
   st4:'Finish in Zone 2, Block B', st4s:'Show your reference, apply and pay. Follow the green signs.',
   today:'<b>Open on 28 and 29 October only.</b> Complete your payment in Zone 2 before you leave.',
   sig:'Powered by',
-  eFirst:'Please enter your first name.', eLast:'Please enter your last name.', eEmail:'Please enter a valid email.', ePhone:'Please enter a valid number.', eConsent:'Please tick the box to continue.'
+  eFirst:'Please enter your first name.', eLast:'Please enter your last name.', eEmail:'Please enter a valid email.', ePhone:'Please enter a valid number.', eConsent:'Please tick the box to continue.',
+  eBusy:'Too many tries just now. Wait a moment and press again.',
+  eFail:'We could not send that. Press again, or ask us at the desk.'
  }
 };
 const root=document.documentElement;
@@ -55,17 +63,46 @@ function paint(){
 }
 
 const form=document.getElementById('snForm'), F=form.elements;
+/* the dial code comes from the site's own picker (js/countries.js): the closed control says the
+   short form and the code, the open panel says the full name and a search box, and the hidden
+   input beside the button is what the form posts. One file for all five forms on boasis.ae that
+   ask for a number, so the list of countries is never a second truth to keep in step. */
+const ccEl=form.querySelector('[data-cc]');
+const picker=ccEl&&window.BoasisCountryPicker?window.BoasisCountryPicker.init(ccEl):null;
+const code=()=>{const i=form.querySelector('input[name="country_code"]');return i&&i.value?i.value:'+971'};
+
+/* the same rules as js/contact.js on the site's forms and lib/validate.js at the door, so what
+   this page lets through is exactly what the server keeps. A number is seven to fifteen digits
+   after the code, and the box holds digits only, because the code has its own control. */
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const digits=v=>String(v==null?'':v).replace(/\D/g,'');
+function validEmail(v){
+  const e=String(v==null?'':v).trim().toLowerCase();
+  return !!e&&e.length<=254&&EMAIL_RE.test(e)&&!/\.{2,}/.test(e);
+}
+function validPhone(v){const d=digits(v);return d.length>=7&&d.length<=15}
 function setErr(k,ek){const e=form.querySelector('[data-err="'+k+'"]'); if(!e) return; e.dataset.ek=ek||''; e.textContent=ek?t(ek):''}
 function valid(){
   let ok=true; ['first_name','last_name','email','phone','consent'].forEach(k=>setErr(k,''));
   if(!F['first_name'].value.trim()){setErr('first_name','eFirst'); ok=false}
   if(!F['last_name'].value.trim()){setErr('last_name','eLast'); ok=false}
-  if(!/^\S+@\S+\.\S+$/.test(F['email'].value.trim())){setErr('email','eEmail'); ok=false}
-  if(F['phone'].value.replace(/\D/g,'').length<6){setErr('phone','ePhone'); ok=false}
+  if(!validEmail(F['email'].value)){setErr('email','eEmail'); ok=false}
+  if(!validPhone(F['phone'].value)){setErr('phone','ePhone'); ok=false}
   if(!F['consent'].checked){setErr('consent','eConsent'); ok=false}
   if(!ok){const first=form.querySelector('.err:not(:empty)'); if(first&&first.parentElement&&first.parentElement.scrollIntoView) first.parentElement.scrollIntoView({behavior:'smooth',block:'center'})}
   return ok;
 }
+/* a field that is wrong about itself is told so as it is written, and goes quiet the moment it is
+   right; an empty one stays quiet until the send, when "required" is the honest thing to say */
+F['email'].addEventListener('input',()=>{
+  const e=F['email'].value.trim();
+  setErr('email', e&&!validEmail(e)?'eEmail':'');
+});
+F['phone'].addEventListener('input',()=>{
+  const raw=F['phone'].value, d=digits(raw);
+  if(d!==raw) F['phone'].value=d;   /* the code lives in the picker: nothing else belongs in the box */
+  setErr('phone', d&&!validPhone(d)?'ePhone':'');
+});
 /* Sur téléphone, "Suivant" sur le clavier passe au champ d'après au lieu d'envoyer */
 ['first_name','last_name','email'].forEach((k,i,a)=>F[k].addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault(); (i<a.length-1?F[a[i+1]]:F['phone']).focus()}
@@ -80,6 +117,9 @@ form.addEventListener('submit',async e=>{
   /* the two fields the design drew, joined into the one name every door on this site reads, so the
      record has the same shape as the other entrance's */
   data.full_name=(data.first_name.trim()+' '+data.last_name.trim()).replace(/\s+/g,' ').trim();
+  data.country_code=code();
+  data.phone=digits(data.phone);
+  data.email=String(data.email||'').trim().toLowerCase();
   data._t=Math.max(1,Date.now()-opened);   /* how long the form was open, for the door to judge */
   let j=null;
   try{
@@ -91,7 +131,16 @@ form.addEventListener('submit',async e=>{
   /* the door answers with the reference the three mails show; without it nothing was written, so the
      button comes back and the person is told, rather than being sent to Mira with no record */
   const ref=(j&&j.ok!==false)?cleanRef(j.ref):'';
-  if(SEND&&!ref){if(btn) btn.disabled=false; say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail); return;}
+  /* the door judges the same fields, and says which one it refused; the note goes under that field
+     rather than joining the button, and a refusal we cannot name still says something */
+  const REFUSE={email:['email','eEmail'],phone:['phone','ePhone'],full_name:['first_name','eLast'],consent:['consent','eConsent']};
+  if(SEND&&!ref){
+    if(btn) btn.disabled=false;
+    const bad=REFUSE[j&&j.error];
+    if(bad) setErr(bad[0],bad[1]);
+    say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail);
+    return;
+  }
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
   document.getElementById('miraLink').href=url||'#';
   document.getElementById('formView').style.display='none';

@@ -43,6 +43,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  */
 
 const STEPS = ['describe', 'mira', 'activities', 'package'];
+
+/* What counts as an address and as a number, once. The pages check the same thing as they type. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PHONE_MIN = 7;                   // the shortest real national number on our list
+const PHONE_MAX = 15;                  // the ITU ceiling, so a pasted wall of digits is out
 const MAX_AGE_HOURS = 24;          // the plan asks 24h, listed as still to confirm
 const TOO_FAST_MS = 1200;          // nobody types four fields faster than this
 
@@ -100,8 +105,12 @@ function readForm(body) {
   const phone = phoneOf(b.country_code, b.phone);
 
   if (name.length < 2) return { ok: false, error: 'full_name' };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: 'email' };
-  if (digits.length < 6 || digits.length > 15) return { ok: false, error: 'phone' };
+  /* the two checks the site's own forms already run, in lib/validate.js and js/contact.js: an
+     address with a real domain after the at, and a number of seven to fifteen digits after the
+     code. A looser rule here than on the page is a rule a visitor learns by trial and error, and
+     a phone of four digits is a lead nobody at a desk can call back. */
+  if (!EMAIL_RE.test(email) || /\.{2,}/.test(email)) return { ok: false, error: 'email' };
+  if (digits.length < PHONE_MIN || digits.length > PHONE_MAX) return { ok: false, error: 'phone' };
   if (b.consent !== true && b.consent !== 'true' && b.consent !== 'on') return { ok: false, error: 'consent' };
 
   const residence = b.residence === 'uae' || b.residence === 'abroad' ? b.residence : '';

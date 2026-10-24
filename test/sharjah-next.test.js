@@ -89,7 +89,7 @@ test('it is the design file, token for token, with nothing of the site in it', (
     '.card.bo', 'scroll-padding-top:env(safe-area-inset-top,0px)', 'enterkeyhint=', 'clamp(']) {
     assert.ok(h.includes(rule), 'and it is built the same way: ' + rule.slice(0, 32));
   }
-  assert.ok(!/css\/site\.css/.test(h), 'it links no stylesheet of ours, because it is not trying to be a page of the site');
+  assert.ok(!/<link[^>]*site\.css/.test(h), 'it links no stylesheet of ours, because it is not trying to be a page of the site');
   assert.ok(!/\bunsafe-inline\b/.test(h), 'the page never asks to loosen anything for itself');
   assert.match(h, /<script src="\/js\/sharjah-next\.js\?v=\d+"><\/script>/,
     'one script, asked for with a version, so a phone at a stand cannot hold the old one');
@@ -150,10 +150,19 @@ test('the form asks what the design asked, in the fields the record already has'
   }
   assert.ok(!/name="residence"/.test(h), 'and this page does not ask where they live, because the design does not');
   assert.ok(!/name="company"/.test(h), 'nor what the company is called, because Mira asks that next');
-  assert.match(h, /<select name="country_code"/, 'the dial code is the design\'s own pill');
-  assert.equal((h.match(/<option value="\+\d+"/g) || []).length, 18, 'with the eighteen codes it was drawn with');
-  assert.ok(/<option value="\+971">/.test(h.slice(h.indexOf('name="country_code"'), h.indexOf('name="country_code"') + 900)),
-    'and the UAE is the first one, because the stand is in Sharjah');
+  /* the dial code: the eighteen-option list the design came with is replaced by the control the
+     rest of boasis.ae already uses, so the list of countries is one file and not two truths */
+  assert.ok(!/<select/.test(h), 'there is no select on this page any more');
+  assert.match(h, /<div class="cc" data-cc>[\s\S]{0,1200}?<input type="hidden" name="country_code" value="\+971">/,
+    'the site\'s picker is there, and the UAE is what it opens on, because the stand is in Sharjah');
+  assert.match(h, /class="cc-btn"[^>]*aria-haspopup="listbox"[^>]*aria-expanded="false"/,
+    'the closed control is a listbox to a screen reader and says so before it is opened');
+  assert.match(h, /class="cc-search"[^>]*inputmode="search"/, 'the panel opens with a search box, as it does on /contact');
+  assert.match(h, /<script src="\/js\/countries\.js"><\/script>\n<script src="\/js\/sharjah-next\.js\?v=\d+"><\/script>/,
+    'the file that drives it is the site\'s own, loaded first, and this page\'s script still carries a version');
+  assert.ok(h.includes('.cc-btn{display:flex;align-items:center;gap:8px') && h.includes('.cc-list li[aria-selected="true"]{color:var(--bo-teal)}'),
+    'its rules are copied out of css/site.css as they are written there, not restyled here');
+  assert.match(h, /\.cc-pop\{width:min\(252px, calc\(100vw - 40px\)\)\}/, 'and on a small phone the panel cannot hang off the side of the screen');
   assert.match(h, /<div class="hp"[\s\S]*?name="hp"/, 'the honeypot is there, hidden from a person and not from a bot');
   assert.match(h, /aria-live="polite"/, 'and the ready screen announces itself, because it replaces the form with no page load');
   const js = JS();
@@ -161,7 +170,7 @@ test('the form asks what the design asked, in the fields the record already has'
     'the two names are joined into the one field every door here reads, so the record does not change shape');
 });
 
-test('the button records the lead, sends the three mails, and opens Mira in the card', () => {
+test('the button records the lead, checks it the way the site checks it, and opens Mira in the card', () => {
   const h = HTML(), js = JS();
   assert.match(h, /data-endpoint="\/api\/sharjah-lead"/, 'the page posts to this site\'s own door, the same host, no key and no second origin');
   assert.ok(!/supabase\.co/.test(h + js), 'nothing in the page names a database, because the browser has no business in one');
@@ -179,6 +188,23 @@ test('the button records the lead, sends the three mails, and opens Mira in the 
   assert.match(js, /if\(F\['hp'\]\.value\) return/, 'the honeypot is honoured before anything is posted');
   assert.match(js, /if\(!valid\(\)\) return/, 'and nothing is posted until the fields the design asked for are filled');
   assert.match(js, /data\._t=Math\.max\(1,Date\.now\(\)-opened\)/, 'with how long the form was open, for the door to judge');
+});
+
+test('the email and the number are checked by the site\'s rules, on the page and at the door', () => {
+  const js = JS(), core = read('demo/supabase/functions/_shared/spark-core.js');
+  const EMAIL_BODY = '[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}';      // one text, twice, so the two cannot drift
+  assert.ok(js.includes(EMAIL_BODY), 'the page checks an address with a domain after the at');
+  assert.ok(core.includes(EMAIL_BODY), 'and so does the door, so a curl cannot file what the page refuses');
+  assert.match(js, /d\.length>=7&&d\.length<=15/, 'a number is seven to fifteen digits after the code');
+  assert.match(core, /digits\.length < PHONE_MIN \|\| digits\.length > PHONE_MAX/, 'the door agrees, by name, not by a copy of the number');
+  assert.match(core, /export const PHONE_MIN = 7;[\s\S]{0,120}export const PHONE_MAX = 15;/, 'and both ends are written once, in the module both back ends import');
+  assert.match(js, /const digits=v=>String\(v==null\?''\:v\)\.replace\(\/\\D\/g,''\)/, 'the box holds digits, because the code has its own control');
+  assert.match(js, /if\(d!==raw\) F\['phone'\]\.value=d;/, 'and what they typed is tidied as they type it, not after the send');
+  assert.match(js, /setErr\('email', e&&!validEmail\(e\)\?'eEmail':''\)/, 'a wrong field says so while it is being written');
+  assert.match(js, /setErr\('phone', d&&!validPhone\(d\)\?'ePhone':''\)/, 'and so does a short number');
+  assert.match(js, /data\.phone=digits\(data\.phone\);/, 'what is posted is the number alone, the code travelling beside it');
+  assert.match(js, /const REFUSE=\{email:\['email','eEmail'\],phone:\['phone','ePhone'\]/,
+    'and if the door still refuses one of the two, the note goes under that field rather than under the button');
 });
 
 test('the page cannot be talked into showing, sending or opening anything it was not given', () => {
@@ -220,15 +246,46 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
     }
     return Promise.resolve({ json: () => Promise.resolve({ ok: true }) });
   };
+  w.eval(read('js/countries.js'));   // the picker first, because this page's script looks for it
   w.eval(JS());
   const d = w.document;
   assert.deepEqual([...d.querySelectorAll('[data-k]')].filter(el => !el.textContent.trim()).map(el => el.dataset.k), [],
     'every label on the page found its text in the dictionary, so no string is silently blank');
 
+  /* the picker is a real control, not a picture of one: it opens, it searches, and the code it
+     lands on is the code the form posts */
+  const btn = d.querySelector('.cc-btn');
+  const list = read('js/countries.js');
+  const every = (list.match(/\['[A-Z]{2}', '/g) || []).length;
+  assert.ok(every >= 50, 'the shared list holds ' + every + ' countries, which is the site\'s own and not this page\'s');
+  assert.equal(d.querySelector('.cc-list').children.length, every, 'and the panel shows all of them, where the design listed eighteen');
+  btn.click();
+  assert.equal(btn.getAttribute('aria-expanded'), 'true', 'and the button says when it is open');
+  const find = d.querySelector('.cc-search');
+  find.value = 'ind';
+  find.dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.deepEqual([...d.querySelectorAll('.cc-list li')].map(li => li.textContent.trim()), ['India+91', 'Indonesia+62'],
+    'one keystroke narrows the list to the countries that name matches, name and code, in that order');
+  d.querySelector('.cc-list li').click();
+  assert.equal(d.querySelector('input[name="country_code"]').value, '+91', 'the choice is written into the field the form posts');
+  assert.equal(btn.textContent.trim(), 'IN+91', 'and the closed control says it back');
+
   d.getElementById('first_name').value = 'Navaira <img src=x onerror="window.__pwned=1">';
   d.getElementById('last_name').value = "O'Brien";
   d.getElementById('email').value = 'n@corp.example';
   d.getElementById('phone').value = '50 123 4567';
+  d.getElementById('phone').value = '050 123-45 67';
+  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(d.getElementById('phone').value, '0501234567', 'the number keeps its digits and loses its spaces and dashes as it is typed');
+  assert.equal(d.querySelector('[data-err="phone"]').textContent, '', 'and stays quiet, because seven digits is a real number');
+  d.getElementById('phone').value = '5012';
+  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(d.querySelector('[data-err="phone"]').textContent.trim(), 'Please enter a valid number.', 'four digits is told to the person, before the button');
+  d.querySelector('.cta').click();
+  assert.equal(posts.length, 0, 'and nothing is posted while a field is wrong');
+  d.getElementById('phone').value = '0501234567';      // righted, and it stays right
+  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(d.querySelector('[data-err="phone"]').textContent, '', 'the note goes away the moment the number is a number');
   d.querySelector('input[name=consent]').checked = true;
   d.querySelector('.cta').click();
   await new Promise(r => setTimeout(r, 250));
@@ -237,12 +294,13 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
   assert.deepEqual(sent, ['/api/sharjah-lead'], 'one call, to this site\'s own door, and nothing else leaves the page');
   const create = posts.find(p => p.url.includes('sharjah-lead')) || { body: '{}' };
   const body = JSON.parse(create.body);
+  assert.equal(body.phone, '0501234567', 'the number that arrives is digits, nothing else, and the trunk zero is the door\'s to drop');
+  assert.equal(body.country_code, '+91', 'and the code is the one the picker was left on');
   assert.equal(body.full_name, "Navaira <img src=x onerror=\"window.__pwned=1\"> O'Brien",
     'the two fields the design drew arrive as the one name every door here reads, quotes and all, unfixed');
   assert.equal(body.source, 'sharjah-next-2026', 'and which offer it came for');
   assert.equal(body.consent, 'on', 'the tick box travels, because the row is the proof somebody agreed');
   assert.ok(!('hp' in body), 'the honeypot field is never posted');
-  assert.equal(body.country_code, '+971', 'and the dial code the pill was showing when they pressed it');
   assert.ok(Number(body._t) >= 1, 'with how long the form was open, for the door to judge');
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
   assert.equal(d.getElementById('miraFrame').getAttribute('src'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',

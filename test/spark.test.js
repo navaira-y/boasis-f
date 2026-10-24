@@ -377,7 +377,11 @@ test('the rules the whole demo stands on, in one module', async () => {
     ['faster than a person', { ...ok, _t: 300 }],
     ['no consent', { ...ok, consent: false }],
     ['a short number', { ...ok, phone: '555' }],
+    ['six digits, which is nobody\'s number', { ...ok, phone: '551122' }],
+    ['a wall of digits', { ...ok, phone: '5511223344556677' }],
     ['no at sign', { ...ok, email: 'lena@corp' }],
+    ['a dot and one letter after it', { ...ok, email: 'lena@corp.x' }],
+    ['two dots where the at should be', { ...ok, email: 'le..na@corp.com' }],
     ['no name at all', { ...ok, full_name: '   ' }],
     ['nothing at all', {}],
   ]) {
@@ -386,6 +390,11 @@ test('the rules the whole demo stands on, in one module', async () => {
   assert.equal(c.readForm({ ...ok, hp: 'x' }).error, 'bot', 'and the reason is a code, not a sentence');
   assert.equal(c.readForm({ ...ok, _t: 10 }).error, 'too-fast');
   assert.equal(c.readForm({ ...ok, consent: false }).error, 'consent');
+  /* the two the stand cares most about: a number a desk cannot dial, and an address a mail
+     cannot reach, are the two ways a lead becomes worthless */
+  assert.equal(c.readForm({ ...ok, phone: '551122' }).error, 'phone');
+  assert.equal(c.readForm({ ...ok, email: 'lena@corp.x' }).error, 'email');
+  assert.equal(c.readForm({ ...ok, phone: '5511223' }).ok, true, 'seven digits is a real number somewhere, and we are not the arbiter of where');
 
   /* a pass is read aloud across a loud hall: twelve characters, none of them ambiguous, and
      nothing that can be turned into a file name */
