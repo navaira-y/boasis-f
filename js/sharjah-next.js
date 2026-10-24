@@ -19,7 +19,10 @@
  * than invented: the email and the number are checked by the same rules the site's own forms use
  * (below, and again in spark-core.js at the door, so the page and the server cannot disagree), and
  * the country code is the site's own picker from js/countries.js rather than the eighteen-option
- * list the file came with, so it searches and holds sixty.
+ * list the file came with, so it searches and holds the whole list. The number is then judged
+ * against that pick, by the length table that lives beside the same list: a nine digit number is a
+ * full number in Sharjah and one short in India, and the field says so while they type. The door
+ * keeps the loose seven to fifteen on purpose, so a lead is never refused over a length table.
  */
 /* Mira's real address: the Brain, the same one /try-mira opens. It is framed by this page after the
    form, and only an http(s) address or a path on this host is accepted for it, below, because the
@@ -72,22 +75,34 @@ const picker=ccEl&&window.BoasisCountryPicker?window.BoasisCountryPicker.init(cc
 const code=()=>{const i=form.querySelector('input[name="country_code"]');return i&&i.value?i.value:'+971'};
 
 /* the same rules as js/contact.js on the site's forms and lib/validate.js at the door, so what
-   this page lets through is exactly what the server keeps. A number is seven to fifteen digits
-   after the code, and the box holds digits only, because the code has its own control. */
+   this page lets through is exactly what the server keeps. The box holds digits only, because the
+   code has its own control, and a number is judged against that control: nine digits for +971, ten
+   for +91, the range written once in js/countries.js beside the list itself. So a half-typed number
+   reads as invalid until it reaches the length of the country they picked, and goes quiet on the
+   digit that finishes it. */
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const digits=v=>String(v==null?'':v).replace(/\D/g,'');
 function validEmail(v){
   const e=String(v==null?'':v).trim().toLowerCase();
   return !!e&&e.length<=254&&EMAIL_RE.test(e)&&!/\.{2,}/.test(e);
 }
+/* the picker's file carries the ranges; without it (an old copy in a tablet's cache) the loose
+   seven to fifteen is still the rule, so a missing file is never a closed form */
+const CP=window.BoasisCountryPicker||null;
 function validPhone(v){const d=digits(v);return d.length>=7&&d.length<=15}
+function phoneState(v){
+  const d=digits(v);
+  if(!d) return {empty:true, ok:false};
+  if(!CP||typeof CP.ok!=='function') return {empty:false, ok:validPhone(d)};
+  return {empty:false, ok:CP.ok(code(), d).valid};
+}
 function setErr(k,ek){const e=form.querySelector('[data-err="'+k+'"]'); if(!e) return; e.dataset.ek=ek||''; e.textContent=ek?t(ek):''}
 function valid(){
   let ok=true; ['first_name','last_name','email','phone','consent'].forEach(k=>setErr(k,''));
   if(!F['first_name'].value.trim()){setErr('first_name','eFirst'); ok=false}
   if(!F['last_name'].value.trim()){setErr('last_name','eLast'); ok=false}
   if(!validEmail(F['email'].value)){setErr('email','eEmail'); ok=false}
-  if(!validPhone(F['phone'].value)){setErr('phone','ePhone'); ok=false}
+  if(!phoneState(F['phone'].value).ok){setErr('phone','ePhone'); ok=false}
   if(!F['consent'].checked){setErr('consent','eConsent'); ok=false}
   if(!ok){const first=form.querySelector('.err:not(:empty)'); if(first&&first.parentElement&&first.parentElement.scrollIntoView) first.parentElement.scrollIntoView({behavior:'smooth',block:'center'})}
   return ok;
@@ -101,8 +116,16 @@ F['email'].addEventListener('input',()=>{
 F['phone'].addEventListener('input',()=>{
   const raw=F['phone'].value, d=digits(raw);
   if(d!==raw) F['phone'].value=d;   /* the code lives in the picker: nothing else belongs in the box */
-  setErr('phone', d&&!validPhone(d)?'ePhone':'');
+  const st=phoneState(d);
+  setErr('phone', st.empty||st.ok?'':'ePhone');
 });
+/* and the other way round: switching the code rejudges the number that is already typed, so a full
+   Indian number says so the moment the picker moves to the UAE, instead of waiting for a keystroke */
+function rejudgePhone(){
+  const st=phoneState(F['phone'].value);
+  setErr('phone', st.empty||st.ok?'':'ePhone');
+}
+if(ccEl) ccEl.addEventListener('codechange', rejudgePhone);
 /* Sur téléphone, "Suivant" sur le clavier passe au champ d'après au lieu d'envoyer */
 ['first_name','last_name','email'].forEach((k,i,a)=>F[k].addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault(); (i<a.length-1?F[a[i+1]]:F['phone']).focus()}

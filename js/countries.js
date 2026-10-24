@@ -23,6 +23,27 @@ window.BoasisCountryPicker = (function () {
      already, so these are the country's other names, nothing more. */
   const ALIASES = { AE: 'uae emirates', GB: 'uk britain england', SA: 'ksa', US: 'usa america' };
 
+  /* How long a number is, in digits after the code, once any local trunk zero is dropped. Two
+     digits per country: the shortest and the longest thing that can legitimately be dialed into it,
+     because a country with short area codes and long mobiles needs a range and not a number (a
+     German landline can be six digits, an Italian mobile ten). Keyed by ISO, since that is how the
+     list above is written, and read by dial code below, because the dial code is all a form posts.
+     Nothing in here is a wall: it is what a page says while a person is still typing, and the door
+     behind it keeps the loose seven to fifteen so a real lead is never lost to this table being a
+     digit off. Source: the ITU national numbering plan, rounded outward where a plan is loose. */
+  const LENGTHS = {
+    AE: [8, 9], SA: [9, 9], QA: [8, 8], BH: [8, 8], KW: [8, 8], OM: [8, 8], EG: [9, 10],
+    JO: [8, 9], LB: [7, 8], IQ: [9, 10], IL: [8, 9], PS: [8, 9], SY: [8, 9], IR: [10, 10],
+    UZ: [9, 9], AZ: [9, 9], MA: [9, 9], TN: [8, 8], DZ: [9, 9],
+    GB: [9, 10], DE: [6, 11], FR: [9, 9], IT: [6, 11], ES: [9, 9], NL: [9, 9], BE: [8, 9],
+    GR: [10, 10], CH: [9, 9], AT: [7, 12], DK: [8, 8], SE: [7, 9], NO: [8, 8], PL: [9, 9],
+    PT: [9, 9], RU: [10, 11],
+    US: [10, 10], MX: [10, 10], AR: [10, 11], BR: [10, 11], CL: [8, 9], CO: [10, 10],
+    IN: [10, 10], PK: [9, 10], TW: [8, 9], JP: [9, 10], KR: [9, 11], CN: [10, 12],
+    SG: [8, 8], MY: [9, 10], TH: [9, 9], PH: [9, 10], ID: [9, 12], LK: [9, 9],
+    AU: [9, 9], NZ: [8, 10], ZA: [9, 9], NG: [10, 11], KE: [9, 10], GH: [9, 10],
+  };
+
   /* One alphabet for matching, so 'Türkiye' and 'turkiye' are the same word and a stray
      capital never hides a country. */
   const norm = s => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -43,6 +64,31 @@ window.BoasisCountryPicker = (function () {
       || norm(p[0]).startsWith(q)
       || (!!d && p[2].includes(d))
       || String(ALIASES[p[0]] || '').split(' ').some(w => w && w.startsWith(q)));
+  }
+
+  /* The same table, indexed by the thing a form holds. A dial code shared by two countries (+7,
+     +1) takes the wider of the two, which is the safe direction for a guess. */
+  const BY_CODE = {};
+  for (const [iso, , dial] of COUNTRIES) {
+    const w = LENGTHS[iso];
+    if (!w) continue;
+    const had = BY_CODE[dial];
+    BY_CODE[dial] = had ? [Math.min(had[0], w[0]), Math.max(had[1], w[1])] : w;
+  }
+  const LOOSE = [7, 15];                    // the floor every door on this site already enforces
+
+  /* the digits worth counting: the code is in its own control, and the leading zero a number
+     starts with at home is a trunk prefix, not part of the number, except in North America where
+     there is no trunk prefix to drop */
+  function significant(code, d) { return code === '+1' ? d : d.replace(/^0+(?=\d)/, ''); }
+
+  /* the range that applies to a code the form is holding, and whether this number is inside it */
+  function lengthOf(code) { return BY_CODE[code] || LOOSE; }
+  function ok(code, raw) {
+    const d = digits(raw);
+    const w = lengthOf(code);
+    const n = significant(code, d).length;
+    return { empty: !d, valid: n >= w[0] && n <= w[1], min: w[0], max: w[1], got: n };
   }
 
   let n = 0;
@@ -101,6 +147,11 @@ window.BoasisCountryPicker = (function () {
       cur.textContent = it[0];
       codeEl.textContent = it[2];
       mark();
+      /* the page holding this picker may be judging a phone number against the country it just
+         stopped being, so a change is said out loud rather than left as a label nobody listens to.
+         An event on the wrapper, bubbling: a page that does not care pays nothing, and a page that
+         does never has to reach inside this file. */
+      cc.dispatchEvent(new CustomEvent('codechange', { bubbles: true, detail: { code: input.value } }));
       return true;
     };
 
@@ -193,5 +244,5 @@ window.BoasisCountryPicker = (function () {
     return { reset, close, setCode, code: () => input.value };
   }
 
-  return { init };
+  return { init, lengthOf, ok, LENGTHS };
 })();

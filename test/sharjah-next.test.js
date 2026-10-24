@@ -158,8 +158,8 @@ test('the form asks what the design asked, in the fields the record already has'
   assert.match(h, /class="cc-btn"[^>]*aria-haspopup="listbox"[^>]*aria-expanded="false"/,
     'the closed control is a listbox to a screen reader and says so before it is opened');
   assert.match(h, /class="cc-search"[^>]*inputmode="search"/, 'the panel opens with a search box, as it does on /contact');
-  assert.match(h, /<script src="\/js\/countries\.js"><\/script>\n<script src="\/js\/sharjah-next\.js\?v=\d+"><\/script>/,
-    'the file that drives it is the site\'s own, loaded first, and this page\'s script still carries a version');
+  assert.match(h, /<script src="\/js\/countries\.js\?v=\d+"><\/script>\n<script src="\/js\/sharjah-next\.js\?v=\d+"><\/script>/,
+    'the file that drives it is the site\'s own, loaded first, versioned on this page as well, because a tablet at a stand keeps whatever it was given at ten in the morning');
   assert.ok(h.includes('.cc-btn{display:flex;align-items:center;gap:8px') && h.includes('.cc-list li[aria-selected="true"]{color:var(--bo-teal)}'),
     'its rules are copied out of css/site.css as they are written there, not restyled here');
   assert.match(h, /\.cc-pop\{width:min\(252px, calc\(100vw - 40px\)\)\}/, 'and on a small phone the panel cannot hang off the side of the screen');
@@ -201,8 +201,17 @@ test('the email and the number are checked by the site\'s rules, on the page and
   assert.match(js, /const digits=v=>String\(v==null\?''\:v\)\.replace\(\/\\D\/g,''\)/, 'the box holds digits, because the code has its own control');
   assert.match(js, /if\(d!==raw\) F\['phone'\]\.value=d;/, 'and what they typed is tidied as they type it, not after the send');
   assert.match(js, /setErr\('email', e&&!validEmail\(e\)\?'eEmail':''\)/, 'a wrong field says so while it is being written');
-  assert.match(js, /setErr\('phone', d&&!validPhone\(d\)\?'ePhone':''\)/, 'and so does a short number');
+  assert.match(js, /setErr\('phone', st\.empty\|\|st\.ok\?'':'ePhone'\)/, 'and so does a number shorter than that country asks for');
+  assert.match(read('js/countries.js'), /new CustomEvent\('codechange'/, 'and the picker says the day the code changes, so a page can rejudge');
   assert.match(js, /data\.phone=digits\(data\.phone\);/, 'what is posted is the number alone, the code travelling beside it');
+  /* the length a number has to reach is the picked country's, and it is written beside the list */
+  const cjs = read('js/countries.js');
+  assert.match(cjs, /const LENGTHS = \{[\s\S]{0,2400}AE: \[8, 9\][\s\S]*?IN: \[10, 10\]/, 'the ranges are there: eight to nine for the Emirates, ten for India');
+  assert.match(cjs, /BY_CODE\[dial\] = had \? \[Math\.min/, 'two countries on one code take the wider range, never the narrower');
+  assert.match(cjs, /const LOOSE = \[7, 15\];/, 'and a code the table does not know falls back to the door\'s own rule');
+  assert.match(cjs, /return \{ init, lengthOf, ok, LENGTHS \};/, 'exported, so every page that asks for a number can ask the same file');
+  assert.match(js, /CP\.ok\(code\(\), d\)\.valid/, 'this page asks it, rather than holding its own copy of what India looks like');
+  assert.match(js, /addEventListener\('codechange', rejudgePhone\)/, 'and it rejudges the number the moment the country changes, without waiting for a keystroke');
   assert.match(js, /const REFUSE=\{email:\['email','eEmail'\],phone:\['phone','ePhone'\]/,
     'and if the door still refuses one of the two, the note goes under that field rather than under the button');
 });
@@ -273,19 +282,35 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
   d.getElementById('first_name').value = 'Navaira <img src=x onerror="window.__pwned=1">';
   d.getElementById('last_name').value = "O'Brien";
   d.getElementById('email').value = 'n@corp.example';
-  d.getElementById('phone').value = '50 123 4567';
-  d.getElementById('phone').value = '050 123-45 67';
-  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
-  assert.equal(d.getElementById('phone').value, '0501234567', 'the number keeps its digits and loses its spaces and dashes as it is typed');
-  assert.equal(d.querySelector('[data-err="phone"]').textContent, '', 'and stays quiet, because seven digits is a real number');
-  d.getElementById('phone').value = '5012';
-  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
-  assert.equal(d.querySelector('[data-err="phone"]').textContent.trim(), 'Please enter a valid number.', 'four digits is told to the person, before the button');
+
+  /* the number is judged against the country the picker is on, and that is India now: nine digits
+     is not a number there, so it is said out loud before the button is ever pressed */
+  const typePhone = v => {
+    const el = d.getElementById('phone');
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+  };
+  const phoneErr = () => d.querySelector('[data-err="phone"]').textContent.trim();
+  typePhone('987 654 321');
+  assert.equal(d.getElementById('phone').value, '987654321', 'the box keeps every digit and loses the spaces, as it is typed');
+  assert.equal(phoneErr(), 'Please enter a valid number.', 'nine digits under +91 is too few, and the page says so before the button');
   d.querySelector('.cta').click();
   assert.equal(posts.length, 0, 'and nothing is posted while a field is wrong');
-  d.getElementById('phone').value = '0501234567';      // righted, and it stays right
-  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
-  assert.equal(d.querySelector('[data-err="phone"]').textContent, '', 'the note goes away the moment the number is a number');
+  typePhone('9876543210');
+  assert.equal(phoneErr(), '', 'and it goes quiet on the tenth digit, which is the length that country asks for');
+
+  /* and the other way round: changing the country rejudges what is already typed, rather than
+     leaving a green tick on a number that stopped being a number one field to the left of it */
+  d.querySelector('.cc-btn').click();
+  find.value = 'uae';
+  find.dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.deepEqual([...d.querySelectorAll('.cc-list li')].map(li => li.textContent.trim()), ['United Arab Emirates+971'],
+    'the search knows the short name nobody writes in full, which is why "uae" finds the Emirates');
+  d.querySelector('.cc-list li').click();
+  assert.equal(phoneErr(), 'Please enter a valid number.', 'and ten digits under +971 is one too many, told at once');
+  typePhone('050 123-45 67');
+  assert.equal(d.getElementById('phone').value, '0501234567', 'the zero they typed for a local call stays in the box, because it is the door that drops it');
+  assert.equal(phoneErr(), '', 'and nine digits after that zero is a whole UAE number');
   d.querySelector('input[name=consent]').checked = true;
   d.querySelector('.cta').click();
   await new Promise(r => setTimeout(r, 250));
@@ -295,7 +320,7 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
   const create = posts.find(p => p.url.includes('sharjah-lead')) || { body: '{}' };
   const body = JSON.parse(create.body);
   assert.equal(body.phone, '0501234567', 'the number that arrives is digits, nothing else, and the trunk zero is the door\'s to drop');
-  assert.equal(body.country_code, '+91', 'and the code is the one the picker was left on');
+  assert.equal(body.country_code, '+971', 'and the code is the one the picker was left on');
   assert.equal(body.full_name, "Navaira <img src=x onerror=\"window.__pwned=1\"> O'Brien",
     'the two fields the design drew arrive as the one name every door here reads, quotes and all, unfixed');
   assert.equal(body.source, 'sharjah-next-2026', 'and which offer it came for');
