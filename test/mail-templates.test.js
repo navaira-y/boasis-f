@@ -125,3 +125,40 @@ test('a name with no space, and an empty name, both survive', () => {
   assert.doesNotThrow(() => T.waitlistToUser({ name: '', email: 'a@b.co', intent: 'standard', at: Date.now() }));
   assert.match(T.waitlistToUser({ name: '', email: 'a@b.co', intent: 'standard', at: Date.now() }).text, /there/);
 });
+
+/* ── the three Sharjah Next mails, as the event team drew them ─────────────────────
+   Their file is the copy of record (spark-email.html), so the subjects and the sentences are asserted
+   against it here rather than against taste, and the trigger is asserted to live in exactly one place:
+   lib/spark.js reads SPARK_SN_MAIL, so changing when they go is a line there and not a hunt. */
+test('the Sharjah Next mails say what the design file says, and only those three go to a stand row', () => {
+  const T = require('../lib/mail-templates.js');
+  const m1 = T.sharjahCongrats({ name: 'Mihail-Gabriel Marginean', ref: 'SN-0147', pack: 'Beyond' });
+  assert.equal(m1.subject, 'Congratulations, you’re one step away from your license! Reference SN-0147');
+  assert.ok(m1.html.includes('Your application is in.'), 'the first line is the design\'s, word for word');
+  assert.ok(m1.html.includes('head to Zone 2 with this number to complete your payment'), 'and so is the way to Zone 2');
+  assert.ok(m1.html.includes('SN-0147'), 'their reference number is in it, in the dashed gold box the design drew');
+
+  const m2 = T.sharjahPaid({ name: 'Mihail Two', ref: 'SN-0148' });
+  assert.equal(m2.subject, 'Welcome to SPARK · Reference SN-0148');
+  assert.ok(m2.html.includes('PAID') && m2.html.includes('Strike a pose with Mira'), 'the receipt carries the badge and the robot');
+  assert.ok(m2.html.includes('@shjrtipark and @boasisae'), 'and the two accounts to tag');
+
+  const m3 = T.sharjahReminder({ name: 'Mihail Three', ref: 'SN-0149' });
+  assert.equal(m3.subject, 'Your Sharjah Next offer is waiting for you in Zone 2');
+  assert.ok(m3.html.includes('first 100 applicants') && m3.html.includes('Already paid? Please ignore this email.'),
+    'the nudge keeps the reason and the apology, as drawn');
+
+  for (const m of [m1, m2, m3]) {
+    assert.match(m.html, /background:#FBF7EA/, 'the band is the sand of their palette');
+    assert.ok(m.html.includes('/assets/brand/sharjah-next.png') && m.html.includes('/assets/brand/spark.png'),
+      'the two event marks are absolute addresses, which is all a mail client will fetch');
+    assert.ok(m.html.includes('Powered by'), 'and the navy strip says who powers it');
+    assert.ok(!/style="[^"]*expression|<script/.test(m.html), 'no script, nothing a client has to be talked into');
+    assert.ok(m.text.includes('The SPARK Team'), 'every one signs the same way, in text too');
+  }
+  /* the AI Everything note is another event's words, so a Sharjah row must never be sent it */
+  const spark = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
+  assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\)[\s\S]*notifySpark\(/,
+    'the old note is gated on the source, and only on the source');
+  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'submit'/, 'the trigger is one constant, and it is on for the testing');
+});

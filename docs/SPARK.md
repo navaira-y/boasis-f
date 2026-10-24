@@ -550,6 +550,19 @@ The rehearsal stub knows the page keeps its door in the markup: `scripts/spark-s
 `node scripts/spark-stub.js` rehearses this entrance against its own bucket and never reaches the live
 project, whichever file the address happens to live in.
 
+**The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
+the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2
+nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
+`lib/mail-templates.js`, in their palette and their box, signed The SPARK Team, with the two marks at
+`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. Right now all three go
+to the visitor the moment the form is in, which is the testing state they asked for, and nothing goes to
+the team. That is decided by one line in `lib/spark.js`: `SPARK_SN_MAIL` defaults to `submit`, and
+`SPARK_SN_MAIL=off` closes all three without a code change. When the real schedule is settled, the
+second and third move to whatever answers it (a payment webhook, or a timer for the 90 minute nudge) and
+the subjects do not change. A Sharjah Next row is never sent the AI Everything note, because that one
+thanks a different event. `docs/mail/sharjah-1-congrats.html` and its two siblings are the three,
+rendered, to open in a browser before anyone's inbox is used.
+
 **How a row finds its table.** Only the entrance knows. `js/sharjah-next.js` sends
 `page: 'sharjah-next'` to `create-pass`, `tableFor` turns that into `sharjah_next_leads`, and the row
 is written there. After that nobody has to remember: `save-step` and `get-lead` take the pass alone
