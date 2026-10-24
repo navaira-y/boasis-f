@@ -57,64 +57,79 @@ test('the event page answers at its address, with its own headers', async () => 
     const r = await get(p);
     const body = await r.text();
     assert.equal(r.status, 200, p + ' is where the screen and the QR point, saw ' + r.status);
-    assert.match(body, /id="eventForm"/, p + ' hands out the form itself');
+    assert.match(body, /id="snForm"/, p + ' hands out the form the design drew');
     assert.equal(r.headers.get('x-robots-tag'), 'noindex, nofollow', p + ' is refused to the index in the header as well as the page');
     const csp = r.headers.get('content-security-policy') || '';
     assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post for a pass, and that is the only widening');
     assert.match(csp, /frame-src[^;]*brain\.boasis\.ae/, p + ' is allowed to frame the Brain');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script stays forbidden on it');
   }
-  for (const p of ['/js/spark-event.js', '/js/yara-orb.js', '/js/countries.js', '/assets/orb/orb.mp4', '/assets/logo/orb-512.png']) {
+  for (const p of ['/js/spark-event.js', '/assets/logo/orb-160.png', '/assets/icons/favicon-32.png', '/privacy', '/terms']) {
     const r = await get(p);
     assert.equal(r.status, 200, p + ' has to be reachable or the page loads half dressed');
   }
+  /* the two event logos and the photograph behind the hero are the event organiser's own artwork. They
+     are not ours to redraw, so the page asks for them at these three addresses and the folder carries
+     a note about what to drop in. Until they are there the header shows the alt text and the hero shows
+     its night colour, which is the one thing about the page that is allowed to look unfinished. */
+  for (const p of ['/assets/brand/sharjah-next.png', '/assets/brand/spark.png', '/assets/brand/hero.jpg']) {
+    assert.ok(HTML().includes(p), p + ' is the address the page asks for the artwork at');
+  }
+  assert.ok(fs.existsSync(path.join(ROOT, 'assets/brand/README.md')), 'and the folder says what has to be put in it');
 });
 
-test('it is the same page as /try-mira where the two should agree, and different where they must not', () => {
-  const event = HTML(), other = read('try-mira.html');
-  /* the theme, rule for rule: the header capsule, the night behind it, the orb, the phone pill and
-     the reduced motion answer. Both pages carry the same text, so a fix to one is a fix to the
-     site rather than a difference to discover on a phone at a stand. */
-  const share = ['--bo-night:#0B0D12', '.nav-bar{', 'rgba(11,13,18,.97)', '.mf-phone{', '.orbwrap{',
-    '@media (prefers-reduced-motion:reduce)', '.step::after{', '.cc-pop{'];
-  for (const rule of share) {
-    assert.ok(event.includes(rule), 'the theme rule ' + rule.slice(0, 26) + ' is the site\'s own, carried over, not rewritten');
-    assert.ok(other.includes(rule), 'and ' + rule.slice(0, 26) + ' says the same thing on /try-mira');
+test('it is the design\'s own theme, token for token, with nothing of the site\'s stylesheet in it', () => {
+  const h = HTML();
+  /* the palette the Sharjah Next proposal was drawn in, kept exactly as it was written: one :root
+     block, the same names, the same order, so a change to the event artwork is a change to one file */
+  const share = ['--sand:#F4F0E3', '--paper:#FFFDF6', '--sand2:#E7E3D5', '--line:#DCD6C2', '--line2:#C9C2A8',
+    '--logo:#A3A35A', '--olive:#6A7345', '--olive-d:#4E5532', '--gold:#C7A759', '--gold-d:#8E7430',
+    '--ink:#1F2414', '--muted:#5E6250', '--navy:#17365E', '--night:#0B0D12', '--mira:#5FD3E8', '--err:#B3261E'];
+  for (const tok of share) assert.ok(h.includes(tok), 'the design defines ' + tok + ' and so does the page');
+  for (const f of ['Outfit', 'Plus Jakarta Sans', 'IBM Plex Mono']) assert.ok(h.includes(f), f + ' is the typeface the design asked for');
+  /* the shape of it: the safe-area gutter, the 560 measure that grows at the two breakpoints, and the
+     boasis night variant of the form box with the orb that breathes */
+  for (const rule of ['--gut:max(18px, env(safe-area-inset-left))', '.wrap{max-width:560px', '@media(min-width:640px)',
+    '@media(min-width:1000px)', '.bo{background:var(--night)', '@keyframes breathe', '.hp{position:absolute!important',
+    'input:focus,select:focus', '@media(prefers-reduced-motion:reduce)']) {
+    assert.ok(h.includes(rule), 'and it is built the same way: ' + rule.slice(0, 34));
   }
-  assert.match(event, /<script src="\/js\/spark-event\.js\?v=\d+"><\/script>/,
-    'its script is asked for with a version, so a phone at the stand cannot hold the old one');
-  assert.ok(event.indexOf('/js/countries.js') < event.indexOf('/js/spark-event.js'), 'the shared picker loads before the page script that calls it');
-  assert.ok(!/<script>[\s\S]*?<\/script>/.test(event), 'no inline script, because the policy forbids it here as it does everywhere else on the site');
-  assert.ok(!/\son[a-z]+="/.test(event), 'and no inline handler either, so the script tag is the only thing that runs');
-  const mine = (event.match(/ style="/g) || []).length, theirs = (other.match(/ style="/g) || []).length;
-  assert.ok(mine <= theirs + 1, 'the inline styles are the handful the other page already carries, ' + mine + ' against ' + theirs);
+  assert.ok(!/css\/site\.css/.test(h), 'it links no stylesheet of ours, because it is not trying to be a page of the site');
+  assert.ok(!/href="https?:\/\/(?!fonts\.)/.test(h), 'and it loads nothing from outside but the fonts it names');
+  assert.match(h, /<script src="\/js\/spark-event\.js\?v=\d+"><\/script>/,
+    'its script is asked for with a version, so a phone at a stand cannot hold the old one');
+  assert.ok(!/<script[\s>][\s\S]*?<\/script>/.test(h.replace(/<script src=[^>]*><\/script>/g, '')),
+    'no inline script, because the policy forbids it here as it does everywhere else on the site');
+  assert.ok(!/\son[a-z]+="/.test(h), 'and no inline handler either, so the script tag is the only thing that runs');
+  assert.ok(!/\bunsafe-inline\b/.test(h), 'the page never asks to loosen that for itself');
 });
 
 test('the copy is the words the design handed over, in the order it gave them', () => {
   const t = text(HTML());
   const need = [
-    'Sharjah Next offer · 28 & 29 Oct',
-    'Your SPARK company, at the event price',
-    'Beyond', 'AED 1,510', 'year 1', '1 activity', '1 shareholder', 'Free lease',
-    'Beyond+', 'AED 3,010', 'from, year 1', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options',
+    'Sharjah Next offer · 28 & 29 Oct', 'Your SPARK company, at the event price',
+    'AED 7,800', 'year 1', 'from, year 1', '1 activity', '1 shareholder', 'Free lease',
     'For these 5 sectors', 'Sustainability', 'Advanced Manufacturing', 'Mobility & Logistics', 'Healthcare',
-    'AI & Digital Transformation',
-    'Hi. I’m Mira.', 'A few details, and we start.',
+    'AI & Digital Transformation', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options',
+    "Hi. I'm Mira. A few details, and we start.",
     'First name', 'Last name', 'Email', 'Mobile number',
     'I agree that SPARK and Boasis may contact me about my project.',
     'Start with Mira',
-    'Mira is ready for you', 'If she didn’t open automatically, tap below.', 'Talk to Mira',
+    'Mira is ready for you', "If she didn't open automatically, tap below.", 'Talk to Mira',
     'How it works',
     'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
     'Finish in Zone 2, Block B', 'Show your reference, apply and pay. Follow the green signs.',
     'Open on 28 and 29 October only.', 'Complete your payment in Zone 2 before you leave.',
+    'Powered by',
   ];
   for (const s of need) assert.ok(t.includes(s), 'the design says "' + s + '" and so does the page');
   const order = ['Tell Mira what you do', 'Choose your activities', 'Get your reference number', 'Finish in Zone 2, Block B'];
   assert.deepEqual(order.slice().sort((a, b) => t.indexOf(a) - t.indexOf(b)), order, 'the four points stay in the order the design gave them');
   assert.ok(t.indexOf('Your SPARK company') < t.indexOf('Start with Mira'), 'the offer is read before the form is filled');
+  assert.ok(!/lorem|TODO|FIXME/i.test(t), 'nothing is left to be filled in');
+  assert.ok(!/src="#"|src=""/.test(HTML()), 'and no picture is asked for from nowhere');
 });
 
 test('the form asks what the design asked, in the fields the record already has', () => {
@@ -123,27 +138,116 @@ test('the form asks what the design asked, in the fields the record already has'
     assert.ok(new RegExp('name="' + n + '"').test(h), n + ' is in the form');
   }
   assert.ok(!/name="residence"/.test(h), 'and this page does not ask where they live, because the design does not');
-  assert.ok(/type="hidden" name="country_code"/.test(h), 'the dial code travels as the hidden field the shared picker writes');
+  assert.ok(!/name="company"/.test(h), 'nor what their company is called, because Mira asks that next');
+  assert.match(h, /<select name="country_code"/, 'the dial code is the design\'s own country pill');
+  assert.equal((h.match(/<option value="\+\d+"/g) || []).length, 18, 'and it holds the eighteen codes it was drawn with');
+  assert.ok(/<option value="\+971" selected>/.test(h), 'with the UAE showing first, because the stand is in Sharjah');
   assert.match(h, /<div class="hp"[\s\S]*?name="hp"/, 'the honeypot is there, hidden from a person and not from a bot');
   const js = JS();
-  assert.match(js, /data\.full_name = \(\(F\.first_name\.value[\s\S]*last_name/,
+  assert.match(js, /data\.full_name = \(\(F\['first_name'\]\.value[\s\S]*last_name/,
     'the two names are joined into the one field every door here reads, so the record does not change shape');
+  assert.match(js, /data\.page = CFG\.page/, 'and the page says which table the row belongs in');
 });
 
-test('the script points at the same door as /try-mira and says which page it is', () => {
-  const js = JS();
+test('the script points at the same door as /try-mira, and the button actually walks through it', () => {
+  const js = JS(), h = HTML();
   assert.match(js, /endpoint: 'https:\/\/grsbhupjihwvidxbkymu\.supabase\.co\/functions\/v1\/create-pass'/,
     'the live page posts at the deployed function, the same one the other entrance uses');
-  assert.match(js, /source: 'sharjah-next-2026'/, 'and the row is stamped with the offer it came from');
+  assert.match(h, /data-endpoint="https:\/\/grsbhupjihwvidxbkymu\.supabase\.co\/functions\/v1\/create-pass"/,
+    'and the form names that address where the design had left its own');
+  assert.match(js, /source: 'sharjah-next-2026'/, 'the row is stamped with the offer it came from');
   assert.match(js, /page: 'spark-event'/, 'plus which table it belongs in');
-  assert.match(js, /var LS = 'boasis\.spark-event\.v1'/, 'its own localStorage key, so the two entrances never hand over each other\'s visit');
-  assert.notEqual(js.match(/var LS = '([^']+)'/)[1], read('js/try-mira.js').match(/var LS = '([^']+)'/)[1],
+  assert.match(js, /LS = 'boasis\.spark-event\.v1'/, 'its own localStorage key, so the two entrances never hand over each other\'s visit');
+  assert.notEqual(js.match(/LS = '([^']+)'/)[1], read('js/try-mira.js').match(/LS = '([^']+)'/)[1],
     'that key is genuinely different from the other page\'s');
-  assert.ok(/window\.BoasisCountryPicker\.init/.test(js), 'the phone pill is the shared picker, not a copy');
-  assert.ok(/fetch\('\/api\/spark-thanks'/.test(js), 'and the receipt mail is the same door, fired and forgotten');
+  assert.match(js, /brainUrl: 'https:\/\/brain\.boasis\.ae'/, 'Mira is the Brain, not the placeholder address the design shipped with');
+  assert.match(js, /'pass=' \+ encodeURIComponent\(pass\)/, 'and the pass travels in the address, which is the only way the record follows the person');
+  assert.match(js, /fetch\('\/api\/spark-thanks'/, 'the receipt mail is the same door, fired and forgotten');
+  assert.match(js, /keepalive: true/, 'fired so it survives the jump to Mira');
+  assert.match(js, /if \(F\['hp'\]\.value\) return/, 'the honeypot is honoured before anything is posted');
+  assert.match(js, /if \(!valid\(\)\) return/, 'and nothing is posted until the fields the design asked for are filled');
+  assert.ok(!/SEND\s*=\s*false/.test(js + h), 'no switch left that makes the button do nothing');
+  assert.ok(!/boasis\.ae\/mira/.test(js + h), 'and no placeholder address left where Mira was guessed at');
   /* the server is given the same project host for connect-src, and a test on the other page already
-     fails if those two hosts disagree; this one checks the page script is not the place a host is set */
-  assert.equal((js.match(/supabase\.co/g) || []).length, 1, 'one project host in the file, no second opinion about where to post');
+     fails if those two hosts disagree; these two check the page never invents a third place to post */
+  assert.equal((js.match(/supabase\.co/g) || []).length, 1, 'one project host in the script, no second opinion about where to post');
+  assert.equal((h.match(/supabase\.co/g) || []).length, 1, 'and one in the page');
+});
+
+test('the page cannot be talked into showing, sending or opening anything it was not given', () => {
+  const h = HTML(), js = JS();
+  /* nothing that could read as a credential travels in a page a stand leaves on a screen */
+  assert.ok(!/eyJ[A-Za-z0-9_-]{20,}/.test(h + js), 'no service key in either file, in either form');
+  assert.ok(!/\b(anon|publishable|apikey|api_key|service_role)\b/.test(h + js), 'and no key of any kind, so a pass is the only credential there is');
+  /* the strings on screen come from one dictionary, the only place innerHTML is written */
+  assert.equal((js.match(/innerHTML/g) || []).length, 1, 'one place puts markup on the page, and it is paint()');
+  assert.match(js, /el\.innerHTML = t\(el\.dataset\.k\)/, 'from the dictionary, which holds the design\'s copy and no answer from anywhere');
+  assert.ok(/textContent = (?:msg|ek \? t\(ek\) : '')/.test(js), 'the errors and the note are text, so a name cannot be a tag');
+  assert.ok(!/\beval\(|new Function|document\.write/.test(js), 'and nothing is compiled or written into the document');
+  /* what the door answers is trimmed to what it must be before it is trusted */
+  assert.match(js, /PASS_RE = \/\^PASS\[/, 'a pass is eight characters from the alphabet the door uses, from a file that only exists to be read');
+  assert.ok(/function safeBrain/.test(js) && /\^https\?:/.test(js),
+    'and the Brain address is checked to be an http(s) page before it becomes a link or a location');
+  assert.ok(!/location\.href\s*=\s*(?!url)/.test(js.replace(/location\.href = url/g, 'location.href=url')), 'the only thing the page navigates to is that checked address');
+  /* the two doors a bot is expected to come through */
+  assert.match(js, /if \(F\['hp'\]\.value\) return/, 'the field no person sees throws the attempt away before the fetch');
+  assert.match(js, /data\._t = Math\.max\(1, Date\.now\(\) - opened\)/, 'and how long the form was open is sent, for the door to judge');
+  assert.ok(!/fetch\([^)]*method: 'GET'[^)]*full_name/.test(js), 'nothing is put in an address, where a shoulder and a browser history would read it');
+  /* and the page is not offered to the world as something to crawl, twice over */
+  assert.match(h, /<meta name="robots" content="noindex, nofollow, noarchive">/, 'in the page');
+  assert.ok(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes('Disallow: /spark-event'), 'and in the robots file');
+});
+
+/* jsdom is not a dependency of this site, it is a thing a developer installs to look at a page, so
+   this whole check is skipped where it is absent rather than failing a build for a missing extra. */
+let JSDOM = null;
+try { JSDOM = require('jsdom').JSDOM; } catch (e) { /* skip below */ }
+
+test('the page as shipped fills itself, validates, joins the names and hands Mira a pass', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
+  const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/spark-event', runScripts: 'dangerously', pretendToBeVisual: true });
+  const w = dom.window, posts = [];
+  w.__pwned = false;
+  w.alert = () => { w.__pwned = true; };
+  w.fetch = (u, o) => {
+    posts.push({ url: String(u), body: (o && o.body) || '' });
+    if (String(u).includes('create-pass')) {
+      return Promise.resolve({ json: () => Promise.resolve({ ok: true, pass: 'PASSAB12CD34', brain_url: 'https://brain.boasis.ae' }) });
+    }
+    return Promise.resolve({ json: () => Promise.resolve({ ok: true }) });
+  };
+  w.eval(JS());
+  const d = w.document;
+  assert.deepEqual([...d.querySelectorAll('[data-k]')].filter(el => !el.textContent.trim()).map(el => el.dataset.k), [],
+    'every label on the page found its text in the dictionary, so no string is silently blank');
+
+  d.getElementById('fn').value = 'Navaira <img src=x onerror="window.__pwned=1">';
+  d.getElementById('ln').value = "O'Brien";
+  d.getElementById('em').value = 'n@corp.example';
+  d.getElementById('ph').value = '50 123 4567';
+  d.querySelector('input[name=consent]').checked = true;
+  d.querySelector('.cta').click();
+  await new Promise(r => setTimeout(r, 250));
+
+  const sent = posts.map(p => p.url);
+  assert.ok(sent.some(p => p.includes('/functions/v1/create-pass')), 'the button posts for a pass at the door, not at a demo endpoint');
+  assert.ok(sent.some(p => p.endsWith('/api/spark-thanks')), 'and asks once for the receipt');
+  const create = posts.find(p => p.url.includes('create-pass')) || { body: '{}' };
+  const body = JSON.parse(create.body);
+  assert.equal(body.full_name, "Navaira <img src=x onerror=\"window.__pwned=1\"> O'Brien",
+    'the two fields the design drew arrive as the one name every door here reads, quotes and all, unfixed');
+  assert.equal(body.page, 'spark-event', 'the row says which entrance it came from, which is all that picks its table');
+  assert.equal(body.source, 'sharjah-next-2026', 'and which offer it came for');
+  assert.equal(body.consent, 'on', 'the tick box travels, because the row is the proof somebody agreed');
+  assert.ok(!('hp' in body), 'the honeypot field is never posted');
+  assert.equal(body.country_code, '+971', 'and the dial code the pill was showing when they pressed it');
+  assert.ok(Number(body._t) >= 1, 'with how long the form was open, for the door to judge');
+  assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
+  assert.equal(d.getElementById('miraLink').href, 'https://brain.boasis.ae/?pass=PASSAB12CD34',
+    'with the pass in the address, which is the one thing that makes Mira their Mira');
+  assert.ok(!w.__pwned, 'and a name written as markup stays a name');
+  const stored = JSON.parse(w.localStorage.getItem('boasis.spark-event.v1'));
+  assert.equal(stored.pass, 'PASSAB12CD34', 'the pass is kept under this page\'s own key, so a returning phone goes back to the Brain');
+  assert.match(JSON.stringify(stored), /"at":\d+/, 'with the hour it was given, because it stops being a key after a day');
 });
 
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {
@@ -158,7 +262,11 @@ test('nothing on the site links it, every crawler is told to leave it out, and n
   const sm = await get('/sitemap.xml');
   assert.ok(!/spark-event/.test(await sm.text()), 'it is in no sitemap');
   const r = await get('/spark-event');
-  assert.match(HTML(), /<meta name="robots" content="noindex, nofollow">/, 'the page says it itself as well');
+  assert.match(HTML(), /<meta name="robots" content="noindex, nofollow, noarchive">/, 'the page says it itself as well, in the head where a crawler reads it');
+  const head = HTML().slice(0, HTML().indexOf('</head>'));
+  for (const tag of ['<title>', 'name="description"', 'name="theme-color"', 'name="format-detection"']) {
+    assert.ok(head.includes(tag), tag + ' is inside <head>, which is where the design had left it out and a browser looks for it');
+  }
   assert.equal(r.status, 200);
 });
 
@@ -229,7 +337,7 @@ test('the night-before rehearsal runs this page too, and keeps the two crowds ap
   try {
     const page = await at('/spark-event');
     assert.equal(page.status, 200, 'the rehearsal serves the event page at the same address the print says');
-    assert.match(await page.text(), /id="eventForm"/, 'and it is the same file, not a second copy to fall out of date');
+    assert.match(await page.text(), /id="snForm"/, 'and it is the same file, not a second copy to fall out of date');
     const js = await (await at('/js/spark-event.js')).text();
     assert.match(js, /endpoint: '\/functions\/v1\/create-pass'/, 'the stub is what fills in where to post, so the rehearsal never reaches the live project');
     assert.match(js, /brainUrl: '\/brain'/, 'and where the person goes after');

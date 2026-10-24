@@ -514,10 +514,32 @@ the two lists are counted, exported and cleaned up on different days.
 
 | file | what it is |
 |---|---|
-| `spark-event.html` | the page, in the site's own theme, with the design's copy |
+| `spark-event.html` | the design file itself: its palette, its type, its sections, its copy |
 | `js/spark-event.js` | the form, the pass, the frame, the receipt, its own localStorage key |
 | `demo/supabase/spark-event.sql` | `public.spark_event_leads`, same columns as the first table |
 | `demo/supabase/functions/_shared/spark-supabase.js` | `TABLES` and `tableFor`, the one place a page is turned into a table |
+
+**The design is the theme.** This page does not wear the site's stylesheet. It is the file the event
+team handed over, with its sand and olive palette, Outfit and Plus Jakarta Sans, the 560px measure
+that grows at 640 and 1000, the offer card, the sector pills, the four points and the night variant of
+the form box with the orb that breathes. A test reads every string on the page against the design's
+own copy list, so a reword has to be a decision and not a slip. Six things were changed, and each one
+is a line, not a look:
+
+1. the `<title>`, description, theme colour and format detection tags were sitting inside `<body>`, so
+   they moved into `<head>`, where a browser and a crawler actually read them, and `noindex, nofollow,
+   noarchive` was added there, because the page is meant to stay out of Google;
+2. the inline `<script>` became `<script src="/js/spark-event.js">`, since every page on this host is
+   served with `script-src 'self'`, and an inline block would be refused;
+3. `data-endpoint` went from `/api/event` to `create-pass`, the switch that made the button post
+   nothing was taken out, and `MIRA_URL`'s placeholder address became `https://brain.boasis.ae`;
+4. the pass is put in the address Mira is opened with (`?pass=...`), because without it the Brain does
+   not know whose journey it is having, and the record stops at the form;
+5. the orb images point at `assets/logo/orb-160.png`, which is the same artwork the design inlined as
+   base64, so the page weighs kilobytes instead of a third of a megabyte;
+6. the two event logos and the hero photograph are asked for at `/assets/brand/` rather than inlined,
+   and the three files have to be saved out of the design into that folder. Until they are there the
+   header shows alt text and the hero shows its night colour, and nothing else about the page changes.
 
 **How a row finds its table.** Only the entrance knows. `js/spark-event.js` sends
 `page: 'spark-event'` to `create-pass`, `tableFor` turns that into `spark_event_leads`, and the row
