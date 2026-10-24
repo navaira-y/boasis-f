@@ -4,9 +4,9 @@ const MIRA_URL = 'https://brain.boasis.ae';
 /* the switch the shared preview needed, on: the form sends and the person is taken to Mira */
 const SEND = true;
 /* which entrance this is, and where a pass is minted. `page` is the one extra field the door needs to
-   put the row in public.spark_event_leads rather than the AI Everything table. */
+   put the row in public.sharjah_next_leads rather than the AI Everything table. */
 const SOURCE = 'sharjah-next-2026';
-const PAGE = 'spark-event';
+const PAGE = 'sharjah-next';
 
 const T={
  en:{
@@ -89,7 +89,7 @@ form.addEventListener('submit',async e=>{
      The pass is the whole credential: it is what the Brain needs to know whose journey this is and what
      get-lead needs to hand the record back, so it goes in the address and nowhere else. One row per
      person: the door reuses it, so a second scan hands back the same pass and the same visit. */
-const LS='boasis.spark-event.v1', DAY=24*60*60*1000, PASS_RE=/^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
+const LS='boasis.sharjah-next.v1', DAY=24*60*60*1000, PASS_RE=/^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
 function clean(v){return String(v||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,64)}
 function safeBase(v){const s=String(v||'').trim();return /^https?:\/\/[^\s"'<>]+$/.test(s)?s.replace(/\/+$/,''):''}
 function brainUrl(pass){const base=safeBase(MIRA_URL);return base&&pass?base+(base.indexOf('?')<0?'?':'&')+'pass='+encodeURIComponent(pass):'#'}

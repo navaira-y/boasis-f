@@ -503,23 +503,23 @@ the address is gone it stops working by itself.
 - **the words on the page.** Placeholder from the design file. The content team replaces them in
   `try-mira.html` and nothing else changes.
 
-## The second entrance: boasis.ae/spark-event, Sharjah Next, 28 and 29 October
+## The second entrance: boasis.ae/sharjah-next, Sharjah Next, 28 and 29 October
 
 The same demo, for a different crowd, and the client's own design for it. `/try-mira` and
-`/spark-event` are two pages, one Brain, one set of doors, and **two tables**: `public.spark_leads`
-and `public.spark_event_leads`. That is the whole difference on the data side, and it is there because
+`/sharjah-next` are two pages, one Brain, one set of doors, and **two tables**: `public.spark_leads`
+and `public.sharjah_next_leads`. That is the whole difference on the data side, and it is there because
 the two lists are counted, exported and cleaned up on different days.
 
 **What is in it**
 
 | file | what it is |
 |---|---|
-| `spark-event.html` | the design file itself: its palette, its type, its sections, its copy |
-| `js/spark-event.js` | the form, the pass, the frame, the receipt, its own localStorage key |
-| `demo/supabase/spark-event.sql` | `public.spark_event_leads`, same columns as the first table |
+| `sharjah-next.html` | the design file itself: its palette, its type, its sections, its copy |
+| `js/sharjah-next.js` | the form, the pass, the frame, the receipt, its own localStorage key |
+| `demo/supabase/sharjah-next.sql` | `public.sharjah_next_leads`, same columns as the first table |
 | `demo/supabase/functions/_shared/spark-supabase.js` | `TABLES` and `tableFor`, the one place a page is turned into a table |
 
-**The page is the design file.** `spark-event.html` is the file the event team handed over, byte for
+**The page is the design file.** `sharjah-next.html` is the file the event team handed over, byte for
 byte, with its sand and olive palette, its fonts, its hero photograph and its logos still inlined as
 base64, its `Beyond` and `Beyond+` prices, its sector pills, its four points, its date chip, the night
 variant of the form box and the copy exactly as written. Five lines were changed, and each one is a
@@ -528,7 +528,7 @@ line rather than a look:
 1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
    `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
    read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
-2. the inline `<script>` became `<script src="/js/spark-event.js?v=1">`, since every page on this host
+2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=1">`, since every page on this host
    is served with `script-src 'self'` and an inline block would simply not run;
 3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
    the shared preview needed so a demo posted nothing, became `true`;
@@ -550,8 +550,8 @@ The rehearsal stub knows the page keeps its door in the markup: `scripts/spark-s
 `node scripts/spark-stub.js` rehearses this entrance against its own bucket and never reaches the live
 project, whichever file the address happens to live in.
 
-**How a row finds its table.** Only the entrance knows. `js/spark-event.js` sends
-`page: 'spark-event'` to `create-pass`, `tableFor` turns that into `spark_event_leads`, and the row
+**How a row finds its table.** Only the entrance knows. `js/sharjah-next.js` sends
+`page: 'sharjah-next'` to `create-pass`, `tableFor` turns that into `sharjah_next_leads`, and the row
 is written there. After that nobody has to remember: `save-step` and `get-lead` take the pass alone
 and look for it in each table in turn with `readLeadAny`, then write back to the one it came from. So
 the Brain is told nothing new, `page` is not its business, and a caller cannot name a table, because
@@ -565,22 +565,22 @@ of both tables are exactly as they were. `source` carries the offer, `sharjah-ne
 the field to group on if the two tables are ever read together.
 
 **The visit does not cross over.** Each page keeps its pass in its own key, `boasis.spark.v1` and
-`boasis.spark-event.v1`, because a phone that did the demo at one stand and walks into the other is
+`boasis.sharjah-next.v1`, because a phone that did the demo at one stand and walks into the other is
 two visits with two rows, and neither should be handed to the other by a shared key.
 
-**To deploy it, once.** Run `demo/supabase/spark-event.sql` in the SQL editor, then re-paste all
+**To deploy it, once.** Run `demo/supabase/sharjah-next.sql` in the SQL editor, then re-paste all
 three functions from `demo/supabase/dashboard/` (`create-pass`, `save-step`, `get-lead`), because the
 table map lives in the file they all import, and a pasted file has no folder beside it. No new
 secret, no new project, no change on the Brain, no change on Hostinger beyond the normal push.
 
-**Two days, then closed.** Delete `spark-event.html`, `js/spark-event.js` and the `Disallow:
-/spark-event` lines in `robots.txt`, and the address 404s like it never was. The table stays for the
-numbers, and `select ... from public.spark_event_leads` in the editor is the export.
+**Two days, then closed.** Delete `sharjah-next.html`, `js/sharjah-next.js` and the `Disallow:
+/sharjah-next` lines in `robots.txt`, and the address 404s like it never was. The table stays for the
+numbers, and `select ... from public.sharjah_next_leads` in the editor is the export.
 
 **The QR for it.** Same script, same rules, one flag:
 
 ```
-node scripts/make-qr.js --url=https://boasis.ae/spark-event
+node scripts/make-qr.js --url=https://boasis.ae/sharjah-next
 ```
 
 Error correction H, a hole cut on whole modules for the orb, four modules of quiet zone, and the

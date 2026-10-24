@@ -228,8 +228,8 @@ function checkPass(pass, lead, now) {
  * their own column list, and the one file per person is written the same way from all three.
  *
  * There are two tables and they are the same shape: `public.spark_leads`, created by
- * demo/supabase/spark.sql, and `public.spark_event_leads`, created by demo/supabase/spark-event.sql
- * for the page at boasis.ae/spark-event. A page names its own when it asks for a pass, and the row
+ * demo/supabase/spark.sql, and `public.sharjah_next_leads`, created by demo/supabase/sharjah-next.sql
+ * for the page at boasis.ae/sharjah-next. A page names its own when it asks for a pass, and the row
  * is found by the pass alone afterwards, so nothing outside these three functions has to know which
  * crowd a person came from. One table per entrance, rather than one filter, because the two are
  * counted, exported and cleaned up on different days.
@@ -249,7 +249,7 @@ const TABLE = "spark_leads";
    from anything a caller can type freely, it is chosen from these two keys. */
 const TABLES = {
   "": TABLE,
-  "spark-event": "spark_event_leads",
+  "sharjah-next": "sharjah_next_leads",
 };
 
 function tableFor(page) {
@@ -388,8 +388,8 @@ async function emailHashOf(email) {
 
 /* create pass · the only door into the demo
  *
- * The form at boasis.ae/try-mira posts here, and so does the one at boasis.ae/spark-event, which
- * adds one field, `page: "spark-event"`, and lands its rows in the other table. A pass is minted, one row is created for that person,
+ * The form at boasis.ae/try-mira posts here, and so does the one at boasis.ae/sharjah-next, which
+ * adds one field, `page: "sharjah-next"`, and lands its rows in the other table. A pass is minted, one row is created for that person,
  * and the answer hands back the pass and where to take them. Nothing in here trusts the caller
  * with more than the fields the form has, and nothing lets the caller name a column, a row, or a
  * table: the object the core builds is what goes in, and `pass` is the key.

@@ -1,4 +1,4 @@
--- The Sharjah Next page at boasis.ae/spark-event · the second table, run in the Supabase SQL editor
+-- The Sharjah Next page at boasis.ae/sharjah-next · the second table, run in the Supabase SQL editor
 --
 -- Same columns, same rules and same shape as public.spark_leads, in its own table: the two pages ask
 -- the same four things and hand the person to the same Mira, and the crowds are counted, exported and
@@ -9,7 +9,7 @@
 -- if not exists. If you have never run demo/supabase/spark.sql, run that one first: this file
 -- repeats the table it makes, so a fresh project gets both.
 
-create table if not exists public.spark_event_leads (
+create table if not exists public.sharjah_next_leads (
   pass          text        primary key,                 -- PASSxxxxxxxx, the whole credential
   email_hash    text,                                    -- sha256 of salt + address, never the address's neighbours
   full_name     text,
@@ -29,16 +29,16 @@ create table if not exists public.spark_event_leads (
   data          jsonb       not null                     -- the whole record, exactly as the file version holds it
 );
 
-comment on table public.spark_event_leads is 'boasis.ae/spark-event · one row per visitor · written by the same spark edge functions, table chosen by the page';
+comment on table public.sharjah_next_leads is 'boasis.ae/sharjah-next · one row per visitor · written by the same spark edge functions, table chosen by the page';
 
 -- the two lookups the code makes: by pass, and by address for a person who scans twice
-create index if not exists spark_event_leads_email_hash_idx on public.spark_event_leads (email_hash);
-create index if not exists spark_event_leads_updated_at_idx  on public.spark_event_leads (updated_at desc);
+create index if not exists sharjah_next_leads_email_hash_idx on public.sharjah_next_leads (email_hash);
+create index if not exists sharjah_next_leads_updated_at_idx  on public.sharjah_next_leads (updated_at desc);
 
 -- the lock, the same one as the first table: RLS enabled with no policies, so the anon key a browser
 -- holds reads zero rows, and an empty query in the dashboard is fixed with the service key, never
 -- with a policy.
-alter table public.spark_event_leads enable row level security;
+alter table public.sharjah_next_leads enable row level security;
 
-revoke all on table public.spark_event_leads from anon, authenticated;
-grant select, insert, update on table public.spark_event_leads to service_role;
+revoke all on table public.sharjah_next_leads from anon, authenticated;
+grant select, insert, update on table public.sharjah_next_leads to service_role;

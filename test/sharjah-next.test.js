@@ -1,4 +1,4 @@
-/* The second entrance · boasis.ae/spark-event, for Sharjah Next on 28 and 29 October
+/* The second entrance · boasis.ae/sharjah-next, for Sharjah Next on 28 and 29 October
  *
  * Three things have to stay true, and each one has a way of being quietly broken by the kind of
  * change that looks harmless: the page has to answer at that address and nowhere else in the site's
@@ -16,8 +16,8 @@ const os = require('os');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const HTML = () => read('spark-event.html');
-const JS = () => read('js/spark-event.js');
+const HTML = () => read('sharjah-next.html');
+const JS = () => read('js/sharjah-next.js');
 
 /* the copy as a reader sees it: tags gone, entities back into characters, one space between words.
    Asserting against this rather than against the markup means the check is about the sentence a
@@ -53,7 +53,7 @@ after(() => { proc.kill('SIGTERM'); try { fs.rmSync(DATA, { recursive: true, for
 const get = p => fetch(base + p);
 
 test('the event page answers at its address, with its own headers', async () => {
-  for (const p of ['/spark-event', '/spark-event/', '/spark-event.html']) {
+  for (const p of ['/sharjah-next', '/sharjah-next/', '/sharjah-next.html']) {
     const r = await get(p);
     const html = await r.text();
     assert.equal(r.status, 200, p + ' is where the screen and the QR point, saw ' + r.status);
@@ -63,7 +63,7 @@ test('the event page answers at its address, with its own headers', async () => 
     assert.match(csp, /connect-src[^;]*supabase\.co/, p + ' may post for a pass, and that is the only widening');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script stays forbidden on it');
   }
-  const r2 = await get('/js/spark-event.js');
+  const r2 = await get('/js/sharjah-next.js');
   assert.equal(r2.status, 200, 'the script is the one file the page does not carry inside itself');
   /* every picture is inside the page, as the design file had it: two logos, the orb three times, the
      photograph behind the hero. Nothing at a stand depends on a second request. */
@@ -88,7 +88,7 @@ test('it is the design file, token for token, with nothing of the site in it', (
   }
   assert.ok(!/css\/site\.css/.test(h), 'it links no stylesheet of ours, because it is not trying to be a page of the site');
   assert.ok(!/\bunsafe-inline\b/.test(h), 'the page never asks to loosen anything for itself');
-  assert.match(h, /<script src="\/js\/spark-event\.js\?v=\d+"><\/script>/,
+  assert.match(h, /<script src="\/js\/sharjah-next\.js\?v=\d+"><\/script>/,
     'one script, asked for with a version, so a phone at a stand cannot hold the old one');
   assert.ok(!/<script>/.test(h), 'and no inline script, because the policy forbids it here as everywhere else on the site');
   assert.ok(!(/\son[a-z]+="/).test(h), 'and no inline handler either, so the script file is the only thing that runs');
@@ -160,8 +160,8 @@ test('the button walks through the real door, and the pass goes with the person'
   assert.match(js, /const MIRA_URL = 'https:\/\/brain\.boasis\.ae'/, 'Mira is the Brain, not the placeholder the design guessed at');
   assert.match(js, /const SEND = true/, 'and the switch the shared preview needed is on, so the record is written');
   assert.match(js, /const SOURCE = 'sharjah-next-2026'/, 'the row is stamped with the offer it came from');
-  assert.match(js, /const PAGE = 'spark-event'/, 'plus which table it belongs in');
-  assert.match(js, /LS='boasis\.spark-event\.v1'/, 'its own localStorage key, so the two entrances never hand over each other\'s visit');
+  assert.match(js, /const PAGE = 'sharjah-next'/, 'plus which table it belongs in');
+  assert.match(js, /LS='boasis\.sharjah-next\.v1'/, 'its own localStorage key, so the two entrances never hand over each other\'s visit');
   assert.notEqual(js.match(/LS='([^']+)'/)[1], read('js/try-mira.js').match(/LS = '([^']+)'/)[1],
     'that key is genuinely different from the other page\'s');
   assert.match(js, /function brainUrl\(pass\)[\s\S]*\+'pass='\+encodeURIComponent\(pass\)/,
@@ -193,7 +193,7 @@ test('the page cannot be talked into showing, sending or opening anything it was
   assert.ok(!/location\.href=[^u]/.test(js), 'and nothing else');
   assert.ok(!/fetch\([^)]*\?[^)]*full_name/.test(js), 'nothing is put in an address, where a shoulder and a history would read it');
   assert.match(h, /<meta name="robots" content="noindex, nofollow">/, 'hidden from the index, in the page');
-  assert.ok(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes('Disallow: /spark-event'), 'and in the robots file');
+  assert.ok(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes('Disallow: /sharjah-next'), 'and in the robots file');
 });
 
 
@@ -203,7 +203,7 @@ let JSDOM = null;
 try { JSDOM = require('jsdom').JSDOM; } catch (e) { /* skip below */ }
 
 test('the page as shipped fills itself, validates, joins the names and hands Mira a pass', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
-  const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/spark-event', runScripts: 'dangerously', pretendToBeVisual: true });
+  const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
   const w = dom.window, posts = [];
   w.__pwned = false;
   w.alert = () => { w.__pwned = true; };
@@ -234,7 +234,7 @@ test('the page as shipped fills itself, validates, joins the names and hands Mir
   const body = JSON.parse(create.body);
   assert.equal(body.full_name, "Navaira <img src=x onerror=\"window.__pwned=1\"> O'Brien",
     'the two fields the design drew arrive as the one name every door here reads, quotes and all, unfixed');
-  assert.equal(body.page, 'spark-event', 'the row says which entrance it came from, which is all that picks its table');
+  assert.equal(body.page, 'sharjah-next', 'the row says which entrance it came from, which is all that picks its table');
   assert.equal(body.source, 'sharjah-next-2026', 'and which offer it came for');
   assert.equal(body.consent, 'on', 'the tick box travels, because the row is the proof somebody agreed');
   assert.ok(!('hp' in body), 'the honeypot field is never posted');
@@ -244,7 +244,7 @@ test('the page as shipped fills itself, validates, joins the names and hands Mir
   assert.equal(d.getElementById('miraLink').href, 'https://brain.boasis.ae/?pass=PASSAB12CD34',
     'with the pass in the address, which is the one thing that makes Mira their Mira');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
-  const stored = JSON.parse(w.localStorage.getItem('boasis.spark-event.v1'));
+  const stored = JSON.parse(w.localStorage.getItem('boasis.sharjah-next.v1'));
   assert.equal(stored.pass, 'PASSAB12CD34', 'the pass is kept under this page\'s own key, so a returning phone goes back to the Brain');
   assert.match(JSON.stringify(stored), /"at":\d+/, 'with the hour it was given, because it stops being a key after a day');
 });
@@ -252,15 +252,15 @@ test('the page as shipped fills itself, validates, joins the names and hands Mir
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {
   const pages = ['index.html', 'contact.html', 'early-access.html', 'blog.html', 'privacy.html', 'terms.html', '404.html'];
   for (const f of pages) {
-    assert.ok(!/spark-event/.test(read(f)), f + ' must not link the event entrance');
+    assert.ok(!/sharjah-next/.test(read(f)), f + ' must not link the event entrance');
   }
   const robots = read('robots.txt');
   assert.ok((robots.match(/Disallow: \/try-mira/g) || []).length >= 5, 'the other entrance is still refused everywhere');
-  assert.equal((robots.match(/Disallow: \/spark-event/g) || []).length, (robots.match(/Disallow: \/try-mira/g) || []).length,
+  assert.equal((robots.match(/Disallow: \/sharjah-next/g) || []).length, (robots.match(/Disallow: \/try-mira/g) || []).length,
     'and so is this one, in every block that is allowed in');
   const sm = await get('/sitemap.xml');
-  assert.ok(!/spark-event/.test(await sm.text()), 'it is in no sitemap');
-  const r = await get('/spark-event');
+  assert.ok(!/sharjah-next/.test(await sm.text()), 'it is in no sitemap');
+  const r = await get('/sharjah-next');
   assert.match(HTML(), /<meta name="robots" content="noindex, nofollow">/, 'the page says it itself as well, in the head where a crawler reads it');
   const head = HTML().slice(0, HTML().indexOf('</head>'));
   for (const tag of ['<title>', 'name="description"', 'name="theme-color"', 'name="format-detection"']) {
@@ -271,7 +271,7 @@ test('nothing on the site links it, every crawler is told to leave it out, and n
 
 test('the two tables are the same shape, and each entrance writes to its own', () => {
   const store = read('demo/supabase/functions/_shared/spark-supabase.js');
-  assert.match(store, /export const TABLES = \{[\s\S]*"": TABLE,[\s\S]*"spark-event": "spark_event_leads",/,
+  assert.match(store, /export const TABLES = \{[\s\S]*"": TABLE,[\s\S]*"sharjah-next": "sharjah_next_leads",/,
     'the map from page to table is the one place either is named');
   assert.match(store, /return TABLES\[key\] \|\| TABLE;/, 'and an unknown page falls back to the original table rather than inventing one');
   const create = read('demo/supabase/functions/create-pass/index.js');
@@ -286,14 +286,14 @@ test('the two tables are the same shape, and each entrance writes to its own', (
   }
   assert.match(read('demo/supabase/functions/save-step/index.js'), /writeLead\(sb, next, null, found\.table/, 'and updates the table it read from');
 
-  const sql = read('demo/supabase/spark-event.sql');
+  const sql = read('demo/supabase/sharjah-next.sql');
   const first = read('demo/supabase/spark.sql');
-  assert.match(sql, /create table if not exists public\.spark_event_leads/, 'the SQL makes the second table');
+  assert.match(sql, /create table if not exists public\.sharjah_next_leads/, 'the SQL makes the second table');
   const cols = [...first.matchAll(/^  ([a-z_]+)\s+(text|boolean|integer|numeric|timestamptz|jsonb|text\[\])/gm)].map(m => m[1]);
   assert.ok(cols.length >= 16, 'the first table has the columns rowOf writes, saw ' + cols.length);
   for (const c of cols) assert.ok(new RegExp('^  ' + c + '\\s+', 'm').test(sql), c + ' is in the new table too, or an insert fails at the stand');
-  for (const need of ['enable row level security;', 'revoke all on table public.spark_event_leads from anon, authenticated;',
-    'grant select, insert, update on table public.spark_event_leads to service_role;']) {
+  for (const need of ['enable row level security;', 'revoke all on table public.sharjah_next_leads from anon, authenticated;',
+    'grant select, insert, update on table public.sharjah_next_leads to service_role;']) {
     assert.ok(sql.includes(need), 'and the lock is the same lock: ' + need);
   }
   assert.ok(!/create\s+policy/i.test(sql.split('\n').filter(l => !/^\s*--/.test(l)).join('\n')), 'no policy, so the browser keys still read nothing');
@@ -305,16 +305,16 @@ test('the two files you paste into the dashboard are the two folders, with the n
   for (const name of ['create-pass', 'save-step', 'get-lead']) {
     const dash = read('demo/supabase/dashboard/' + name + '.js');
     assert.equal(dash, compose(name), name + ' in dashboard/ is exactly what the generator writes');
-    assert.ok(dash.includes('spark_event_leads'), name + ' has both tables in it, because a pasted file has no folder to import from');
+    assert.ok(dash.includes('sharjah_next_leads'), name + ' has both tables in it, because a pasted file has no folder to import from');
   }
 });
 
 test('the handover says the second entrance exists, and what to run for it', () => {
   const doc = read('docs/SPARK.md');
-  for (const need of ['/spark-event', 'spark_event_leads', 'spark-event.sql', 'js/spark-event.js', 'sharjah-next-2026', 'readLeadAny']) {
+  for (const need of ['/sharjah-next', 'sharjah_next_leads', 'sharjah-next.sql', 'js/sharjah-next.js', 'sharjah-next-2026', 'readLeadAny']) {
     assert.ok(doc.includes(need), 'docs/SPARK.md must name ' + need);
   }
-  assert.ok(!/spark-event[^]{0,200}service_role/.test(doc), 'and it never puts the service key near the new page either');
+  assert.ok(!/sharjah-next[^]{0,200}service_role/.test(doc), 'and it never puts the service key near the new page either');
 });
 
 test('the night-before rehearsal runs this page too, and keeps the two crowds apart', async () => {
@@ -334,13 +334,13 @@ test('the night-before rehearsal runs this page too, and keeps the two crowds ap
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
   }).then(r => r.json());
   try {
-    const page = await at('/spark-event');
+    const page = await at('/sharjah-next');
     assert.equal(page.status, 200, 'the rehearsal serves the event page at the same address the print says');
     assert.match(await page.text(), /id="snForm"/, 'and it is the same file, not a second copy to fall out of date');
-    const js = await (await at('/js/spark-event.js')).text();
+    const js = await (await at('/js/sharjah-next.js')).text();
     assert.match(js, /MIRA_URL = '\/brain'/, 'the stub is what fills in where the person goes after, so the rehearsal never reaches the live project');
     assert.ok(!/grsbhupjihwvidxbkymu|brain\.boasis\.ae/.test(js), 'and nothing live survives in the script it is handed');
-    const served = await (await at('/spark-event')).text();
+    const served = await (await at('/sharjah-next')).text();
     assert.match(served, /data-endpoint="\/functions\/v1\/create-pass"/, 'the event page keeps its door in the markup, and the stub rewrites that too');
     assert.ok(!/supabase\.co/.test(served.slice(served.indexOf('</head>'))), 'so the body of the page the stand sees asks for nothing outside the rehearsal');
 
@@ -351,7 +351,7 @@ test('the night-before rehearsal runs this page too, and keeps the two crowds ap
     });
     const mine = await post('/functions/v1/create-pass', {
       full_name: 'Rehearsal One', email: 'both+' + stamp + '@corp.example', phone: '0551112222',
-      country_code: '+971', consent: true, _t: 9000, source: 'sharjah-next-2026', page: 'spark-event',
+      country_code: '+971', consent: true, _t: 9000, source: 'sharjah-next-2026', page: 'sharjah-next',
     });
     assert.ok(other.ok && mine.ok, 'the same person is accepted on both entrances');
     assert.notEqual(other.pass, mine.pass, 'and gets a row of their own on each, which is the point of the second table');
@@ -360,7 +360,7 @@ test('the night-before rehearsal runs this page too, and keeps the two crowds ap
     assert.equal(row.contact.full_name, 'Rehearsal One', 'the two names arrive as the one field every door here reads');
     const again = await post('/functions/v1/create-pass', {
       full_name: 'Rehearsal One', email: 'both+' + stamp + '@corp.example', phone: '0551112222',
-      country_code: '+971', consent: true, _t: 9000, page: 'spark-event',
+      country_code: '+971', consent: true, _t: 9000, page: 'sharjah-next',
     });
     assert.equal(again.pass, mine.pass, 'a second scan on the same entrance hands back the same row, not a second stranger with the same name');
     assert.equal(again.reused, true, 'and says that is what it did');
@@ -376,7 +376,7 @@ test('no file is handed to import() as a bare path, because Windows reads C:\\ a
   /* the bug this exists for: the rehearsal stub worked on the Linux box that builds this site and
      died on the owner's laptop with ERR_UNSUPPORTED_ESM_URL_SCHEME, which is exactly the kind of
      failure that only shows up on the night, on the machine you are actually using */
-  for (const f of ['lib/spark.js', 'scripts/spark-stub.js', 'test/spark.test.js', 'test/spark-event.test.js']) {
+  for (const f of ['lib/spark.js', 'scripts/spark-stub.js', 'test/spark.test.js', 'test/sharjah-next.test.js']) {
     const src = read(f);
     const bare = [...src.matchAll(/import\(\s*(?:path\.join|CORE\b|`)/g)];
     assert.equal(bare.length, 0, f + ' must pass a file URL to import(), saw ' + bare.length + ' bare path' + (bare.length === 1 ? '' : 's'));

@@ -376,7 +376,7 @@ app.use((req, res, next) => {
 /* The SPARK demo entrance: one page of this site, at /try-mira, reached from the QR code at
    the stand and from no link anywhere. After the event, closing it is deleting
    try-mira.html, js/try-mira.js and the Disallow line in robots.txt. The Sharjah Next page at
-   /spark-event is served under this same block, and it is closed the same way.
+   /sharjah-next is served under this same block, and it is closed the same way.
 
    It is answered with its own content policy rather than the site's, because the site's
    forbids exactly the one thing this page has to do: a POST to the Supabase function that
@@ -386,11 +386,11 @@ app.use((req, res, next) => {
 
    The demo/ folder itself stays closed to the browser: it is where the two functions are
    written, and nothing in it is a page. */
-/* Two entrances, one policy: /try-mira for AI Everything and /spark-event for Sharjah Next. They
+/* Two entrances, one policy: /try-mira for AI Everything and /sharjah-next for Sharjah Next. They
    need the same widening because they post to the same create-pass function, and they are the only
    two addresses that get it. */
-const DEMO_PAGE = /^\/(?:(?:try-mira|spark-event))(?:\.html)?\/?$/;   // the printed address, its file name, and a trailing slash
-const DEMO_HOME = { '/try-mira/': '/try-mira', '/spark-event/': '/spark-event' };
+const DEMO_PAGE = /^\/(?:(?:try-mira|sharjah-next))(?:\.html)?\/?$/;   // the printed address, its file name, and a trailing slash
+const DEMO_HOME = { '/try-mira/': '/try-mira', '/sharjah-next/': '/sharjah-next' };
 app.use((req, res, next) => {
   if (!DEMO_PAGE.test(req.path)) return next();
   if (DEMO_HOME[req.path]) return res.redirect(301, DEMO_HOME[req.path]);   // a typed slash is the same page

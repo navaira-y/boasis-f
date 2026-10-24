@@ -1,7 +1,7 @@
 /* create pass · the only door into the demo
  *
- * The form at boasis.ae/try-mira posts here, and so does the one at boasis.ae/spark-event, which
- * adds one field, `page: "spark-event"`, and lands its rows in the other table. A pass is minted, one row is created for that person,
+ * The form at boasis.ae/try-mira posts here, and so does the one at boasis.ae/sharjah-next, which
+ * adds one field, `page: "sharjah-next"`, and lands its rows in the other table. A pass is minted, one row is created for that person,
  * and the answer hands back the pass and where to take them. Nothing in here trusts the caller
  * with more than the fields the form has, and nothing lets the caller name a column, a row, or a
  * table: the object the core builds is what goes in, and `pass` is the key.
