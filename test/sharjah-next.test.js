@@ -75,6 +75,7 @@ test('the event page answers at its address, with its own headers', async () => 
 
 test('it is the design file, token for token, with nothing of the site in it', () => {
   const h = HTML();
+  const jsOf = JS;
   const tokens = ['--sand:#F4F0E3', '--paper:#FFFDF6', '--sand2:#E7E3D5', '--line:#DCD6C2', '--line2:#C9C2A8',
     '--logo:#A3A35A', '--olive:#6A7345', '--olive-d:#4E5532', '--gold:#C7A759', '--gold-d:#8E7430',
     '--ink:#1F2414', '--muted:#5E6250', '--navy:#17365E', '--night:#0B0D12', '--mira:#5FD3E8', '--err:#B3261E',
@@ -96,6 +97,13 @@ test('it is the design file, token for token, with nothing of the site in it', (
   for (const tag of ['<title>', 'name="description"', 'name="theme-color"', 'name="format-detection"', 'rel="preconnect"', 'fonts.googleapis.com']) {
     assert.ok(head.includes(tag), tag + ' sits inside <head>, where a browser and a crawler read it');
   }
+  for (const ico of ['/assets/icons/favicon.ico', '/assets/icons/favicon-32.png', '/assets/icons/apple-touch-icon.png']) {
+    assert.ok(head.includes(ico), 'and the tab wears the site\'s own ' + ico + ', the same mark /try-mira has');
+  }
+  assert.match(head, /<title>Sharjah Next Event<\/title>/, 'the tab says what the page is, and does not say it is a copy');
+  assert.ok(!/\(Copy\)/.test(h), 'the word the draft file left in the title is gone from the page entirely');
+  assert.equal((h.match(/data-k="s\d"/g) || []).length, 6, 'six sectors are offered, in the list style the design drew');
+  assert.ok(/s6:'Creative'/.test(jsOf()), 'and the sixth is Creative');
   assert.match(head, /<meta name="robots" content="noindex, nofollow">/, 'and the page says out loud that it is not for the index');
   assert.ok(!/noindex/.test(h.slice(h.indexOf('</head>'))), 'it says it once, in the head, not also in the body where it is ignored');
 });
@@ -110,8 +118,8 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     'Sharjah Next offer · 28 & 29 Oct', 'Your SPARK company, at the event price',
     'year 1', 'from, year 1', '1 activity', '1 shareholder', 'Free lease',
     'Beyond', 'AED 1,510', 'Beyond+', 'AED 3,010', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options',
-    'For these 5 sectors', 'Sustainability', 'Advanced Manufacturing', 'Mobility & Logistics', 'Healthcare',
-    'AI & Digital Transformation',
+    'For these 6 sectors', 'Sustainability', 'Advanced Manufacturing', 'Mobility & Logistics', 'Healthcare',
+    'AI & Digital Transformation', 'Creative',
     "Hi. I'm Mira. A few details, and we start.",
     'First name', 'Last name', 'Email', 'Mobile number',
     'I agree that SPARK and Boasis may contact me about my project.',

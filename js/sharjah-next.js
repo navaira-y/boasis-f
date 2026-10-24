@@ -19,7 +19,7 @@ const T={
   y1:'year 1', y2:'from, year 1',
   b1:'1 activity', b2:'1 shareholder', b3:'Free lease',
   p1:'Up to 3 activities', p2:'Up to 3 shareholders', p3:'Visa options',
-  secL:'For these 5 sectors', s1:'Sustainability', s2:'Advanced Manufacturing', s3:'Mobility & Logistics', s4:'Healthcare', s5:'AI & Digital Transformation',
+  secL:'For these 6 sectors', s1:'Sustainability', s2:'Advanced Manufacturing', s3:'Mobility & Logistics', s4:'Healthcare', s5:'AI & Digital Transformation', s6:'Creative',
   howEy:'How it works',
   st1:'Tell Mira what you do', st1s:'In your own words, typed or spoken.',
   st2:'Choose your activities', st2s:'Mira suggests them. Your package shows on top.',
