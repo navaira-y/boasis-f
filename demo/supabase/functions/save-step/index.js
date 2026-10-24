@@ -15,7 +15,7 @@
  */
 // deno-lint-ignore-file no-explicit-any
 import { applyStep, checkPass, isPass } from "../_shared/spark-core.js";
-import { client, cors, readLead, writeLead } from "../_shared/spark-supabase.js";
+import { client, cors, readLeadAny, writeLead } from "../_shared/spark-supabase.js";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
@@ -36,14 +36,17 @@ Deno.serve(async (req) => {
   if (!isPass(pass)) return json({ ok: false, error: "pass" }, 400);
 
   const sb = client();
-  const checked = checkPass(pass, await readLead(sb, pass), Date.now());
+  const found = await readLeadAny(sb, pass);
+  const checked = checkPass(pass, found.lead, Date.now());
   if (!checked.ok) return json({ ok: false, error: checked.error }, checked.error === "pass" ? 400 : 404);
 
   const next = applyStep(checked.lead, String(body?.step || ""), body?.data || {}, Date.now());
   if (!next) return json({ ok: false, error: "step" }, 400);
 
   try {
-    await writeLead(sb, next);
+    /* the row was found, so found.table names the table it came from and the same table gets it
+       back; the fallback is here only so that a branch nobody reaches cannot write to a null table */
+    await writeLead(sb, next, null, found.table || "spark_leads");
   } catch {
     return json({ ok: false, error: "storage" }, 500);
   }

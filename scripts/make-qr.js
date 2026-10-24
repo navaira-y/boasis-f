@@ -47,6 +47,17 @@ const SIZE = Number(arg('size', 1200));                       // px of the squar
    guessable file that says, in its own comment, the address the entrance lives at. */
 const OUT = arg('out', 'docs/qr');
 const LOGO = arg('logo', 'assets/logo/orb-512.png');
+/* The name the three files come out under. It is the address the code encodes, so a second
+   entrance makes its own files instead of overwriting the first one's print, and the default
+   URL still writes try-mira.png exactly as it always did. --name= overrides it for the odd case
+   where the path is not the thing you want on a filename. */
+const NAME = (() => {
+  const hit = process.argv.find(a => a.startsWith('--name='));
+  if (hit) return hit.slice(7).replace(/[^A-Za-z0-9._-]/g, '-');
+  let path = '';
+  try { path = new URL(URL_TO_ENCODE).pathname; } catch (e) { path = '/try-mira'; }
+  return (path.replace(/^\/+|\/+$/g, '').replace(/[^A-Za-z0-9._-]/g, '-') || 'index');
+})();
 const LEVEL = 'H';
 const QUIET = 4;                                              // modules of white, as the standard wants
 const U = 8;                                                  // user units per module, so the maths stays whole
@@ -167,15 +178,15 @@ async function build() {
      an --out= that looks absolute ends up writing next to the source */
   const dir = nodePath.resolve(ROOT, OUT);
   fs.mkdirSync(dir, { recursive: true });
-  const svgTo = nodePath.join(dir, 'try-mira.svg');
-  const pngTo = nodePath.join(dir, 'try-mira.png');
+  const svgTo = nodePath.join(dir, NAME + '.svg');
+  const pngTo = nodePath.join(dir, NAME + '.png');
   fs.writeFileSync(svgTo, svg);
   await sharp(Buffer.from(svg), { density: 300 }).resize(SIZE, SIZE).png({ compressionLevel: 9 }).toFile(pngTo);
 
   /* the one file you can open and crop: the PNG as data, on the night of the brand, with the address
      under it. Crop tight around the white square for print, or take the whole picture for a screen.
      On paper it prints the code alone, because the dark around it would only drink the toner. */
-  const cardTo = nodePath.join(dir, 'try-mira-card.html');
+  const cardTo = nodePath.join(dir, NAME + '-card.html');
   fs.writeFileSync(cardTo, card(fs.readFileSync(pngTo).toString('base64'), URL_TO_ENCODE));
 
   /* the same picture at four sizes, each read back by a decoder. The small ones are what a phone

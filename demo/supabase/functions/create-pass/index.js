@@ -1,6 +1,7 @@
 /* create pass · the only door into the demo
  *
- * The form at boasis.ae/try-mira posts here. A pass is minted, one row is created for that person,
+ * The form at boasis.ae/try-mira posts here, and so does the one at boasis.ae/spark-event, which
+ * adds one field, `page: "spark-event"`, and lands its rows in the other table. A pass is minted, one row is created for that person,
  * and the answer hands back the pass and where to take them. Nothing in here trusts the caller
  * with more than the fields the form has, and nothing lets the caller name a column, a row, or a
  * table: the object the core builds is what goes in, and `pass` is the key.
@@ -15,7 +16,7 @@
  */
 // deno-lint-ignore-file no-explicit-any
 import { buildLead, isPass, makePass, normaliseEmail, readForm } from "../_shared/spark-core.js";
-import { client, cors, emailHashOf, readByEmailHash, readLead, writeLead } from "../_shared/spark-supabase.js";
+import { client, cors, emailHashOf, passTaken, readByEmailHash, readLead, tableFor, writeLead } from "../_shared/spark-supabase.js";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
@@ -39,12 +40,15 @@ Deno.serve(async (req) => {
   const sb = client();
   const now = Date.now();
   const hash = await emailHashOf(normaliseEmail(form.contact.email));
+  /* which entrance this is, and so which table the row belongs to. The page names itself in a
+     field of its own, and a call that names nothing is the original page at /try-mira. */
+  const table = tableFor(body?.page);
 
   /* a person who reloads, or scans the QR twice, is handed their own row back rather than opening
      a second stranger with their name on it */
-  const seen = await readByEmailHash(sb, hash);
+  const seen = await readByEmailHash(sb, hash, table);
   if (seen && seen.pass && isPass(seen.pass)) {
-    const existing = await readLead(sb, seen.pass);
+    const existing = await readLead(sb, seen.pass, table);
     if (existing && Date.parse(existing.expires_at || 0) > now) {
       return json({ ok: true, pass: seen.pass, brain_url: Deno.env.get("BRAIN_URL") || "", reused: true });
     }
@@ -56,7 +60,7 @@ Deno.serve(async (req) => {
   let pass = "";
   for (let i = 0; i < 5; i += 1) {
     const candidate = makePass();
-    if (!(await readLead(sb, candidate))) {
+    if (!(await passTaken(sb, candidate))) {
       pass = candidate;
       break;
     }
@@ -65,7 +69,7 @@ Deno.serve(async (req) => {
 
   const lead = buildLead({ pass, contact: form.contact, source: body?.source, now });
   try {
-    await writeLead(sb, lead, hash);
+    await writeLead(sb, lead, hash, table);
   } catch {
     return json({ ok: false, error: "storage" }, 500);
   }

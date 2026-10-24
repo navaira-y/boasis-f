@@ -1,0 +1,443 @@
+<!doctype html>
+<!-- The event twin of /try-mira: the same night, the same glass, the same orb, the same phone
+     number pill, and the same way into Mira. What is different is the offer on the page, the two
+     fields the form asks for instead of one name, and where the row is kept.
+     It is here rather than a copy of the file in another repo because the theme is this site's and
+     every rule on it is checked against css/site.css: a second hand-built page is how a brand drifts.
+     The style block below is try-mira.html's, unchanged, plus the few rules the price cards and the
+     sector list need. -->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mira · Sharjah Next</title>
+<meta name="description" content="Your SPARK company at the Sharjah Next event price, with Mira to take you to a reference number.">
+<!-- The event entrance. Like /try-mira it is on no menu, in no sitemap and in no link anywhere, so
+     the screen or the QR at the stand is the only way in: this tag, the Disallow line in robots.txt
+     and the X-Robots-Tag the server puts on it are what keeps it out of the index. When the two days
+     are over, the way to close it is to delete spark-event.html, js/spark-event.js and the two
+     Disallow lines, and the table stays for the numbers. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0B0D12">
+<link rel="icon" href="/assets/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* BOASIS brand tokens, from boasis.ae/css/tokens.css */
+  --bo-night:#0B0D12; --bo-navy:#17365E; --bo-blue:#0E86C4; --bo-teal:#5FD3E8;
+  --bo-day:#F4F7FB; --bo-white:#FFFFFF; --bo-ink:#14202A; --bo-muted:#3A4A5E; --bo-line:#E3E9F1; --bo-blue-text:#0B74AC;
+  --display:'Outfit',system-ui,sans-serif; --body:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  /* the names css/site.css uses for the same three, so its rules can be copied here without editing them */
+  --font-display:var(--display); --font-body:var(--body); --font-mono:var(--mono);
+}
+:root[data-theme="dark"], :root{
+  /* the page is night on every machine, so the values are written once, not chosen by a setting */
+  --bg:var(--bo-night); --surface:#111A26; --text:#fff; --muted:#B4C7DA; --line:#1C2431;
+  --heading:#fff; --accent:var(--bo-teal); --soft:#12283D; --err:#F2B8B5;
+  /* the two numbers a panel is made of on boasis.ae: rgba(255,255,255,.04) over .16 */
+  --glass:rgba(255,255,255,.04); --hair:rgba(255,255,255,.16);
+}
+*{box-sizing:border-box}
+/* the night goes on the body, and on the body alone, exactly as boasis.ae does it. Put a
+   background on html too and the browser stops carrying the body's to the canvas: it paints it
+   as a box over the sky instead, and the whole page reads black with the lights hidden under it. */
+body{margin:0; overflow-x:clip; background:var(--bg); color:var(--text); font-family:var(--body); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display); font-weight:500; margin:0; color:var(--heading); letter-spacing:-.01em; text-wrap:balance}
+p{margin:0}
+a{color:var(--bo-teal)}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+a{text-decoration:none}
+.brand{font-family:var(--font-display);font-weight:500;font-size:22px;letter-spacing:.08em;color:var(--heading);display:inline-flex;align-items:center}
+.brand img{width:1.06em;height:1.06em;margin:0 .02em;transform:translateY(-.02em)}
+
+/* the sky · the site's own light, fixed behind the whole page */
+.sky{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
+.sky i{position:absolute; border-radius:50%; filter:blur(80px); opacity:.75; will-change:transform; animation:drift 30s ease-in-out infinite alternate}
+.sky i:nth-child(1){width:70vw; height:70vw; left:-15vw; top:-20vw; background:radial-gradient(circle, rgba(23,54,94,.9), transparent 62%)}
+.sky i:nth-child(2){width:60vw; height:60vw; right:-20vw; top:10vh; background:radial-gradient(circle, rgba(14,134,196,.55), transparent 60%); animation-duration:36s; animation-direction:alternate-reverse}
+.sky i:nth-child(3){width:50vw; height:50vw; left:30vw; bottom:-30vw; background:radial-gradient(circle, rgba(95,211,232,.32), transparent 60%); animation-duration:44s}
+/* and the wash behind the panel on /early-access: navy into teal, one mix of two colours */
+.sky i:nth-child(4){width:min(140vw,1700px); height:120%; left:50%; top:38%; translate:-50% -50%; filter:blur(40px); opacity:.9; background:radial-gradient(closest-side, rgba(23,54,94,.8), rgba(95,211,232,.12) 55%, rgba(11,13,18,0)); animation:none}
+@keyframes drift{to{transform:translate(8vw,6vh) scale(1.1)}}
+
+/* header · the capsule from css/site.css, rule for rule and property for property: the width, the
+   height, the hairline, the shadow, and the solid fill of the brand behind the logo. It was left
+   out once on request and put back on request, and it is the site's line either way, so a test
+   compares it with css/site.css and there is nothing here of ours. */
+.nav{position:fixed;left:0;right:0;top:0;z-index:50;display:flex;justify-content:center;padding:14px 28px 0;pointer-events:none}
+.nav-bar{position:relative;pointer-events:auto;display:flex;align-items:center;gap:clamp(10px,1.2vw,14px);width:min(100%,1124px);height:60px;padding:0 9px 0 26px;border-radius:999px;background:rgba(11,13,18,.97);border:1px solid rgba(255,255,255,.09);box-shadow:0 20px 44px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.2)}
+.nav .brand{font-size:20px;color:#fff}
+
+/* Hero · one field of light, the orb held in the middle of its own column */
+.hero{position:relative; z-index:1}
+.hero-in{width:min(100% - 56px,1124px); margin:0 auto; padding:calc(74px + clamp(24px,4vh,48px)) 0 clamp(44px,8vh,84px); display:grid; grid-template-columns:1.12fr .88fr; gap:clamp(24px,4vw,48px); align-items:center}
+.hero .eyebrow{color:var(--bo-teal)}
+.hero h1{color:#fff; font-size:clamp(30px,3.6vw,46px); line-height:1.06; margin-top:0}
+.hero h1 em{font-style:normal; color:var(--bo-teal)}
+.hero .sub{color:var(--muted); font-size:17px; max-width:52ch; margin-top:12px}
+.facts{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+.facts span{border:1px solid var(--hair); background:var(--glass); border-radius:999px; padding:7px 14px; font-size:14px}
+.orbwrap{position:relative; isolation:isolate; aspect-ratio:1; width:100%; max-width:340px; margin:0 auto; justify-self:center; display:grid; place-items:center}
+.orbwrap::before{content:""; position:absolute; z-index:-1; inset:4%; border-radius:50%; background:radial-gradient(circle, rgba(95,211,232,.2), rgba(14,134,196,.1) 42%, transparent 68%); filter:blur(18px); pointer-events:none}
+#orb{position:absolute; inset:0; margin:auto}
+.orbwrap .fallback{width:72%; height:72%; filter:drop-shadow(0 0 40px rgba(95,211,232,.35))}
+.orbwrap.live .fallback{display:none}
+.orbwrap .mira{position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; place-items:center; text-align:center; font-family:var(--display)}
+/* the name sits in the middle of the ring, and the ring is a ring: laid over the water it cut
+   across the letters, so the words now stand on a chip of the brand's own night. The orb still
+   shows around it, and at any width the letters have ground under them, never water */
+.orbwrap .mira > div{padding:12px 20px; border-radius:999px; background:rgba(11,13,18,.55); border:1px solid rgba(95,211,232,.22); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px)}
+.orbwrap .mira b{display:block; font-size:clamp(26px,2.6vw,38px); font-weight:500; line-height:1.1}
+.orbwrap .mira span{font-family:var(--mono); font-size:clamp(9px,.9vw,11px); letter-spacing:.14em; color:var(--bo-teal); text-transform:uppercase}
+
+/* The panels · glass on the one background, nothing painted behind a section */
+.card{background:var(--glass); border:1px solid var(--hair); border-radius:22px; padding:28px; backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%); box-shadow:0 40px 80px -50px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06)}
+.main{width:min(100% - 56px,1124px); margin:0 auto; padding:0 0 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:20px; align-items:start; position:relative; z-index:1}
+.card h2{font-size:28px}
+.card .lead{color:var(--muted); margin-top:6px}
+form{display:grid; gap:14px; margin-top:22px}
+.field{display:grid; gap:6px}
+.field label{font-size:14px; font-weight:600}
+.field label small{font-weight:400; color:var(--muted)}
+
+/* The typed fields, in the pill the site's own forms use. Direct children only, so the phone
+   row keeps the site's rules below untouched, and nothing here has to out argue them. */
+.field > input{font:inherit; font-size:16px; color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:0 20px; width:100%; height:50px; transition:border-color .2s, box-shadow .2s, background .2s}
+.field > input::placeholder{color:rgba(255,255,255,.45)}
+.field > input:hover{border-color:rgba(255,255,255,.3)}
+.field > input:focus{outline:none; border-color:var(--bo-teal); background:rgba(255,255,255,.07); box-shadow:0 0 0 3px rgba(95,211,232,.16)}
+/* what Chrome paints over a field it remembers, kept in the page's own night */
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:#fff; -webkit-box-shadow:0 0 0 1000px #101A28 inset}
+.choice{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.choice label{position:relative; cursor:pointer}
+.choice input{position:absolute; opacity:0; inset:0; cursor:pointer}
+.choice span{display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border:1.5px solid rgba(255,255,255,.14); border-radius:12px; padding:10px 12px; text-align:center; font-size:15px; font-weight:500; color:var(--text); background:rgba(255,255,255,.04); transition:all .2s}
+.choice span::before{content:""; width:16px; height:16px; border-radius:50%; border:1.5px solid rgba(255,255,255,.28); flex:none; transition:all .2s}
+.choice label:hover span{border-color:rgba(255,255,255,.3)}
+.choice input:checked+span{border-color:var(--bo-teal); background:rgba(95,211,232,.12); color:#fff; font-weight:600}
+.choice input:checked+span::before{border-color:var(--bo-teal); background:var(--bo-teal); box-shadow:inset 0 0 0 3px #11212C}
+.choice input:focus-visible+span{box-shadow:0 0 0 3px rgba(95,211,232,.16)}
+@media (max-width:420px){.choice{grid-template-columns:1fr}}
+
+.two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:480px){.two{grid-template-columns:1fr}}
+.consent{display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--muted)}
+.consent input{margin-top:3px; width:18px; height:18px; accent-color:var(--bo-teal)}
+.err{color:var(--err); font-size:13px; min-height:0}
+.err:empty{display:none}
+.hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
+.cta{font:600 17px var(--body); color:#fff; background:linear-gradient(180deg,#1B4F86, var(--bo-navy)); border:0; border-radius:999px; padding:16px 22px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:10px; transition:background .2s, box-shadow .3s, transform .2s; box-shadow:0 18px 40px -22px rgba(14,134,196,.9), inset 0 1px 0 rgba(255,255,255,.18)}
+.cta:hover{background:var(--bo-blue); box-shadow:0 22px 46px -20px rgba(95,211,232,.7), inset 0 1px 0 rgba(255,255,255,.22)}
+.cta:active{transform:translateY(1px)}
+.cta:disabled{opacity:.6; cursor:wait}
+.cta .dot{width:10px; height:10px; border-radius:50%; background:var(--bo-teal); box-shadow:0 0 12px var(--bo-teal)}
+.fine{font-size:12px; color:var(--muted); text-align:center}
+.done{display:none; text-align:center; gap:14px; padding:20px 0 6px}
+.done.on{display:grid}
+.done .ok{width:56px; height:56px; border-radius:50%; background:rgba(95,211,232,.14); border:1px solid rgba(95,211,232,.4); color:var(--bo-teal); display:grid; place-items:center; font-size:26px; margin:0 auto}
+.done a.cta{text-decoration:none}
+.done .fine a{color:var(--bo-teal)}
+/* once the pass is handed over, the page becomes the window into the Brain: the four points step
+   aside and the frame takes the width, so nobody reads a full app down a half column. The frame
+   starts blank and is only given the address a moment later, so the Brain is never loaded for a
+   person who never filled the form. */
+.main.opened{grid-template-columns:minmax(0,1fr)}
+.main.opened .side{display:none}
+.brain{margin:4px 0 0; border:1px solid rgba(255,255,255,.14); border-radius:20px; overflow:hidden;
+  background:var(--bo-night); box-shadow:0 26px 70px -34px rgba(0,0,0,.8)}
+.brain iframe{display:block; width:100%; height:min(78vh,780px); border:0; background:var(--bo-night)}
+
+/* The country code, and the pill the phone sits in: every rule below is copied out of
+   css/site.css as it is written there, and the control is driven by the site's own
+   js/countries.js, the one file the home page dialogs, /early-access and /contact share. A test
+   compares the two, so this page cannot drift from the rest of the site on the one control
+   a visitor from the stand will actually touch. */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mf-pill{display:grid;padding:7px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+.mf-pill label{display:block;min-width:0}
+.mf-pill input{width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;padding:0 20px;font:inherit;font-size:16px}
+.mf-pill input::placeholder{color:rgba(255,255,255,.45)}
+.mf-pill input:focus{outline:none;background:rgba(255,255,255,.07)}
+.mf-phone{grid-template-columns:auto 1fr}
+.mf-phone .mf-code{display:flex;align-items:center;padding:0 26px 0 20px;position:relative}
+.mf-phone .mf-code:focus-within{background:rgba(255,255,255,.07)}
+.cc-btn{display:flex;align-items:center;gap:8px;width:100%;height:50px;border:0;border-radius:999px;background:transparent;color:#fff;font:inherit;font-size:16px;padding:0;cursor:pointer;white-space:nowrap}
+.cc-btn:focus-visible{outline:2px solid var(--bo-teal);outline-offset:3px}
+.cc-btn .cc-code{color:rgba(255,255,255,.55)}
+.cc-pop{position:absolute;top:calc(100% + 8px);left:0;width:252px;padding:6px;border-radius:14px;background:#0F1523;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 64px -28px rgba(0,0,0,.85);z-index:5}
+.cc-pop[hidden]{display:none}
+.cc-find{display:block;padding:2px 2px 6px}
+.cc-pop .cc-search{display:block;width:100%;height:38px;border:0;border-radius:10px;background:rgba(255,255,255,.07);color:#fff;padding:0 12px;font:inherit;font-size:15px}
+.cc-pop .cc-search::placeholder{color:rgba(255,255,255,.45)}
+.cc-pop .cc-search:focus{outline:none;background:rgba(255,255,255,.1)}
+.cc-pop .cc-search:focus-visible{outline:2px solid var(--bo-teal);outline-offset:2px}
+.cc-list{margin:0;padding:0;list-style:none;max-height:230px;overflow-y:auto;overscroll-behavior:contain}
+.cc-list li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 12px;border-radius:9px;color:#fff;font-size:15px;cursor:pointer}
+.cc-list li .cc-li-code{color:rgba(255,255,255,.55)}
+.cc-list li:hover,.cc-list li:focus{background:rgba(255,255,255,.08);outline:none}
+.cc-list li[aria-selected="true"]{color:var(--bo-teal)}
+.cc-list li[aria-selected="true"] .cc-li-code{color:var(--bo-teal)}
+.cc-none{margin:0;padding:10px 12px;color:rgba(255,255,255,.55);font-size:14.5px}
+.cc-none[hidden]{display:none}
+.mf-phone .mf-code::after{content:"";position:absolute;right:9px;top:50%;width:8px;height:8px;border-right:1.5px solid rgba(255,255,255,.55);border-bottom:1.5px solid rgba(255,255,255,.55);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+.mf-phone .mf-code:focus-within::after{border-right-color:var(--bo-teal);border-bottom-color:var(--bo-teal)}
+.mf-phone > label input{border-left:1px solid rgba(255,255,255,.14)}
+
+/* Side, on the left: the four points and the two offers, in the same glass */
+.side{display:grid; gap:14px; align-content:start}
+.steps{display:grid; gap:10px}
+.step{position:relative; display:grid; grid-template-columns:36px 1fr; gap:12px; align-items:start}
+/* the line, and the light on it. Each point owns the piece of line that leaves it and reaches
+   the next: from the bottom of its own number to the top of the one below, which is the row's
+   36px plus the 10px the grid puts between rows. So the line is exact at any text length and at
+   any width, and it needs nothing measured at run time. */
+.step::before{content:""; position:absolute; left:17px; top:36px; bottom:-10px; width:2px; border-radius:2px; background:rgba(255,255,255,.14)}
+.step::after{content:""; position:absolute; left:16px; top:36px; bottom:-10px; width:4px; border-radius:4px; pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(95,211,232,.55) 34%, #fff 52%, rgba(95,211,232,.55) 70%, transparent);
+  filter:blur(1.5px); mix-blend-mode:plus-lighter; transform-origin:50% 0; transform:scaleY(0);
+  animation:flow 5.6s cubic-bezier(.4,0,.5,1) infinite; animation-delay:calc(var(--i) * 1.4s)}
+/* where each point is in the four, and so when its piece of the line lights */
+.step:nth-child(1){--i:0}
+.step:nth-child(2){--i:1}
+.step:nth-child(3){--i:2}
+.step:nth-child(4){--i:3}
+@keyframes flow{
+    0%{transform:scaleY(0); opacity:0}
+    3%{opacity:1}
+    22%{transform:scaleY(1); opacity:1}      /* the head reaches the next number */
+    25%{opacity:.55}                          /* and the next piece takes over, so it hands off */
+    32%{opacity:0}
+    100%{transform:scaleY(1); opacity:0}
+  }
+/* the number and its words take the light as it arrives at them, on the same clock and the
+   same delay, so nothing can fall out of step with the line */
+.step{animation:arrive 5.6s linear infinite; animation-delay:calc(var(--i) * 1.4s)}
+@keyframes arrive{
+    0%,4%{filter:brightness(1.5) saturate(1.15)}
+    20%{filter:brightness(1.1)}
+    34%,100%{filter:brightness(1)}
+  }
+.step .n{position:relative; z-index:1; width:36px; height:36px; border-radius:50%; background:rgba(95,211,232,.12); border:1px solid rgba(95,211,232,.3); color:var(--bo-teal); display:grid; place-items:center; font-family:var(--display); font-weight:600}
+/* the last point has no one below it to reach */
+.step:last-child::before,.step:last-child::after{display:none}
+.step b{font-family:var(--display); font-weight:500; font-size:18px; color:var(--heading)}
+.step span{display:block; color:var(--muted); font-size:14px}
+.offer{border:1px solid var(--hair); border-radius:20px; padding:22px; display:grid; gap:6px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:border-color .3s, transform .3s}
+.offer:hover{border-color:rgba(95,211,232,.34); transform:translateY(-2px)}
+.offer.gift{background:linear-gradient(180deg, rgba(95,211,232,.14), rgba(255,255,255,.04))}
+.offer.ds{background:linear-gradient(180deg, rgba(23,54,94,.55), rgba(11,13,18,.65)); color:#fff}
+.offer.ds h3{color:#fff}
+.offer.ds p{color:var(--muted)}
+.offer.ds .eyebrow{color:var(--bo-teal)}
+.offer h3{font-size:21px}
+.offer p{color:var(--muted); font-size:15px}
+.big{font-family:var(--display); font-size:44px; line-height:1; color:var(--bo-teal); font-weight:500}
+
+footer{border-top:1px solid rgba(255,255,255,.08); padding:24px 16px; text-align:center; color:#8FA6BE; font-size:13px}
+footer .brand{font-size:16px; color:var(--heading)}
+/* The two event prices, in the glass the offers already use. One card each, the number first,
+   and the three lines the offer is made of under it, so the difference between the two is read
+   in one look rather than in a paragraph. */
+.prices{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:699px){.prices{grid-template-columns:1fr}}
+.price{border:1px solid var(--hair); border-radius:18px; padding:18px; display:grid; gap:4px;
+  background:rgba(255,255,255,.04); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px)}
+.price h3{font-size:19px}
+.price .from{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bo-teal)}
+.price .amount{font-family:var(--display); font-size:38px; line-height:1; color:var(--bo-teal); font-weight:500; margin-top:6px}
+.price .amount small{font-family:var(--body); font-size:14px; color:var(--muted); font-weight:400; margin-left:6px}
+.price ul{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px}
+.price li{color:var(--muted); font-size:14.5px; padding-left:16px; position:relative}
+.price li::before{content:""; position:absolute; left:0; top:.62em; width:6px; height:6px; border-radius:50%; background:rgba(95,211,232,.55)}
+.price.pick{border-color:rgba(95,211,232,.34)}
+
+/* the five sectors, as pills: a list of five sentences would read like a brochure, and the point
+   of this block is a yes or a no about your own business in one look */
+.sectors{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+.sectors span{border:1px solid var(--hair); background:var(--glass); border-radius:999px; padding:7px 13px; font-size:14px}
+@media (max-width:699px){.sectors{justify-content:flex-start; gap:6px}.sectors span{font-size:13px; padding:6px 11px}}
+
+/* the two dates, said once, where a person who arrived on the 29th cannot miss them */
+.day{display:flex; align-items:center; gap:14px}
+.day .stamp{flex:none; text-align:center; border:1px solid rgba(95,211,232,.34); border-radius:14px; padding:8px 12px; background:rgba(95,211,232,.1)}
+.day .stamp i{display:block; font-family:var(--mono); font-style:normal; font-size:10px; letter-spacing:.16em; color:var(--bo-teal); text-transform:uppercase}
+.day .stamp b{font-family:var(--display); font-weight:500; font-size:20px; line-height:1.1}
+.day p{color:var(--muted); font-size:14.5px}
+.day p b{color:var(--heading); font-weight:600}
+
+
+/* Tablette (iPad portrait et paysage) */
+@media (min-width:700px) and (max-width:1100px){
+  .hero-in{grid-template-columns:1.25fr .75fr; gap:24px}
+  .orbwrap{max-width:260px}
+  .main{grid-template-columns:1fr}
+  .side{grid-template-columns:1fr 1fr}
+  .side>.card{grid-column:1/-1}
+}
+/* Téléphone : la form d'abord, le reste après, et tout le premier écran centré.
+   The phone is how this page is actually seen, so it is not a squeezed desktop: the hero is read
+   down the middle, the orb and its name keep their distance from the ring, the pills sit on one
+   line under the headline, and the cards, the offers and the panel of country codes give the
+   thumb the room the 28px gutters of the wide page do not need. */
+@media (max-width:699px){
+  .hero-in{grid-template-columns:1fr; padding-top:calc(74px + 18px); padding-bottom:36px; text-align:center; gap:20px}
+  .hero .sub{margin-left:auto; margin-right:auto; font-size:16px; max-width:34ch}
+  .orbwrap{max-width:236px; order:-1}
+  .orbwrap .mira > div{padding:9px 16px}
+  .facts{justify-content:center; gap:6px; margin-top:16px}
+  .facts span{font-size:13px; padding:6px 12px}
+  .main{grid-template-columns:1fr; gap:14px; padding:0 0 48px}
+  #start{order:-1}
+  .card{padding:22px 18px; border-radius:20px}
+  .brain iframe{height:min(74vh,680px)}
+  .main.opened{padding-bottom:26px}
+  .card h2{font-size:24px}
+  .offer{padding:20px 18px}
+  .offer h3{font-size:19px}
+  .big{font-size:34px}
+  .step b{font-size:17px}
+  .field > input,.mf-pill input{height:54px; font-size:16px}
+  .cc-pop{width:min(252px, calc(100vw - 72px))}
+  .mf-phone .mf-code{padding:0 20px 0 14px}   /* the number keeps its room once the pill is narrow */
+  .cta{width:100%}
+  .fine{max-width:34ch; margin-left:auto; margin-right:auto}
+}
+/* the safe area at the bottom of a phone, so the last line of the page is not under the bar */
+@supports (padding:env(safe-area-inset-bottom)){
+  footer{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+}
+/* Écrans tactiles : champs plus grands, pas de zoom automatique */
+@media (pointer:coarse){
+  .field > input,.mf-pill input{font-size:17px; height:54px}
+  .cc-btn{height:54px}
+  .choice span{min-height:54px; font-size:16px}
+  .consent{font-size:15px}
+  .consent input{width:22px; height:22px; margin-top:1px}
+  .cta{padding:18px 24px; font-size:18px}
+}
+/* moins de mouvement : la lumière reste, elle ne court plus */
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .sky i{animation:none}
+  .step,.step::after{animation:none}
+  .step::after{display:none}
+  .step::before{background:linear-gradient(180deg, rgba(95,211,232,.5), rgba(255,255,255,.16))}
+}
+</style>
+</head>
+<body><div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+<header class="nav">
+  <div class="nav-bar">
+    <a class="brand" href="https://boasis.ae/" aria-label="BOASIS, to the site">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a>
+  </div>
+</header>
+
+<header class="hero">
+  <div class="hero-in">
+    <div>
+      <p class="eyebrow">Sharjah Next offer · 28 &amp; 29 Oct</p>
+      <h1>Your SPARK company, at the <em>event price</em></h1>
+      <p class="sub">Tell Mira what you do and she puts the activities, the package and the price in front of you. You finish at the counter with a reference number.</p>
+      <div class="facts"><span>Sharjah Next free zone</span><span>100% ownership</span><span>A few minutes, at the stand</span></div>
+    </div>
+    <div class="orbwrap"><img class="fallback" src="/assets/logo/orb-512.png" alt=""><div id="orb"></div><div class="mira"><div><b>Mira</b><span>by Boasis</span></div></div></div>
+  </div>
+</header>
+
+<main class="main">
+  <aside class="side">
+    <div class="card">
+      <div class="eyebrow">Two packages, one price for the two days</div>
+      <div class="prices" style="margin-top:14px">
+        <div class="price">
+          <div class="from">Beyond</div>
+          <div class="amount">AED 1,510<small>year 1</small></div>
+          <h3>One activity, one shareholder</h3>
+          <ul><li>1 activity</li><li>1 shareholder</li><li>Free lease</li></ul>
+        </div>
+        <div class="price pick">
+          <div class="from">Beyond+</div>
+          <div class="amount">AED 3,010<small>from, year 1</small></div>
+          <h3>Room to grow, and visas</h3>
+          <ul><li>Up to 3 activities</li><li>Up to 3 shareholders</li><li>Visa options</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">For these 5 sectors</div>
+      <div class="sectors">
+        <span>Sustainability</span><span>Advanced Manufacturing</span><span>Mobility &amp; Logistics</span><span>Healthcare</span><span>AI &amp; Digital Transformation</span>
+      </div>
+    </div>
+    <div class="card" data-steps>
+      <div class="eyebrow">How it works</div>
+      <div class="steps" style="margin-top:14px">
+        <div class="step"><div class="n">1</div><div><b>Tell Mira what you do</b><span>In your own words, typed or spoken.</span></div></div>
+        <div class="step"><div class="n">2</div><div><b>Choose your activities</b><span>Mira suggests them. Your package shows on top.</span></div></div>
+        <div class="step"><div class="n">3</div><div><b>Get your reference number</b><span>On screen, and by email.</span></div></div>
+        <div class="step"><div class="n">4</div><div><b>Finish in Zone 2, Block B</b><span>Show your reference, apply and pay. Follow the green signs.</span></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="day">
+        <div class="stamp"><i>Oct</i><b>28 · 29</b></div>
+        <p><b>Open on 28 and 29 October only.</b> Complete your payment in Zone 2 before you leave.</p>
+      </div>
+    </div>
+  </aside>
+
+  <section class="card" id="start">
+    <div id="formView">
+      <h2>Hi. I&rsquo;m Mira.</h2>
+      <p class="lead">A few details, and we start.</p>
+      <form id="eventForm" novalidate>
+        <div class="hp" aria-hidden="true"><label>Website<input name="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
+        <div class="two">
+          <div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" type="text" autocomplete="given-name" autocapitalize="words" required><p class="err" data-err="first_name"></p></div>
+          <div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" type="text" autocomplete="family-name" autocapitalize="words" required><p class="err" data-err="last_name"></p></div>
+        </div>
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required><p class="err" data-err="email"></p></div>
+        <div class="field"><label for="phone">Mobile number</label>
+          <div class="mf-pill mf-phone">
+            <div class="mf-code" data-cc>
+              <span class="sr">Country code</span>
+              <button type="button" class="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span class="cc-cur">AE</span><span class="cc-code">+971</span></button>
+              <div class="cc-pop" hidden>
+                <label class="cc-find"><span class="sr">Search country</span><input class="cc-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search country"></label>
+                <ul class="cc-list" role="listbox" aria-label="Country code"></ul>
+                <p class="cc-none" hidden>No country found.</p>
+              </div>
+              <input type="hidden" name="country_code" value="+971">
+            </div>
+            <label><span class="sr">Mobile number</span><input id="phone" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" autocapitalize="none" spellcheck="false" placeholder="Enter your mobile number" required></label>
+          </div><p class="err" data-err="phone"></p></div>
+        <label class="consent"><input type="checkbox" name="consent" required><span>I agree that SPARK and Boasis may contact me about my project.</span></label>
+        <p class="err" data-err="consent"></p>
+        <p class="err" data-note></p>
+        <button class="cta" type="submit"><span class="dot"></span>Start with Mira<span aria-hidden="true"> &rarr;</span></button>
+        <p class="fine">Your details are only used to contact you about your project.</p>
+      </form>
+    </div>
+    <div class="done" id="doneView" aria-live="polite">
+      <div class="ok">&#10003;</div>
+      <h2>Mira is ready for you</h2>
+      <p class="lead">If she didn&rsquo;t open automatically, tap below. Everything is saved as you go, so you can close this, come back later, and pick up where you stopped.</p>
+      <div class="brain"><iframe id="brainFrame" title="Mira" src="about:blank"></iframe></div>
+      <p class="fine">Not showing? <a id="miraLink" href="#" target="_blank" rel="noopener">Talk to Mira</a> opens her in a new tab, with your pass in the link.</p>
+    </div>
+  </section>
+</main>
+
+<footer><a class="brand" href="https://boasis.ae/">B<img src="/assets/logo/orb-160.png" alt="O">ASIS</a><p style="margin-top:6px">Boasis - FZC · support@boasis.ae</p></footer>
+
+<script src="/js/yara-orb.js"></script>
+<script src="/js/countries.js"></script>
+<script src="/js/spark-event.js?v=1"></script>
+</body>
+</html>

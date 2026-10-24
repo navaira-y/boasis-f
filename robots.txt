@@ -23,11 +23,13 @@ User-agent: Googlebot
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 # ── the answer engines: allowed, because being cited is the point ───────────
 # OpenAI splits the two: OAI-SearchBot builds the index ChatGPT cites, GPTBot collects
@@ -38,6 +40,7 @@ User-agent: ChatGPT-User
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 # Anthropic's three: Claude-SearchBot indexes for citations, Claude-User fetches on a
 # person's request, ClaudeBot crawls for training. The first two are welcome.
@@ -46,6 +49,7 @@ User-agent: Claude-User
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 # Perplexity answers with links to what it read: that is exactly the deal BOASIS wants.
 User-agent: PerplexityBot
@@ -53,6 +57,7 @@ User-agent: Perplexity-User
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 # ── the training crawlers: refused by name ──────────────────────────────────
 User-agent: GPTBot
@@ -98,5 +103,6 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /try-mira
+Disallow: /spark-event
 
 Sitemap: https://boasis.ae/sitemap.xml

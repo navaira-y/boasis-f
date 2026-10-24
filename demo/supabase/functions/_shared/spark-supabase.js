@@ -5,6 +5,13 @@
  * write of a row. Keeping it apart means create-pass, save-step and get-lead do not each invent
  * their own column list, and the one file per person is written the same way from all three.
  *
+ * There are two tables and they are the same shape: `public.spark_leads`, created by
+ * demo/supabase/spark.sql, and `public.spark_event_leads`, created by demo/supabase/spark-event.sql
+ * for the page at boasis.ae/spark-event. A page names its own when it asks for a pass, and the row
+ * is found by the pass alone afterwards, so nothing outside these three functions has to know which
+ * crowd a person came from. One table per entrance, rather than one filter, because the two are
+ * counted, exported and cleaned up on different days.
+ *
  * The table is `public.spark_leads`, created by demo/supabase/spark.sql. One row per person, `pass`
  * as the key, and `data` holding the whole record exactly as the file version of this demo holds it,
  * so the same JSON is what the advisor reads whichever back end is in use. The flat columns beside it
@@ -15,6 +22,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export const TABLE = "spark_leads";
+
+/* The entrance decides where a person's row lives. An empty name is the original page, so a call
+   that says nothing behaves exactly as it did before this map existed, and an unknown name falls
+   back to it rather than inventing a table out of a typo: the table a row goes into is never taken
+   from anything a caller can type freely, it is chosen from these two keys. */
+export const TABLES = {
+  "": TABLE,
+  "spark-event": "spark_event_leads",
+};
+
+export function tableFor(page) {
+  const key = String(page || "").trim().toLowerCase();
+  return TABLES[key] || TABLE;
+}
+
+/* every table a pass could be sitting in, in the order they are looked up */
+export function allTables() {
+  return [...new Set(Object.values(TABLES))];
+}
 
 /* Supabase reserves its own prefix on the secrets screen and hands those two values to every
    function itself, so "SUPABASE_URL" cannot be typed in. Ours are read first, and if you did not
@@ -85,23 +111,46 @@ export function rowOf(lead) {
   };
 }
 
-export async function writeLead(sb, lead, emailHash) {
+export async function writeLead(sb, lead, emailHash, table = TABLE) {
   const row = rowOf(lead);
   if (emailHash) row.email_hash = emailHash;
-  const res = await sb.from(TABLE).upsert(row, { onConflict: "pass" });
+  const res = await sb.from(table).upsert(row, { onConflict: "pass" });
   if (res.error) throw res.error;
 }
 
-export async function readLead(sb, pass) {
-  const { data } = await sb.from(TABLE).select("data").eq("pass", pass).maybeSingle();
+export async function readLead(sb, pass, table = TABLE) {
+  const { data } = await sb.from(table).select("data").eq("pass", pass).maybeSingle();
   return data ? data.data : null;
+}
+
+/* the one lookup that does not know which entrance a pass came from, which is every lookup after
+   the pass is minted: the Brain only has the pass, so the row is looked for in each table in turn
+   and the one that holds it is the one written back to. Two reads in the worst case, on a table of
+   a few hundred rows, at the pace of a stand: paid for, and cheaper than a pass that carries a
+   table name in it where anyone could edit it. */
+export async function readLeadAny(sb, pass) {
+  for (const table of allTables()) {
+    const lead = await readLead(sb, pass, table);
+    if (lead) return { lead, table };
+  }
+  return { lead: null, table: null };
+}
+
+/* is this pass already somebody's, anywhere? A mint that only asked its own table could hand the
+   same letters to two people in two entrances, and the second one would be read into the first's
+   row by the lookup above. */
+export async function passTaken(sb, pass) {
+  for (const table of allTables()) {
+    if (await readLead(sb, pass, table)) return true;
+  }
+  return false;
 }
 
 /* the same address, a second scan: the newest row for that hash, and the caller decides whether the
    pass in it still works. Not a unique index, because a pass is allowed to expire and the same
    person to be given a fresh one the next day. */
-export async function readByEmailHash(sb, hash) {
-  const { data } = await sb.from(TABLE)
+export async function readByEmailHash(sb, hash, table = TABLE) {
+  const { data } = await sb.from(table)
     .select("pass, expires_at")
     .eq("email_hash", hash)
     .order("updated_at", { ascending: false })

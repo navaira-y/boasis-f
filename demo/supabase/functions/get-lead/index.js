@@ -13,7 +13,7 @@
  */
 // deno-lint-ignore-file no-explicit-any
 import { checkPass, isPass } from "../_shared/spark-core.js";
-import { client, cors, readLead } from "../_shared/spark-supabase.js";
+import { client, cors, readLeadAny } from "../_shared/spark-supabase.js";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   const pass = new URL(req.url).searchParams.get("pass") || "";
   if (!isPass(pass)) return json({ ok: false, error: "pass" }, 400);
 
-  const checked = checkPass(pass, await readLead(client(), pass), Date.now());
+  const checked = checkPass(pass, (await readLeadAny(client(), pass)).lead, Date.now());
   if (!checked.ok) return json({ ok: false, error: checked.error }, checked.error === "pass" ? 400 : 404);
 
   return json({ ok: true, lead: checked.lead });

@@ -24,7 +24,11 @@ let core = null;
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.mp4': 'video/mp4', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json; charset=utf-8', '.ico': 'image/x-icon' };
 const leadPath = (pass) => path.join(DIR, 'leads', pass + '.json');
-const emailPath = (email) => path.join(DIR, 'by-email', crypto.createHash('sha256').update('spark-demo-stub|' + email).digest('hex') + '.json');
+/* one index per entrance, the same way the real store keeps one table per entrance: a person who
+   filled the AI Everything form and then the Sharjah Next one is two visits with two rows, and the
+   stub that shares one index would hand the second page the first page's pass. */
+const emailPath = (email, page) => path.join(DIR, 'by-email',
+  crypto.createHash('sha256').update('spark-demo-stub|' + (page || '') + '|' + email).digest('hex') + '.json');
 const readObj = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; } };
 const writeObj = (p, o) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(o, null, 2)); };
 const json = (res, code, body) => { const s = JSON.stringify(body, null, 2); res.writeHead(code, { 'Content-Type': MIME['.json'], 'Content-Length': Buffer.byteLength(s) }); res.end(s); };
@@ -33,7 +37,8 @@ function createPass(body, res) {
   const form = core.readForm(body);
   if (!form.ok) return json(res, 400, { ok: false, error: form.error });
   const now = Date.now();
-  const seen = readObj(emailPath(form.contact.email));
+  const page = String((body && body.page) || '').trim().toLowerCase();
+  const seen = readObj(emailPath(form.contact.email, page));
   if (seen && seen.pass && core.isPass(seen.pass)) {
     const existing = readObj(leadPath(seen.pass));
     if (existing && Date.parse(existing.expires_at || 0) > now) return json(res, 200, { ok: true, pass: seen.pass, brain_url: '/brain', reused: true });
@@ -42,7 +47,7 @@ function createPass(body, res) {
   for (let i = 0; i < 5; i += 1) { const c = core.makePass(); if (!readObj(leadPath(c))) { pass = c; break; } }
   if (!pass) return json(res, 503, { ok: false, error: 'busy' });
   writeObj(leadPath(pass), core.buildLead({ pass, contact: form.contact, source: body && body.source, now }));
-  writeObj(emailPath(form.contact.email), { pass, created_at: new Date(now).toISOString() });
+  writeObj(emailPath(form.contact.email, page), { pass, created_at: new Date(now).toISOString() });
   console.log('  pass ' + pass + ' for ' + form.contact.email + '  →  ' + leadPath(pass));
   json(res, 200, { ok: true, pass, brain_url: '/brain' });
 }
@@ -109,7 +114,7 @@ const server = http.createServer(async (req, res) => {
   /* the real addresses, so a rehearsal is not a different site: /try-mira is served as
      boasis.ae serves it, with its css, its script and the site's own orb assets */
   const p0 = url.pathname.replace(/\/+$/, '') || '/';
-  const SERVED = p0 === '/' || /^\/(?:try-mira(?:\.html)?|css\/.+|js\/.+|assets\/.+)$/.test(p0);
+  const SERVED = p0 === '/' || /^\/(?:try-mira|spark-event)(?:\.html)?$/.test(p0) || /^\/(?:css|js|assets)\/.+$/.test(p0);
   if (!SERVED) { res.writeHead(404); return res.end('not part of the demo'); }
   const want = p0 === '/' ? '/try-mira' : p0;
   /* boasis.ae answers /try-mira from try-mira.html, so the rehearsal resolves the same way */
@@ -119,7 +124,7 @@ const server = http.createServer(async (req, res) => {
     if (e) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('missing: ' + path.relative(ROOT, file)); }
     /* the shipped file keeps its endpoint empty on purpose; the stub is the one that says
        "post here", so nothing about running a demo locally ever reaches the deploy */
-    const out = /js[\/]try-mira\.js$/.test(file)
+    const out = /js[\/](?:try-mira|spark-event)\.js$/.test(file)
       /* whatever the shipped page points at is replaced, rather than one exact string being
          looked for: the page ships pointed at this site's own door now, and the stub answers at
          its own, and the rehearsal must not depend on the address in the file */
