@@ -228,7 +228,7 @@ function checkPass(pass, lead, now) {
  * their own column list, and the one file per person is written the same way from all three.
  *
  * There are two tables and they are the same shape: `public.spark_leads`, created by
- * demo/supabase/spark.sql, and `public.sharjah_next_leads`, created by demo/supabase/sharjah-next.sql
+ * demo/supabase/spark.sql, and `public.sharjah_next_leads`, created by demo/supabase/sharjah-next-passes.sql
  * for the page at boasis.ae/sharjah-next. A page names its own when it asks for a pass, and the row
  * is found by the pass alone afterwards, so nothing outside these three functions has to know which
  * crowd a person came from. One table per entrance, rather than one filter, because the two are
@@ -249,7 +249,7 @@ const TABLE = "spark_leads";
    from anything a caller can type freely, it is chosen from these two keys. */
 const TABLES = {
   "": TABLE,
-  "sharjah-next": "sharjah_next_leads",
+  "sharjah-next": "sharjah_next_passes",
 };
 
 function tableFor(page) {

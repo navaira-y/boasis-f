@@ -113,7 +113,8 @@ test('the table has the columns the door writes, and the lock the comment promis
     assert.ok(new RegExp('^\\s*' + col + '\\s', 'm').test(sql), col + ' is a column in the table');
     assert.ok(door.includes(col), col + ' is written by the door');
   }
-  assert.match(door, /from\(TABLE\)\.insert\(row\)/, 'the door writes with one insert');
+    assert.match(door, /from\(table\)\.insert\(row\)/, 'the door writes with one insert, into the table the kind picked');
+  assert.match(door, /const STAND = "sharjah_next_leads"/, 'and the stand has a table of its own to pick');
   assert.ok(!/\.update\(|\.delete\(/.test(door), 'and never rewrites or removes a row that is already kept');
   assert.match(sql, /enable row level security/, 'RLS on');
   assert.ok(!/create policy/.test(sql), 'and no policy: the browser roles get nothing, the service role does not need one');

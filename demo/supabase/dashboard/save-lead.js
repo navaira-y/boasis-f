@@ -25,6 +25,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /* save-lead · the site's form sign-ups, kept in a table as well as a file
  *
+ * Two tables answer this one door: site_leads for the website's own forms, sharjah_next_leads for
+ * the Sharjah Next stand. The kind picks it, from the list below, and nothing else.
+ *
  * boasis.ae posts here after it has already written its own copy, so this is the one that a deploy
  * cannot lose and that the dashboard can hand you as a CSV. Five kinds come through: the early
  * access form, the two dialogs on the home page, the contact form, and the Sharjah Next stand page. The whole record arrives as
@@ -45,6 +48,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  */
 
 const TABLE = "site_leads";
+const STAND = "sharjah_next_leads";        // the Sharjah Next stand keeps its own list, see below
 const KINDS = ["early_access", "waitlist", "demo", "contact", "sharjah_next"];
 const MAX_STR = 500;
 const MAX_BODY = 16 * 1024;                 // one sign-up is a few hundred bytes; a megabyte is a caller mistake
@@ -88,7 +92,27 @@ function flat(record) {
     full_name: clip(record.name || record.full_name),
     email: clip(record.email ? String(record.email).toLowerCase() : ""),
     phone: clip(record.phone),
-    company: clip(record.authority || record.organisation || record.who),
+  };
+}
+
+/* Two tables, one door, and the kind is the only thing that decides which. The website's four forms
+   go on together in site_leads; the stand's sign-ups go on their own in sharjah_next_leads, because
+   the event lasts two days, its follow up is somebody else's calendar, and the two lists are
+   exported and cleaned up on different days. Nothing about that is the caller's choice beyond the
+   kind it is already sending: a free-form table name in the body would be a way to write anywhere. */
+function rowFor(kind, record, at) {
+  const who = flat(record);
+  if (kind !== "sharjah_next") {
+    return { kind, ...who, company: clip(record.authority || record.organisation || record.who), at, data: record };
+  }
+  return {
+    ...who,
+    ref: clip(record.ref),
+    country_code: clip(record.country_code),
+    consent: record.consent === true || record.consent === "on" || record.consent === "true",
+    source: clip(record.source),
+    at,
+    data: record,
   };
 }
 
@@ -119,7 +143,9 @@ Deno.serve(async (req) => {
   if (!record) return json({ ok: false, error: "record" }, 400);
 
   const stamp = Date.parse(String(body?.at || record.at || ""));
-  const row = { kind, ...flat(record), at: Number.isFinite(stamp) ? new Date(stamp).toISOString() : new Date().toISOString(), data: record };
+  const at = Number.isFinite(stamp) ? new Date(stamp).toISOString() : new Date().toISOString();
+  const table = kind === "sharjah_next" ? STAND : TABLE;
+  const row = rowFor(kind, record, at);
 
   let sb;
   try {
@@ -127,8 +153,8 @@ Deno.serve(async (req) => {
   } catch {
     return json({ ok: false, error: "config" }, 500);
   }
-  const { data, error } = await sb.from(TABLE).insert(row).select("id").single();
+  const { data, error } = await sb.from(table).insert(row).select("id").single();
   if (error) return json({ ok: false, error: "db" }, 500);
 
-  return json({ ok: true, id: data?.id ?? null, kind, at: row.at });
+  return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
 });

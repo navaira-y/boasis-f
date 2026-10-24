@@ -550,6 +550,13 @@ The rehearsal stub knows the page keeps its door in the markup: `scripts/spark-s
 `node scripts/spark-stub.js` rehearses this entrance against its own bucket and never reaches the live
 project, whichever file the address happens to live in.
 
+**Two tables, not one list.** `public.site_leads` holds the website's own forms (early access, the two
+home dialogs, contact) and `public.sharjah_next_leads` holds the stand, one row per submit, `ref`
+unique. One door writes both: `save-lead` reads the `kind` it is handed and picks the table, and a
+caller cannot name one. The stand's leads are exported and cleaned up on the event's calendar, the
+site's on the website's, and the paused pass flow has its own third table, `sharjah_next_passes`, from
+`demo/supabase/sharjah-next-passes.sql`, which nobody has to run today.
+
 **What the stand page does today, and only that.** The Brain write back, the resumable journey and the
 pass are not wired into `/sharjah-next` yet, because the backend has not been explained. What is wired
 is the pair that is settled: the form posts to `POST /api/sharjah-lead` on this host, which validates it
@@ -566,10 +573,10 @@ all, and `frame-src https://brain.boasis.ae` as the single widening.
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
 `lib/mail-templates.js`, in their palette and their box, signed The SPARK Team, with the two marks at
-`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. Right now all three go
-to the visitor the moment the form is in, which is the testing state they asked for, and nothing goes to
-the team. That is decided by one line in `lib/spark.js`: `SPARK_SN_MAIL` defaults to `submit`, and
-`SPARK_SN_MAIL=off` closes all three without a code change. When the real schedule is settled, the
+`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. Nothing is mailed yet: the trigger was
+tried, read, and then withdrawn by the event team, so `SPARK_SN_MAIL` defaults to `off` and a submit
+only records the lead. The three are one value away when the schedule is settled (see `LEADS.md` and
+this file's next paragraph). When the real schedule is settled, the
 second and third move to whatever answers it (a payment webhook, or a timer for the 90 minute nudge) and
 the subjects do not change. A Sharjah Next row is never sent the AI Everything note, because that one
 thanks a different event. `docs/mail/sharjah-1-congrats.html` and its two siblings are the three,

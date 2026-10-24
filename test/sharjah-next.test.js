@@ -271,9 +271,40 @@ test('nothing on the site links it, every crawler is told to leave it out, and n
   assert.equal(r.status, 200);
 });
 
+test('the stand leads sit in their own table, and one door writes to both', () => {
+  const sql = read('demo/supabase/sharjah-next.sql');
+  assert.match(sql, /create table if not exists public\.sharjah_next_leads/, 'the stand has its own table, not a kind inside the site\'s');
+  for (const c of ['ref', 'full_name', 'email', 'phone', 'country_code', 'consent', 'source', 'at', 'received_at', 'data']) {
+    assert.ok(new RegExp('^  ' + c + '\\s+', 'm').test(sql), c + ' is a column of it, or the insert fails on the night');
+  }
+  assert.match(sql, /ref\s+text\s+unique/, 'and the reference is unique, so a row cannot be written twice by a retry');
+  for (const need of ['enable row level security;', 'revoke all on table public.sharjah_next_leads from anon, authenticated;',
+    'grant select, insert on table public.sharjah_next_leads to service_role;']) {
+    assert.ok(sql.includes(need), 'locked the same way as every table here: ' + need);
+  }
+  assert.ok(!/drop table|delete from|update public\.sharjah_next_leads/i.test(sql.split('\n').filter(l => !/^\s*--/.test(l)).join('\n')),
+    'nothing in the paste destroys a row that is already in');
+  assert.ok(!/eyJ[A-Za-z0-9_-]{20,}/.test(sql) && !/supabase\.co/.test(sql), 'no key and no project host in the file, so it pastes into any project');
+
+  const door = read('demo/supabase/functions/save-lead/index.js');
+  assert.match(door, /const STAND = "sharjah_next_leads"/, 'the one door every form already posts to knows the second table');
+  assert.match(door, /const table = kind === "sharjah_next" \? STAND : TABLE;/, 'the kind picks the table, and nothing else decides it');
+  assert.ok(!/body\?\.table|body\.table/.test(door), 'a caller cannot name a table, which is the whole reason this is a door and not a query');
+  assert.match(door, /consent: record\.consent === true \|\| record\.consent === "on"/, 'the tick box is stored as a real boolean, not as a string');
+  const dash = read('demo/supabase/dashboard/save-lead.js');
+  assert.equal(dash, require('../scripts/make-supabase-single.js').compose('save-lead'),
+    'and the file you paste into the dashboard is exactly that, table map inside it');
+});
+
+test('the three mails have no trigger today, and one value away from having one', () => {
+  const spark = read('lib/spark.js');
+  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'off'/, 'off unless the event team says otherwise, so a submit records and stays quiet');
+  assert.ok(!/SPARK_SN_MAIL \|\| 'submit'/.test(spark), 'the testing default is gone, it was only ever for the read through');
+});
+
 test('the two tables are the same shape, and each entrance writes to its own', () => {
   const store = read('demo/supabase/functions/_shared/spark-supabase.js');
-  assert.match(store, /export const TABLES = \{[\s\S]*"": TABLE,[\s\S]*"sharjah-next": "sharjah_next_leads",/,
+  assert.match(store, /export const TABLES = \{[\s\S]*"": TABLE,[\s\S]*"sharjah-next": "sharjah_next_passes",/,
     'the map from page to table is the one place either is named');
   assert.match(store, /return TABLES\[key\] \|\| TABLE;/, 'and an unknown page falls back to the original table rather than inventing one');
   const create = read('demo/supabase/functions/create-pass/index.js');
@@ -288,14 +319,14 @@ test('the two tables are the same shape, and each entrance writes to its own', (
   }
   assert.match(read('demo/supabase/functions/save-step/index.js'), /writeLead\(sb, next, null, found\.table/, 'and updates the table it read from');
 
-  const sql = read('demo/supabase/sharjah-next.sql');
+  const sql = read('demo/supabase/sharjah-next-passes.sql');
   const first = read('demo/supabase/spark.sql');
-  assert.match(sql, /create table if not exists public\.sharjah_next_leads/, 'the SQL makes the second table');
+  assert.match(sql, /create table if not exists public\.sharjah_next_passes/, 'the SQL makes the second table');
   const cols = [...first.matchAll(/^  ([a-z_]+)\s+(text|boolean|integer|numeric|timestamptz|jsonb|text\[\])/gm)].map(m => m[1]);
   assert.ok(cols.length >= 16, 'the first table has the columns rowOf writes, saw ' + cols.length);
   for (const c of cols) assert.ok(new RegExp('^  ' + c + '\\s+', 'm').test(sql), c + ' is in the new table too, or an insert fails at the stand');
-  for (const need of ['enable row level security;', 'revoke all on table public.sharjah_next_leads from anon, authenticated;',
-    'grant select, insert, update on table public.sharjah_next_leads to service_role;']) {
+  for (const need of ['enable row level security;', 'revoke all on table public.sharjah_next_passes from anon, authenticated;',
+    'grant select, insert, update on table public.sharjah_next_passes to service_role;']) {
     assert.ok(sql.includes(need), 'and the lock is the same lock: ' + need);
   }
   assert.ok(!/create\s+policy/i.test(sql.split('\n').filter(l => !/^\s*--/.test(l)).join('\n')), 'no policy, so the browser keys still read nothing');
@@ -307,13 +338,13 @@ test('the two files you paste into the dashboard are the two folders, with the n
   for (const name of ['create-pass', 'save-step', 'get-lead']) {
     const dash = read('demo/supabase/dashboard/' + name + '.js');
     assert.equal(dash, compose(name), name + ' in dashboard/ is exactly what the generator writes');
-    assert.ok(dash.includes('sharjah_next_leads'), name + ' has both tables in it, because a pasted file has no folder to import from');
+    assert.ok(dash.includes('sharjah_next_passes'), name + ' has both tables in it, because a pasted file has no folder to import from');
   }
 });
 
 test('the handover says the second entrance exists, and what to run for it', () => {
   const doc = read('docs/SPARK.md');
-  for (const need of ['/sharjah-next', 'sharjah_next_leads', 'sharjah-next.sql', 'js/sharjah-next.js', 'sharjah-next-2026', 'readLeadAny']) {
+  for (const need of ['/sharjah-next', 'sharjah_next_passes', 'sharjah_next_leads', 'sharjah-next.sql', 'sharjah-next-passes.sql', 'js/sharjah-next.js', 'sharjah-next-2026', 'readLeadAny']) {
     assert.ok(doc.includes(need), 'docs/SPARK.md must name ' + need);
   }
   assert.ok(!/sharjah-next[^]{0,200}service_role/.test(doc), 'and it never puts the service key near the new page either');

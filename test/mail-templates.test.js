@@ -158,17 +158,19 @@ test('the Sharjah Next mails say what the design file says, and only those three
   }
   /* the AI Everything note is another event's words, so a Sharjah row must never be sent it */
   const spark = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
-  assert.match(spark, /if \(SN_TRIGGER !== 'off' && snRow !== 'sharjah-next-2026'\)[\s\S]*notifySpark\(/,
+  assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\) \{\s*\n\s*r = await mail\.notifySpark\(/,
     'the old note is gated on the source, and only on the source');
-  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'submit'/, 'the trigger is one constant, and it is on for the testing');
 });
 
 test('the three mails have one switch, and testing it does not need a code change', () => {
   const fs = require('fs'), path = require('path');
   const spark = fs.readFileSync(path.join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
   const mailer = fs.readFileSync(path.join(__dirname, '..', 'lib', 'mailer.js'), 'utf8');
-  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'submit'/, 'the mode is read from the environment, defaulting to once per pass');
-  assert.match(spark, /if \(SN_TRIGGER === 'off'\) return res\.json/, 'off answers the page instead of pretending a mail went');
+  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'off'/, 'the mode is read from the environment, and nothing is sent until it is set');
+  assert.match(spark, /const mode = String\(process\.env\.SPARK_SN_MAIL \|\| 'off'\)/, 'the stand door is off too, so a submit records the lead and says nothing');
+  assert.ok(!/const SN_TRIGGER = String\(process\.env\.SPARK_SN_MAIL \|\| 'submit'\)/.test(spark), 'and the receipt door no longer sends the three by itself');
+  assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\) \{[\s\S]*notifySpark\(/, 'the AI Everything note is gated on the source only, so that stand is untouched');
+  assert.match(spark, /const mode = String\(process\.env\.SPARK_SN_MAIL \|\| 'off'\)/, 'and the stand door is off too, so a submit records the lead and says nothing');
   assert.match(spark, /SN_TRIGGER !== 'each'/, 'and "each" gets past the once-per-pass mark, which is what a reader at a desk needs');
   assert.match(spark, /each: SN_TRIGGER === 'each'/, 'the mode is passed down rather than guessed at again');
   assert.match(spark, /SPARK_SN_MAIL.*off|!== 'off'|=== 'off'/s, 'and "off" is honoured, so the pair can be closed from hPanel alone');

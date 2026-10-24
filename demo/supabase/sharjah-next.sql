@@ -1,44 +1,47 @@
--- The Sharjah Next page at boasis.ae/sharjah-next · the second table, run in the Supabase SQL editor
+-- the Sharjah Next stand · its own table, run in the Supabase SQL editor
 --
--- Same columns, same rules and same shape as public.spark_leads, in its own table: the two pages ask
--- the same four things and hand the person to the same Mira, and the crowds are counted, exported and
--- cleared on different days. The functions decide which table a row lives in from the page that asks
--- for the pass, and afterwards a pass is found by itself, so the Brain is told nothing new.
+-- One row per form submission at the stand, kept apart from the site's own sign-ups (which live in
+-- public.site_leads) so the two lists can be exported, counted and cleaned up on different days. The
+-- event is two days long and the follow up is somebody else's calendar; the website's early access
+-- list is not.
+--
+-- `data` is the record exactly as the site wrote it, and the columns beside it are the few you
+-- actually sort and filter on the morning after, written by the same function from that same object,
+-- so they cannot drift.
 --
 -- Paste all of this at once: SQL Editor → New query → Run. Safe to run twice, everything is
--- if not exists. If you have never run demo/supabase/spark.sql, run that one first: this file
--- repeats the table it makes, so a fresh project gets both.
+-- if not exists, and nothing here drops or rewrites a row.
 
 create table if not exists public.sharjah_next_leads (
-  pass          text        primary key,                 -- PASSxxxxxxxx, the whole credential
-  email_hash    text,                                    -- sha256 of salt + address, never the address's neighbours
+  id            bigint generated always as identity primary key,
+  ref           text        unique,                      -- SN-XXXXXX, what the page shows and the mails quote
   full_name     text,
-  email         text,                                    -- lower cased, as every other form here keeps it
-  phone         text,                                    -- dial code + number, spaces as the site writes them
+  email         text,                                    -- lower cased, as every form here keeps it
+  phone         text,                                    -- dial code + number, spaces as typed
   country_code  text,
-  residence     text,                                    -- 'uae', 'abroad', or empty if they did not say
-  consent       boolean,
-  source        text,                                    -- 'sharjah-next-2026', what the page sends
-  last_step     text,                                    -- describe, mira, activities, package
-  steps_reached text[],                                  -- in the order they happened
-  turns         integer     default 0,                   -- how many times the person typed something
-  price_aed     numeric,                                 -- the estimate as the last step left it
-  created_at    timestamptz,
-  updated_at    timestamptz,
-  expires_at    timestamptz,                             -- when the pass stops working
-  data          jsonb       not null                     -- the whole record, exactly as the file version holds it
+  consent       boolean,                                 -- the tick box, kept as the proof somebody agreed
+  source        text,                                    -- 'sharjah-next-2026', the offer they came for
+  at            timestamptz not null,                    -- when the site accepted it, in its own clock
+  received_at   timestamptz not null default now(),      -- when this table got it, for the odd delayed copy
+  data          jsonb       not null                     -- the whole record, as data/sharjah-next/*.json holds it
 );
 
-comment on table public.sharjah_next_leads is 'boasis.ae/sharjah-next · one row per visitor · written by the same spark edge functions, table chosen by the page';
+comment on table public.sharjah_next_leads is 'boasis.ae/sharjah-next form sign-ups, mirrored by the save-lead edge function · append only';
 
--- the two lookups the code makes: by pass, and by address for a person who scans twice
-create index if not exists sharjah_next_leads_email_hash_idx on public.sharjah_next_leads (email_hash);
-create index if not exists sharjah_next_leads_updated_at_idx  on public.sharjah_next_leads (updated_at desc);
+create index if not exists sharjah_next_leads_at_idx   on public.sharjah_next_leads (at desc);
+create index if not exists sharjah_next_leads_email_idx on public.sharjah_next_leads (lower(email));
 
--- the lock, the same one as the first table: RLS enabled with no policies, so the anon key a browser
--- holds reads zero rows, and an empty query in the dashboard is fixed with the service key, never
--- with a policy.
+-- the lock, same as every other table here: Supabase grants the browser roles on new tables in
+-- public/, so row level security enabled with no policies is what leaves them with zero rows, and
+-- the function writes with the service role, which walks past it. This door also wants a key.
 alter table public.sharjah_next_leads enable row level security;
 
+-- insert and read only, never update and never delete: the mirror appends, and a row here is a
+-- record of something a person chose to tell us at a given minute.
 revoke all on table public.sharjah_next_leads from anon, authenticated;
-grant select, insert, update on table public.sharjah_next_leads to service_role;
+grant select, insert on table public.sharjah_next_leads to service_role;
+
+/* whenever you want the list, or the CSV: SQL Editor → paste → Run → Download results. */
+-- select to_char(at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') as at_dubai,
+--        ref, full_name, email, phone, country_code, source, data
+-- from public.sharjah_next_leads order by at desc;
