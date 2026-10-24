@@ -126,14 +126,20 @@ const server = http.createServer(async (req, res) => {
     if (e) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('missing: ' + path.relative(ROOT, file)); }
     /* the shipped file keeps its endpoint empty on purpose; the stub is the one that says
        "post here", so nothing about running a demo locally ever reaches the deploy */
-    const out = /js[\/](?:try-mira|spark-event)\.js$/.test(file)
-      /* whatever the shipped page points at is replaced, rather than one exact string being
-         looked for: the page ships pointed at this site's own door now, and the stub answers at
-         its own, and the rehearsal must not depend on the address in the file */
-      ? Buffer.from(String(buf)
-          .replace(/endpoint: '[^']*'/, "endpoint: '/functions/v1/create-pass'")
-          .replace(/brainUrl: '[^']*'/, "brainUrl: '/brain'"))
-      : buf;
+    const isJs = /js[\/](?:try-mira|spark-event)\.js$/.test(file);
+    const isPage = /(?:try-mira|spark-event)\.html$/.test(file);
+    /* whatever the shipped page points at is replaced, rather than one exact string being looked for:
+       the two entrances keep their addresses in different places (one in the script, one in the
+       markup), and the rehearsal must not depend on either, because it answers at its own door */
+    let out = buf;
+    if (isJs) {
+      out = Buffer.from(String(buf)
+        .replace(/endpoint: '[^']*'/, "endpoint: '/functions/v1/create-pass'")
+        .replace(/brainUrl: '[^']*'/, "brainUrl: '/brain'")
+        .replace(/MIRA_URL = '[^']*'/, "MIRA_URL = '/brain'"));
+    } else if (isPage) {
+      out = Buffer.from(String(buf).replace(/data-endpoint="[^"]*"/, 'data-endpoint="/functions/v1/create-pass"'));
+    }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'X-Robots-Tag': 'noindex, nofollow' });
     res.end(out);
   });

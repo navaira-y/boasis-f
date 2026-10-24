@@ -519,27 +519,36 @@ the two lists are counted, exported and cleaned up on different days.
 | `demo/supabase/spark-event.sql` | `public.spark_event_leads`, same columns as the first table |
 | `demo/supabase/functions/_shared/spark-supabase.js` | `TABLES` and `tableFor`, the one place a page is turned into a table |
 
-**The design is the theme.** This page does not wear the site's stylesheet. It is the file the event
-team handed over, with its sand and olive palette, Outfit and Plus Jakarta Sans, the 560px measure
-that grows at 640 and 1000, the offer card, the sector pills, the four points and the night variant of
-the form box with the orb that breathes. A test reads every string on the page against the design's
-own copy list, so a reword has to be a decision and not a slip. Six things were changed, and each one
-is a line, not a look:
+**The page is the design file.** `spark-event.html` is the file the event team handed over, byte for
+byte, with its sand and olive palette, its fonts, its hero photograph and its logos still inlined as
+base64, its `Beyond` and `Beyond+` prices, its sector pills, its four points, its date chip, the night
+variant of the form box and the copy exactly as written. Five lines were changed, and each one is a
+line rather than a look:
 
-1. the `<title>`, description, theme colour and format detection tags were sitting inside `<body>`, so
-   they moved into `<head>`, where a browser and a crawler actually read them, and `noindex, nofollow,
-   noarchive` was added there, because the page is meant to stay out of Google;
-2. the inline `<script>` became `<script src="/js/spark-event.js">`, since every page on this host is
-   served with `script-src 'self'`, and an inline block would be refused;
-3. `data-endpoint` went from `/api/event` to `create-pass`, the switch that made the button post
-   nothing was taken out, and `MIRA_URL`'s placeholder address became `https://brain.boasis.ae`;
-4. the pass is put in the address Mira is opened with (`?pass=...`), because without it the Brain does
-   not know whose journey it is having, and the record stops at the form;
-5. the orb images point at `assets/logo/orb-160.png`, which is the same artwork the design inlined as
-   base64, so the page weighs kilobytes instead of a third of a megabyte;
-6. the two event logos and the hero photograph are asked for at `/assets/brand/` rather than inlined,
-   and the three files have to be saved out of the design into that folder. Until they are there the
-   header shows alt text and the hero shows its night colour, and nothing else about the page changes.
+1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
+   `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
+   read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
+2. the inline `<script>` became `<script src="/js/spark-event.js?v=1">`, since every page on this host
+   is served with `script-src 'self'` and an inline block would simply not run;
+3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
+   the shared preview needed so a demo posted nothing, became `true`;
+4. `MIRA_URL` went from the placeholder `https://boasis.ae/mira` to `https://brain.boasis.ae`, and the
+   address now carries `?pass=`, because without the pass the Brain does not know whose journey it is
+   and the record stops at the form;
+5. the script grew the few lines that make that true: the two names joined into `full_name`, `page` and
+   `source` stamped on the row, the pass kept for a day so a re-scan returns to the same visit, the
+   receipt fired once with `keepalive`, and `safeBase`/`clean` so no answer from anywhere can put a
+   foreign host or a stray character in the link a person taps.
+
+Nothing else was touched, including the parts a reviewer would normally correct: the French comments
+stay, `T` holds only `en` so the language hook is there and unused, and the pictures are inside the
+HTML rather than in `assets/`, which is why the page weighs 570 kilobytes and needs no second request
+on a stand's wifi.
+
+The rehearsal stub knows the page keeps its door in the markup: `scripts/spark-stub.js` rewrites
+`data-endpoint` in the two HTML files and `endpoint`, `brainUrl` and `MIRA_URL` in the two scripts, so
+`node scripts/spark-stub.js` rehearses this entrance against its own bucket and never reaches the live
+project, whichever file the address happens to live in.
 
 **How a row finds its table.** Only the entrance knows. `js/spark-event.js` sends
 `page: 'spark-event'` to `create-pass`, `tableFor` turns that into `spark_event_leads`, and the row
