@@ -6,6 +6,8 @@ const SHORT = 220;
 const MAX_ANSWERS = 40;
 const TIMEOUT_MS = 3500;
 
+const STAND_TABLES = new Set(['sharjah_next_passes', 'sharjah_next_leads']);
+
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const snip = (v, n = CLIP) => {
   if (v === null || v === undefined) return '';
@@ -126,6 +128,10 @@ async function pushSheet(body, o = {}) {
 }
 
 async function pushLeadToSheet(lead, o = {}) {
+  if (!STAND_TABLES.has(String(o.table || ''))) {
+    if (o.log) o.log('sheet skipped: not the stand');
+    return { ok: true, skipped: 'not the stand' };
+  }
   const r = await pushSheet(payloadFor({
     email: lead && lead.contact ? lead.contact.email : '',
     fields: fieldsFromLead(lead),
@@ -136,6 +142,10 @@ async function pushLeadToSheet(lead, o = {}) {
 }
 
 async function pushRecordToSheet(record, o = {}) {
+  if (!STAND_TABLES.has(String(o.table || ''))) {
+    if (o.log) o.log('sheet skipped: not the stand');
+    return { ok: true, skipped: 'not the stand' };
+  }
   const r = await pushSheet(payloadFor({
     email: record && record.email ? record.email : '',
     fields: fieldsFromRecord(record),
@@ -245,7 +255,7 @@ Deno.serve(async (req) => {
   const { data, error } = await sb.from(table).insert(row).select("id").single();
   if (error) return json({ ok: false, error: "db" }, 500);
 
-  await pushRecordToSheet(record);
+  await pushRecordToSheet(record, { table });
 
   return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
 });

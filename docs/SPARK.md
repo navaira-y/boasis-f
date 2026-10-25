@@ -528,7 +528,8 @@ line rather than a look:
 1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
    `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
    read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
-2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=6">`, since every page on this host
+2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=N">` (N rises with every shipped
+   edit to that file, and `sharjah-next.html` is the only place it is written), since every page on this host
    is served with `script-src 'self'` and an inline block would simply not run;
 3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
    the shared preview needed so a demo posted nothing, became `true`;
@@ -580,7 +581,9 @@ exists to answer. So the three functions post a flattened copy of that row to a 
 Google sheet, after their own write, and the sheet holds one row per person with one cell per field plus a
 tab of the questions and answers. The pass and the address hash are never sent, an empty value never
 overwrites a filled one, the call waits three and a half seconds and cannot fail a visitor, and the
-columns live only in the sheet file, so changing what she reads is a line there and not a deploy.
+columns live only in the sheet file, so changing what the boss reads is a line there and not a deploy.
+Every one of those posts is asked first whether the row belongs to the event, so a lead from boasis.ae
+never turns up in a sheet about Sharjah Next.
 `docs/SHEET.md` is the setup and the table of who writes what.
 
 **The two fields a stand has to get right.** An address and a number are the whole value of a lead, so

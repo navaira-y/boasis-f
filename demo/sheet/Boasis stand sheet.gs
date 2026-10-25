@@ -2,7 +2,7 @@
  *
  * What this is. Supabase's own save-lead, create-pass and save-step functions post one small object
  * here after every write. This file turns that object into a row of cells, one cell per field, and a
- * second tab of the questions the visitor asked Mira with what she answered. It is the only place the
+ * second tab of the questions the visitor asked and the answers they got. It is the only place the
  * columns exist, which is the point: when the boss wants one more thing to read, it is a line in COLS
  * below, and no function, no page and no deploy of the site is involved.
  *
@@ -75,7 +75,7 @@ var CONFIG = {
 /* ── the door ──────────────────────────────────────────────────────────────────── */
 
 function doGet() {
-  /* a deployment check, so she can see it is alive without reading a single cell of it */
+  /* a deployment check, so the stand can see it is alive without reading a single cell of it */
   return ContentService.createTextOutput('ok');
 }
 

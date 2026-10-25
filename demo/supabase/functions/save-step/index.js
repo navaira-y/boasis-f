@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   /* the sheet is written from here as well as from create-pass, which is what makes it grow while the
      person is still talking: every step is one more set of cells on the same row, and a step the
      sheet missed is filled in by the next one */
-  await pushLeadToSheet(next);
+  await pushLeadToSheet(next, { table: found.table || "spark_leads" });
 
   return json({
     ok: true,

@@ -120,6 +120,30 @@ test('the hook is a courtesy: it cannot fail a visitor, and it is off unless bot
   assert.match(down.why, /socket/);
 });
 
+test('the sheet belongs to the stand, and a website row stays out of it', async () => {
+  const m = await core();
+  const sent = [];
+  const opt = table => ({
+    url: 'https://example.test/exec', key: 'k', table,
+    fetch: (u, o) => { sent.push(JSON.parse(o.body)); return Promise.resolve({ ok: true, status: 200 }) },
+  });
+  assert.deepEqual(await m.pushLeadToSheet(LEAD, opt('sharjah_next_passes')), { ok: true }, 'Mira\'s row for the event goes');
+  assert.equal(sent.length, 1, 'one call');
+  assert.deepEqual(await m.pushLeadToSheet(LEAD, opt('spark_leads')), { ok: true, skipped: 'not the stand' },
+    'the same row from boasis.ae does not, and the door is still told it went fine, because it did');
+  assert.equal(sent.length, 1, 'no call was made at all, rather than a call Google turned down');
+  assert.equal((await m.pushLeadToSheet(LEAD, {})).skipped, 'not the stand', 'and a caller that never said which table gets the same answer');
+  assert.equal((await m.pushRecordToSheet({ email: 'a@b.co' }, opt('sharjah_next_leads'))).ok, true, 'the form the stand took is the stand\'s as well');
+  assert.equal((await m.pushRecordToSheet({ email: 'a@b.co' }, opt('site_leads'))).skipped, 'not the stand', 'and the home page\'s list is not');
+  assert.deepEqual([...m.STAND_TABLES].sort(), ['sharjah_next_leads', 'sharjah_next_passes'], 'exactly two tables, both made for this event');
+  assert.equal(sent.length, 2, 'so of five calls, the two stand rows and no more');
+  for (const [f, want] of [['create-pass', /pushLeadToSheet\(lead, \{ table \}\)/],
+    ['save-step', /pushLeadToSheet\(next, \{ table: found\.table \|\| "spark_leads" \}\)/],
+    ['save-lead', /pushRecordToSheet\(record, \{ table \}\)/]]) {
+    assert.match(read('demo/supabase/functions/' + f + '/index.js'), want, f + ' hands the gate the table it just wrote to');
+  }
+});
+
 test('the three doors push after the write, and the row they write to is the one already there', () => {
   for (const f of ['create-pass', 'save-step']) {
     const src = read('demo/supabase/functions/' + f + '/index.js');

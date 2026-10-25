@@ -46,6 +46,12 @@ so the order these arrive in does not matter and a late form write cannot erase 
 answers tab is rewritten whole for that person on every post, so four steps leave four rows, not
 sixteen.
 
+All three ask one question first: is this row one of the event's? `save-step` and `create-pass` serve
+boasis.ae/try-mira as well as the stand, and a website lead has no business in a spreadsheet about an
+event, so a row in `spark_leads` or `site_leads` is answered with a log line and no call at all. The
+gate reads the table each function just wrote to, which is the one thing that says which door a person
+came through, and it lives in `STAND_TABLES` in `demo/supabase/functions/_shared/sheet.js`.
+
 ## What Google never gets
 
 The pass (it is a key into that person's conversation), the hash of their email, when their credential

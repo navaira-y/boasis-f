@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
 
   /* the form half of the sheet row, so a name is on the stand's screen before anybody has spoken to
      Mira, and so a page with no pass still gets a row; the steps fill the rest in when they happen */
-  await pushRecordToSheet(record);
+  await pushRecordToSheet(record, { table });
 
   return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
 });

@@ -12,9 +12,9 @@
  * 'sharjah_next' for the CSV, and answers with a reference (SN-XXXXXX) and the Brain's address.
  * Nothing is mailed unless someone turns that on, and no row is ever updated from here. With
  * `SPARK_SN_PASS=on` the same answer also carries a pass, minted by the door from `create-pass` with
- * `page: 'sharjah-next'`, and the page puts that in Mira's address so she writes this visit on the
+ * `page: 'sharjah-next'`, and the page puts that in Mira's address so the visit is written on the
  * person's own row, the way `/try-mira` does; the stand's rows are what `docs/SHEET.md` flattens into
- * the boss's Google sheet. With no pass she is opened on the reference alone, which is the same page
+ * boss's Google sheet. With no pass Mira opens on the reference alone, which is the same page
  * as before, so a project that is asleep costs a write back and never a lead.
  *
  * The page stays where it is: no jump, nothing in the browser, no session to resume. At a stand the
@@ -45,7 +45,7 @@ const T={
   first:'First name', last:'Last name', email:'Email', mobile:'Mobile number',
   consent:'I agree that SPARK and Boasis may contact me about my project.',
   cta:'Start with Mira',
-  doneH:'Mira is ready for you', doneP:"If she didn't open automatically, tap below.", open:'Talk to Mira',
+  doneH:'Mira is ready for you', doneP:"If Mira didn't open automatically, tap below.", open:'Talk to Mira',
   offEy:'Sharjah Next offer · 28 & 29 Oct', offH:'Your SPARK company, at the event price',
   y1:'year 1', y2:'from, year 1',
   b1:'1 activity', b2:'1 shareholder', b3:'Free lease',
@@ -327,7 +327,7 @@ function safeBase(v){
    and walks away never asks the Brain for anything. */
 /* the address Mira is opened at, in one place because the frame and the link under it must never
    disagree. With a pass the visit is written on that person's row, which is the whole point of the
-   pass; without one the reference still goes along, so she can greet them by it and the stand can
+   pass; without one the reference still goes along, so Mira can greet them by it and the stand can
    quote it, exactly as this page did before passes existed here. */
 function brainHref(url, ref, pass){
   const base=safeBase(url)||safeBase(document.getElementById('miraFrame')&&document.getElementById('miraFrame').dataset.src)||safeBase(MIRA_URL);

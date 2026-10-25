@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
   /* and the row of cells in the stand's sheet, after the row is safe and never before it, in a call
      that cannot make this one fail: a sheet that is asleep costs the visitor nothing at all */
-  await pushLeadToSheet(lead);
+  await pushLeadToSheet(lead, { table });
 
   return json({ ok: true, pass, brain_url: Deno.env.get("BRAIN_URL") || "" });
 });

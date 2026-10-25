@@ -405,8 +405,10 @@ async function emailHashOf(email) {
  *
  * Who sends what. `create-pass` sends the form half the moment a pass is minted, `save-step` sends
  * the whole thing after every step the person finishes, and `save-lead` sends the form half for a
- * page that never reaches Mira. Three senders, one row, because the sheet keys on the address and
- * only ever fills in what a sender actually carries: it never clears a cell it has nothing about. A
+ * page that never reaches Mira, and every one of them asks leave of the same list below, so a lead
+ * from the website never appears in a sheet about an event. Three senders, one row, because the sheet
+ * keys on the address and only ever fills in what a sender actually carries: it never clears a cell it
+ * has nothing about. A
  * dropped write therefore repairs itself on the next step, which is why there is no retry queue and
  * no replay script here: four chances per visit is more than enough and a queue is a thing to feed.
  *
@@ -419,6 +421,14 @@ const CLIP = 900;                 // one cell of prose, which is a long answer a
 const SHORT = 220;                // one item inside a list that goes in a cell
 const MAX_ANSWERS = 40;           // one visit at a stand is four or five, this is the runaway guard
 const TIMEOUT_MS = 3500;
+
+/* Only the stand's own rows. These three functions serve the website and the event at once, and the
+   boss's sheet is a list of the people who walked up to a desk at Sharjah Next, so a lead from boasis.ae has
+   no business in it: neither the visitor's, nor ours. Which entrance a row came from is not a field a
+   lead carries, it is the table it was written to, so the caller who knows that hands it over and this
+   is the one place the rule lives. A missing name means nobody said which door, and the quiet answer
+   to that is the safe one: no cell is touched for a stranger. */
+const STAND_TABLES = new Set(['sharjah_next_passes', 'sharjah_next_leads']);
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const snip = (v, n = CLIP) => {
@@ -483,7 +493,7 @@ function fieldsFromLead(lead) {
   return f;
 }
 
-/* the questions the person asked Mira and what she answered, oldest first, in the shape the second
+/* the questions the person asked Mira and the answers they got back, oldest first, in the shape the second
    tab wants: `at` is what the Brain stamped it with, `q` and `a` are the two cells */
 function answersFromLead(lead) {
   const b = (isObj(lead) && isObj(lead.brain)) ? lead.brain : {};
@@ -566,6 +576,10 @@ async function pushSheet(body, o = {}) {
 
 /* the one call each door makes, so nothing in those files has to know what a payload is */
 async function pushLeadToSheet(lead, o = {}) {
+  if (!STAND_TABLES.has(String(o.table || ''))) {
+    if (o.log) o.log('sheet skipped: not the stand');
+    return { ok: true, skipped: 'not the stand' };
+  }
   const r = await pushSheet(payloadFor({
     email: lead && lead.contact ? lead.contact.email : '',
     fields: fieldsFromLead(lead),
@@ -576,6 +590,10 @@ async function pushLeadToSheet(lead, o = {}) {
 }
 
 async function pushRecordToSheet(record, o = {}) {
+  if (!STAND_TABLES.has(String(o.table || ''))) {
+    if (o.log) o.log('sheet skipped: not the stand');
+    return { ok: true, skipped: 'not the stand' };
+  }
   const r = await pushSheet(payloadFor({
     email: record && record.email ? record.email : '',
     fields: fieldsFromRecord(record),
@@ -668,7 +686,7 @@ Deno.serve(async (req) => {
 
   /* and the row of cells in the stand's sheet, after the row is safe and never before it, in a call
      that cannot make this one fail: a sheet that is asleep costs the visitor nothing at all */
-  await pushLeadToSheet(lead);
+  await pushLeadToSheet(lead, { table });
 
   return json({ ok: true, pass, brain_url: Deno.env.get("BRAIN_URL") || "" });
 });

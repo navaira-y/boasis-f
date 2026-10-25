@@ -129,7 +129,9 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     "Hi. I'm Mira. A few details, and we start.",
     'First name', 'Last name', 'Email', 'Mobile number',
     'I agree that SPARK and Boasis may contact me about my project.',
-    'Start with Mira', 'Mira is ready for you', "If she didn't open automatically, tap below.", 'Talk to Mira',
+    /* one line is not the design's: it read "If she didn't open automatically", and Mira is not a she.
+       Words the boss corrects outrank words the design typed. */
+    'Start with Mira', 'Mira is ready for you', "If Mira didn't open automatically, tap below.", 'Talk to Mira',
     'How it works', 'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
