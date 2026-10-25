@@ -81,11 +81,15 @@ const config = {
     notifyTo: str('MAIL_NOTIFY_TO', 'support@boasis.ae').split(',').map(s => s.trim()).filter(isEmail),
     subjectPrefix: str('MAIL_SUBJECT_PREFIX', ''),
     /* The relay allows 10,000 recipients a day and shares that quota with the staff
-       mailboxes. Two emails go out per submission, so the day cap is also the point where
-       a flood would start eating the company's own mail. Past it, leads are still stored
-       and the visitor still sees success: only the sending stops. */
-    maxPerHour: num('MAIL_MAX_PER_HOUR', 60),
-    maxPerDay: num('MAIL_MAX_PER_DAY', 400),
+       mailboxes, so this is not here to size the site's own traffic, it is here to stop a
+       script turning the domain into a mail cannon while Google watches. Two emails go out
+       per submission, and a third where the form asks for a mailbox code, which is what
+       moved these numbers up from 60 and 400: two stand days, a hall of phones behind one
+       address, and a code going to every single visitor. A crowd of a few hundred an hour is
+       people, so the ceiling must sit above it, and a runaway is what must not. Past it,
+       leads are still stored and the visitor still sees success, only the sending waits. */
+    maxPerHour: num('MAIL_MAX_PER_HOUR', 600),
+    maxPerDay: num('MAIL_MAX_PER_DAY', 4000),
     /* the relay will only accept "From:" inside the domains it serves; a typo here fails
        every send with a confusing TLS-looking error, so catch it at boot. */
     fromDomain: addrOf(configFrom).split('@')[1] || '',

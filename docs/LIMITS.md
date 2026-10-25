@@ -62,8 +62,8 @@ security hole in the wrong direction — too *low* only makes the per-visitor li
 | `GLOBAL_CAPTCHA_PER_MIN` | 600 | the whole site | a loop asking for puzzles |
 | `GLOBAL_VISITS_PER_MIN` | 900 | the whole site | a loop on first-visit |
 | `NEW_VISITORS_PER_MIN` | 200 | the whole site | forged identities churning the disk |
-| `MAIL_MAX_PER_HOUR` | 60 | emails attempted | the site becoming a mail cannon |
-| `MAIL_MAX_PER_DAY` | 400 | emails attempted | eating the relay's 10,000-a-day allowance |
+| `MAIL_MAX_PER_HOUR` | 600 | emails attempted | the site becoming a mail cannon |
+| `MAIL_MAX_PER_DAY` | 4000 | emails attempted | eating the relay's 10,000-a-day allowance |
 | `CAPTCHA_DIFFICULTY` | 20000 | one submission | cheap automated posting |
 | `SPAM_MIN_FILL_MS` | 3000 | one submission | bots that post the instant they parse the page |
 | body size | 20 kb | one request | oversized payloads |
@@ -100,13 +100,14 @@ quickly. A marked lead appears in the owner's email with a plain-language `Check
 
 ## Sizing: when a quiet site or a busy one meets these numbers
 
-Two emails go out per submission, so the mail budget is the tighter of the pair.
+Two emails go out per submission, and a third on a form that asks for a mailbox code, so the mail
+budget is the tighter of the pair.
 
 | Submissions a day | Emails a day | Verdict |
 |---|---|---|
-| up to 200 | up to 400 | the defaults carry it with no change |
-| 200 – 1,000 | 400 – 2,000 | raise `MAIL_MAX_PER_DAY` (the relay allows 10,000) and `GLOBAL_FORMS_PER_DAY` |
-| 1,000 + | 2,000 + | raise both, and move the lists out of JSON files into a database |
+| up to 1,300 | up to 4,000 | the defaults carry it with no change |
+| 1,300 – 3,000 | 4,000 – 10,000 | raise `GLOBAL_FORMS_PER_DAY`, and you are at the relay's own ceiling: the staff mailboxes share it |
+| 3,000 + | 10,000 + | talk to Google about the relay, and move the lists out of JSON files into a database |
 
 Visitors *browsing* never touch any of this. The caps count submissions, and nothing else: a
 site with 10,000 visitors a day and 20 enquiries is nowhere near them.
