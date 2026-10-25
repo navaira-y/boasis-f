@@ -18,11 +18,13 @@
  * Append only, on purpose: this door inserts, never updates, so the last word on a person stays
  * the site's own file and the table remains the history.
  *
- * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, LEADS_PUSH_KEY. No salt, no Brain address, no
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, LEADS_PUSH_KEY, SHEET_HOOK_URL, SHEET_HOOK_KEY.
+ * No salt, no Brain address, no
  * origin list, since a browser is never supposed to reach this door at all.
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { pushRecordToSheet } from "../_shared/sheet.js";
 
 const TABLE = "site_leads";
 const STAND = "sharjah_next_leads";        // the Sharjah Next stand keeps its own list, see below
@@ -132,6 +134,10 @@ Deno.serve(async (req) => {
   }
   const { data, error } = await sb.from(table).insert(row).select("id").single();
   if (error) return json({ ok: false, error: "db" }, 500);
+
+  /* the form half of the sheet row, so a name is on the stand's screen before anybody has spoken to
+     Mira, and so a page with no pass still gets a row; the steps fill the rest in when they happen */
+  await pushRecordToSheet(record);
 
   return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
 });

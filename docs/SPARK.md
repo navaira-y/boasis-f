@@ -528,7 +528,7 @@ line rather than a look:
 1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
    `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
    read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
-2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=5">`, since every page on this host
+2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=6">`, since every page on this host
    is served with `script-src 'self'` and an inline block would simply not run;
 3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
    the shared preview needed so a demo posted nothing, became `true`;
@@ -554,20 +554,34 @@ project, whichever file the address happens to live in.
 home dialogs, contact) and `public.sharjah_next_leads` holds the stand, one row per submit, `ref`
 unique. One door writes both: `save-lead` reads the `kind` it is handed and picks the table, and a
 caller cannot name one. The stand's leads are exported and cleaned up on the event's calendar, the
-site's on the website's, and the paused pass flow has its own third table, `sharjah_next_passes`, from
-`demo/supabase/sharjah-next-passes.sql`, which nobody has to run today.
+site's on the website's, and the visit itself is written by the Brain into a third table,
+`sharjah_next_passes`, from `demo/supabase/sharjah-next-passes.sql`, one row per person and one `data`
+column that holds the whole conversation.
 
-**What the stand page does today, and only that.** The Brain write back, the resumable journey and the
-pass are not wired into `/sharjah-next` yet, because the backend has not been explained. What is wired
-is the pair that is settled: the form posts to `POST /api/sharjah-lead` on this host, which validates it
-with the same `readForm` as everything else, writes `data/sharjah-next/SN-XXXXXX.json`, mirrors the row
-into `public.sharjah_next_leads` as `kind = 'sharjah_next'`, and answers with the reference and the
-Brain address. Nothing is mailed unless `SPARK_SN_MAIL` says otherwise. The page then frames `https://brain.boasis.ae/?src=sharjah-next&ref=SN-XXXXXX`
-inside the card where the form was, and stays put: no redirect, nothing in `localStorage`, no pass in an
-address. `demo/supabase/sharjah-next.sql` and the `page` to table map stay in the repo for the day the
-rest is decided, and nothing on this page depends on them. Because the page touches no database, its
-`Content-Security-Policy` is narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
+**What the stand page does today.** The form posts to `POST /api/sharjah-lead` on this host, which
+checks the mailbox code, validates with the same `readForm` as everything else, writes
+`data/sharjah-next/SN-XXXXXX.json`, mirrors the row into `public.sharjah_next_leads` as
+`kind = 'sharjah_next'`, and, with `SPARK_SN_PASS=on`, mints the pass by calling the very same
+`create-pass` that `/try-mira` posts to, with `page: 'sharjah-next'` and the reference, so the row that
+Mira writes is the stand's own. It answers `{ ok, ref, pass, brain_url }` and the page frames
+`https://brain.boasis.ae/?src=sharjah-next&pass=PASSxxxxxxxx&embed=1&ref=SN-XXXXXX` inside the card where
+the form was, and stays put: no redirect, nothing in `localStorage`. There is no resumable journey here
+on purpose: a stand is a shared tablet, so the way back to a row is the address, which `create-pass`
+already looks up, rather than a pass sitting in somebody else's browser. With no pass the page still
+opens Mira on the reference alone, which is why the mint is allowed to fail quietly and why the lead is
+written before it is ever tried. Nothing is mailed unless `SPARK_SN_MAIL` says otherwise. And because the
+page touches no database, since our server is the only thing that calls the project, its
+`Content-Security-Policy` stays narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
 all, and `frame-src https://brain.boasis.ae` as the single widening.
+
+**The sheet the boss reads, and why it is not the record.** `sharjah_next_passes.data` is one JSON object
+by design, and a spreadsheet export of it is one cell holding a whole visit, which is the complaint this
+exists to answer. So the three functions post a flattened copy of that row to a small file inside the
+Google sheet, after their own write, and the sheet holds one row per person with one cell per field plus a
+tab of the questions and answers. The pass and the address hash are never sent, an empty value never
+overwrites a filled one, the call waits three and a half seconds and cannot fail a visitor, and the
+columns live only in the sheet file, so changing what she reads is a line there and not a deploy.
+`docs/SHEET.md` is the setup and the table of who writes what.
 
 **The two fields a stand has to get right.** An address and a number are the whole value of a lead, so
 both pages check them by the site's own rule and nowhere else: `EMAIL_RE`, `PHONE_MIN = 7`,

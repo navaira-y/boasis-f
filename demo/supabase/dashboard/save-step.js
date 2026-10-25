@@ -1,7 +1,7 @@
 /* save-step · one file, to paste into the Supabase dashboard
  *
  * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
- * demo/supabase/functions/save-step/index.js (the door, unchanged) with _shared/spark-core.js and _shared/spark-supabase.js
+ * demo/supabase/functions/save-step/index.js (the door, unchanged) with _shared/spark-core.js, _shared/spark-supabase.js, _shared/sheet.js
  * inlined above it, because a function pasted in the browser has no folder beside it to import
  * from. The folder version and this one are the same code; a test recomposes it and fails if the
  * two ever disagree, so neither can be quietly edited into a second opinion about a person's row.
@@ -10,7 +10,7 @@
  * "Deploy" if it asks. Then the secrets below, on Project Settings → Edge Functions → Secrets, or
  * in the function's own page, and nothing is set in the code.
  *
- * Secrets this one reads (3): SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN
+ * Secrets this one reads (5): SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN, SHEET_HOOK_URL, SHEET_HOOK_KEY
  *   Supabase will not let a secret be named SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY, because the
  *   platform supplies those two to every function itself and reads them first if you set nothing.
  *   Set the SPARK_ names below and it works whichever way the project is configured.
@@ -393,6 +393,197 @@ async function emailHashOf(email) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/* ── the sheet hook, inlined from _shared/sheet.js, as written there ── */
+
+/* the sheet hook · one row per person in the stand's Google sheet, with one cell per field
+ *
+ * The Brain writes its whole visit into the row's `data` column as one object, which is right for a
+ * database and useless in a spreadsheet: an export gives you one cell with the entire visit in it.
+ * So this file opens that object and hands the sheet named values instead, one per column, and a
+ * second tab of plain question and answer lines. Nothing here changes what the Brain writes or how,
+ * and nothing here needs a new column: the row already holds everything.
+ *
+ * Who sends what. `create-pass` sends the form half the moment a pass is minted, `save-step` sends
+ * the whole thing after every step the person finishes, and `save-lead` sends the form half for a
+ * page that never reaches Mira. Three senders, one row, because the sheet keys on the address and
+ * only ever fills in what a sender actually carries: it never clears a cell it has nothing about. A
+ * dropped write therefore repairs itself on the next step, which is why there is no retry queue and
+ * no replay script here: four chances per visit is more than enough and a queue is a thing to feed.
+ *
+ * Failure is silent on purpose, in the visitor's direction. A sheet that is slow, full, or deleted
+ * must not be able to cost a lead or freeze a step, so every call is one try, three and a half
+ * seconds, and a log line. The row in Supabase is the record, the sheet is the view.
+ */
+
+const CLIP = 900;                 // one cell of prose, which is a long answer and a short lead
+const SHORT = 220;                // one item inside a list that goes in a cell
+const MAX_ANSWERS = 40;           // one visit at a stand is four or five, this is the runaway guard
+const TIMEOUT_MS = 3500;
+
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const snip = (v, n = CLIP) => {
+  if (v === null || v === undefined) return '';
+  const s = typeof v === 'string' ? v : String(v);
+  return s.length > n ? s.slice(0, n) : s;
+};
+/* lists are what a sheet wants least, so a list becomes one readable line rather than JSON: a
+   person reading the cell should not need to know what a bracket is */
+const list = v => Array.isArray(v) ? v.map(x => snip(isObj(x) ? (x.name || x.title || x.label || JSON.stringify(x)) : x, SHORT)).filter(Boolean).join(', ') : snip(v, SHORT);
+const yes = v => v === true || v === 'true' || v === 'on' ? 'yes' : v === false || v === 'false' || v === 'off' ? 'no' : '';
+
+function envOf(names) {
+  const env = typeof Deno !== 'undefined' ? Deno.env : (typeof process !== 'undefined' ? process.env : {});
+  for (const n of names) { const v = env[n]; if (v) return String(v).trim(); }
+  return '';
+}
+
+/* ── the words the sheet is built from ───────────────────────────────────────────
+   These names are the contract between here and the script in the sheet, and they are the only
+   thing either side knows about the other. Which of them become columns, in what order, and what
+   the header says is the sheet's business alone, so adding a column to what the boss reads is a
+   line in that file and never a redeploy of a function.
+*/
+function fieldsFromLead(lead) {
+  const l = isObj(lead) ? lead : {};
+  const c = isObj(l.contact) ? l.contact : {};
+  const b = isObj(l.brain) ? l.brain : {};
+  const p = isObj(b.package) ? b.package : {};
+  const steps = Array.isArray(b.steps_reached) ? b.steps_reached : [];
+  const f = {
+    ref: snip(l.ref || '', 40),
+    at: snip(l.created_at || '', 40),
+    updated: snip(l.updated_at || '', 40),
+    full_name: snip(c.full_name, 120),
+    email: snip(c.email, 254),
+    phone: snip(c.phone, 40),
+    country_code: snip(c.country_code, 8),
+    residence: snip(c.residence, 20),
+    consent: yes(c.consent),
+    source: snip(l.source, 60),
+    last_step: snip(b.last_step, 20),
+    steps_done: steps.length,
+    steps_reached: list(steps),
+    turns: Number.isFinite(Number(b.log?.length)) || Number.isFinite(Number(b.mira?.length))
+      ? Number(b.log?.length || 0) + Number(b.mira?.length || 0) : '',
+    described: snip(b.description, CLIP),
+    activities_shown: Array.isArray(b.activities?.shown) ? b.activities.shown.length : '',
+    activities_picked: list(b.activities?.picked),
+    activities_confirmed: b.activities && b.activities.confirmed === true ? 'yes' : '',
+    package: snip(p.name || p.pack || (p.confirmed === true ? 'chosen' : ''), 120),
+    package_confirmed: p.confirmed === true ? 'yes' : '',
+    price_aed: Number.isFinite(Number(p.price_aed)) ? Number(p.price_aed) : '',
+    visas: list(p.visas),
+    shareholders: list(p.shareholders),
+    premises: snip(p.premises, 120),
+    frozen: b.frozen === true ? 'yes' : '',
+  };
+  /* an empty string means "this sender does not know", which the sheet reads as "leave the cell
+     alone", so a half finished visit never erases a finished one and a late form write never
+     erases the steps */
+  return f;
+}
+
+/* the questions the person asked Mira and what she answered, oldest first, in the shape the second
+   tab wants: `at` is what the Brain stamped it with, `q` and `a` are the two cells */
+function answersFromLead(lead) {
+  const b = (isObj(lead) && isObj(lead.brain)) ? lead.brain : {};
+  const out = [];
+  for (const m of (Array.isArray(b.mira) ? b.mira : [])) {
+    if (!isObj(m)) continue;
+    out.push({ at: snip(m.at, 40), q: snip(m.question, CLIP), a: snip(m.answer, CLIP) });
+  }
+  /* the log is what the Brain kept before there was a mira list, and some flows still write only
+     that one: same two cells, taken from the pair it holds */
+  if (!out.length) {
+    for (const m of (Array.isArray(b.log) ? b.log : [])) {
+      if (!isObj(m)) continue;
+      out.push({ at: snip(m.at, 40), q: snip(m.in, CLIP), a: snip(m.out, CLIP) });
+    }
+  }
+  return out.slice(0, MAX_ANSWERS);
+}
+
+/* the form half, from the record the site mirrors: no pass, no steps, everything a stand wants to
+   see before anybody has spoken to Mira */
+function fieldsFromRecord(record) {
+  const r = isObj(record) ? record : {};
+  const f = {
+    ref: snip(r.ref || '', 40),
+    at: snip(r.at || '', 40),
+    full_name: snip(r.full_name || r.name, 120),
+    email: snip(r.email, 254),
+    phone: snip(r.phone, 40),
+    country_code: snip(r.country_code, 8),
+    residence: snip(r.residence, 20),
+    consent: yes(r.consent),
+    source: snip(r.source, 60),
+  };
+  return f;
+}
+
+/* one object per push: who it is about, the named values, and the Q and A lines. `key` is what the
+   script finds the row by, and it is the address, because that is the one field every sender here
+   carries and the only one a person at a stand is certain about. */
+/* Two things are deliberately absent from every payload: the pass, which is a key into that persons
+   conversation and has no business sitting in a file on a laptop, and the email hash, which is
+   nothing but a second way to match the same person. The sheet gets names, numbers, and words. */
+function payloadFor({ email, fields, answers }) {
+  const key = snip(email || fields?.email || '', 254).toLowerCase();
+  const body = { key, fields: fields || {} };
+  if (Array.isArray(answers) && answers.length) body.answers = answers;
+  return body;
+}
+
+/* the call itself, and everything that makes it safe to fire from a door a visitor is waiting on:
+   one try, a short clock, an answer nobody reads, and a result for the log rather than a throw */
+async function pushSheet(body, o = {}) {
+  const url = o.url || envOf(['SHEET_HOOK_URL']);
+  const key = o.key || envOf(['SHEET_HOOK_KEY']);
+  if (!url || !key) return { ok: false, why: 'off' };
+  const fetchImpl = o.fetch || globalThis.fetch;
+  if (typeof fetchImpl !== 'function') return { ok: false, why: 'off' };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), o.timeout || TIMEOUT_MS);
+  try {
+    const res = await fetchImpl(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      /* the secret travels in the body: a web app published from a sheet sees query strings in
+         Googles own access logs, and it cannot be asked to read a custom header, so the body is
+         the one place it is neither logged by us nor readable by a browser that stumbles on the
+         address */
+      body: JSON.stringify({ secret: key, ...body }),
+      signal: ctl.signal,
+    });
+    if (!res.ok) return { ok: false, why: 'http ' + res.status };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, why: (e && e.name === 'AbortError') ? 'timeout' : snip(e && e.message, 80) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* the one call each door makes, so nothing in those files has to know what a payload is */
+async function pushLeadToSheet(lead, o = {}) {
+  const r = await pushSheet(payloadFor({
+    email: lead && lead.contact ? lead.contact.email : '',
+    fields: fieldsFromLead(lead),
+    answers: answersFromLead(lead),
+  }), o);
+  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  return r;
+}
+
+async function pushRecordToSheet(record, o = {}) {
+  const r = await pushSheet(payloadFor({
+    email: record && record.email ? record.email : '',
+    fields: fieldsFromRecord(record),
+  }), o);
+  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  return r;
+}
+
 /* ── save-step, from save-step/index.js, as written there ── */
 
 /* save step · the Brain telling us how far the person got
@@ -406,7 +597,8 @@ async function emailHashOf(email) {
  * leaves a smaller record rather than a broken one, and a lost request costs one step instead of
  * the visit.
  *
- * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN. No salt and no Brain address, on
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN, SHEET_HOOK_URL, SHEET_HOOK_KEY.
+ * No salt and no Brain address, on
  * purpose: this door only ever updates a row that already exists, and it is told nothing about
  * where to send anyone.
  */
@@ -444,6 +636,11 @@ Deno.serve(async (req) => {
   } catch {
     return json({ ok: false, error: "storage" }, 500);
   }
+
+  /* the sheet is written from here as well as from create-pass, which is what makes it grow while the
+     person is still talking: every step is one more set of cells on the same row, and a step the
+     sheet missed is filled in by the next one */
+  await pushLeadToSheet(next);
 
   return json({
     ok: true,

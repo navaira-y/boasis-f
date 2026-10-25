@@ -10,10 +10,16 @@
  *
  * on this same host. That door writes one JSON file per person, mirrors it into Supabase as kind
  * 'sharjah_next' for the CSV, and answers with a reference (SN-XXXXXX) and the Brain's address.
- * Nothing is mailed unless someone turns that on, and no row is ever updated from here. The page then puts the reference in the link, and Mira in the
- * card where the form was, and stays where it is: no jump, nothing in the browser, no session to
- * resume. The pass, get-lead and the write-back from the Brain stay un wired until the backend is
- * explained; the files for them are already in demo/supabase and nothing here depends on them.
+ * Nothing is mailed unless someone turns that on, and no row is ever updated from here. With
+ * `SPARK_SN_PASS=on` the same answer also carries a pass, minted by the door from `create-pass` with
+ * `page: 'sharjah-next'`, and the page puts that in Mira's address so she writes this visit on the
+ * person's own row, the way `/try-mira` does; the stand's rows are what `docs/SHEET.md` flattens into
+ * the boss's Google sheet. With no pass she is opened on the reference alone, which is the same page
+ * as before, so a project that is asleep costs a write back and never a lead.
+ *
+ * The page stays where it is: no jump, nothing in the browser, no session to resume. At a stand the
+ * device is often not the visitor's own, so a pass kept in a browser is a pass the next stranger gets;
+ * the way back to a row here is the address, which `create-pass` already looks up for a second scan.
  *
  * Two things were added to the design after the first read through, both of them borrowed rather
  * than invented: the email and the number are checked by the same rules the site's own forms use
@@ -290,13 +296,14 @@ form.addEventListener('submit',async e=>{
     return;
   }
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
-  document.getElementById('miraLink').href=url||'#';
+  const pass=cleanPass(j&&j.pass);
+  document.getElementById('miraLink').href=brainHref(url, ref, pass)||'#';
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
   const card=document.getElementById('start'); if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
   /* and Mira opens in the card itself. No jump: the reference, the receipt and this conversation are
      meant to be on one screen, on the phone they are holding at the stand. */
-  openFrame(url, ref);
+  openFrame(url, ref, pass);
 });
 
 /* ── what a submission leaves behind ────────────────────────────────────────────
@@ -305,6 +312,9 @@ form.addEventListener('submit',async e=>{
    back, or keeps anything in the browser: a second submission is a second person's row, and that is
    what the stand wants while the rest is undecided. */
 function cleanRef(v){return String(v||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)}
+/* the pass, in the shape the doors here accept it and nothing else: it is a row key that lets Mira
+   write this visit down, and a character out of place is not a key but a way to point at someone */
+function cleanPass(v){const s=String(v||'');return /^PASS[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/.test(s)?s:''}
 /* only an http(s) address, or a path on this very host, is ever framed or linked, whatever the door
    answered: a line of code in a src attribute is still a line of code, and the rehearsal answers with
    a relative address on purpose so that it never reaches the live Brain */
@@ -315,14 +325,23 @@ function safeBase(v){
 }
 /* Mira appears where the form was. The address is written only now, so a person who reads the offer
    and walks away never asks the Brain for anything. */
-function openFrame(url, ref){
-  const f=document.getElementById('miraFrame'); if(!f) return;
-  const base=safeBase(url)||safeBase(f.dataset.src)||safeBase(MIRA_URL);
-  if(!base) return;
-  /* the reference rides along, so Mira can greet the person by it, and it is checked to look like one
-     before it goes anywhere, because it came from a form field one hop away */
-  f.src=base+(base.indexOf('?')<0?'?':'&')+'src=sharjah-next'
+/* the address Mira is opened at, in one place because the frame and the link under it must never
+   disagree. With a pass the visit is written on that person's row, which is the whole point of the
+   pass; without one the reference still goes along, so she can greet them by it and the stand can
+   quote it, exactly as this page did before passes existed here. */
+function brainHref(url, ref, pass){
+  const base=safeBase(url)||safeBase(document.getElementById('miraFrame')&&document.getElementById('miraFrame').dataset.src)||safeBase(MIRA_URL);
+  if(!base) return '';
+  const q='src=sharjah-next'
+    +(pass?'&pass='+encodeURIComponent(pass)+'&embed=1':'')
     +(/^[A-Za-z0-9-]{3,24}$/.test(String(ref||''))?'&ref='+encodeURIComponent(ref):'');
+  return base+(base.indexOf('?')<0?'?':'&')+q;
+}
+function openFrame(url, ref, pass){
+  const f=document.getElementById('miraFrame'); if(!f) return;
+  const src=brainHref(url, ref, pass);
+  if(!src) return;
+  if(f.getAttribute('src')!==src) f.setAttribute('src', src);
 }
 
 /* the design has no slot for a message that is not about a field, so one is made rather than adding

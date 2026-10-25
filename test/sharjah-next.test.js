@@ -183,7 +183,7 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'the two names the design drew arrive as the one name every form here writes');
   assert.ok(!/data\.page=/.test(js), 'no table is named by the visitor, because the backend is not decided yet');
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
-  assert.match(js, /openFrame\(url, ref\)/, 'and Mira is put in the card where the form was, with that reference');
+  assert.match(js, /openFrame\(url, ref, pass\)/, 'and Mira is put in the card where the form was, with that reference and the pass, if there is one');
   assert.match(h, /<iframe[^>]*id="miraFrame"[^>]*data-src="https:\/\/brain\.boasis\.ae\/"[^>]*referrerpolicy="no-referrer"/,
     'the frame carries no referrer and starts empty, so a person who only reads the offer asks the Brain for nothing');
   assert.ok(!/location\.href\s*=/.test(js), 'the page no longer jumps: the record, the receipt and Mira stay on one screen');
@@ -545,6 +545,51 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
   assert.equal(last.emailv, 'PROOF-FOR-reader2@corp.example', 'the fresh proof travelled with the lead');
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'and Mira opens, with nothing retyped');
   dom.window.close();
+});
+
+test('a pass from the door opens Mira on that person row, and a bad one opens nothing of the sort', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
+  const fill = async (answer) => {
+    const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
+    const w = dom.window, posts = [];
+    w.fetch = (u, o) => {
+      posts.push({ url: String(u), body: (o && o.body) || '' });
+      if (u.includes('/api/sharjah-lead')) return Promise.resolve({ status: 200, json: () => Promise.resolve(answer) });
+      return Promise.resolve({ status: 200, json: () => Promise.resolve({ ok: true }) });
+    };
+    w.eval(read('js/countries.js'));
+    w.eval(JS());
+    const d = w.document, F = d.getElementById('snForm').elements;
+    d.getElementById('first_name').value = 'Ada';
+    d.getElementById('last_name').value = 'Lovelace';
+    F['email'].value = 'ada@corp.example';
+    d.getElementById('phone').value = '0501234567';
+    d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
+    d.querySelector('input[name=consent]').checked = true;
+    F['emailv'].value = 'PROOF-OK';
+    d.querySelector('.cta').click();
+    await new Promise(r => setTimeout(r, 250));
+    const out = {
+      src: d.getElementById('miraFrame').getAttribute('src') || '',
+      href: d.getElementById('miraLink').getAttribute('href') || '',
+      posts: posts.map(p => p.url),
+    };
+    dom.window.close();
+    return out;
+  };
+
+  const withPass = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS4SBM6NN5', brain_url: 'https://brain.boasis.ae' });
+  assert.equal(withPass.src, 'https://brain.boasis.ae?src=sharjah-next&pass=PASS4SBM6NN5&embed=1&ref=SN-K7QF3M',
+    'the pass goes to Mira in the address, which is the only credential she needs to write on that row');
+  assert.equal(withPass.href, withPass.src, 'and the link under the frame is the same address, so the two can never open two different visits');
+  assert.deepEqual(withPass.posts, ['/api/sharjah-lead'], 'and the page still speaks to one door, our own: it never reaches the project directly');
+
+  const junk = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS123', brain_url: 'https://brain.boasis.ae' });
+  assert.ok(!/pass=/.test(junk.src), 'a string that is not a shaped pass is not sent anywhere, because it is a row key');
+  assert.equal(junk.src, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M', 'the visit opens on the reference alone, the way it did before passes');
+
+  const none = await fill({ ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' });
+  assert.equal(none.src, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
+    'and a door that could not mint a pass still hands over a working page: no pass is a smaller record, never a lost lead');
 });
 
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {

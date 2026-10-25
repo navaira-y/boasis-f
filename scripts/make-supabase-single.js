@@ -27,15 +27,21 @@ const OUT = path.join(ROOT, 'demo/supabase/dashboard');
 
 const SHARED = ['_shared/spark-core.js', '_shared/spark-supabase.js'];
 
+/* the sheet hook is a module of its own because two of the four doors want it and one of those two
+   is not a SPARK door at all: save-lead shares the project and the service key but none of the
+   SPARK rules, and it still has to put a row of cells in the same sheet */
+const SHEET = ['_shared/sheet.js'];
+const SHEET_SECRETS = ['SHEET_HOOK_URL', 'SHEET_HOOK_KEY'];
+
 const FUNCS = [
   /* the SPARK_ pair, because Supabase reserves SUPABASE_ for the two it injects itself; the code
      reads either, so the header and the code have to keep those names together */
-  { name: 'create-pass', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'ALLOW_ORIGIN', 'BRAIN_URL'] },
-  { name: 'save-step', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
-  { name: 'get-lead', secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
+  { name: 'create-pass', shared: SHARED.concat(SHEET), secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'EMAIL_SALT', 'ALLOW_ORIGIN', 'BRAIN_URL'].concat(SHEET_SECRETS) },
+  { name: 'save-step', shared: SHARED.concat(SHEET), secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'].concat(SHEET_SECRETS) },
+  { name: 'get-lead', shared: SHARED, secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'ALLOW_ORIGIN'] },
   /* the site's own mirror, which shares the project and the service key but none of the SPARK
      rules, so it is written as one file that imports nothing from a folder: `standalone` */
-  { name: 'save-lead', standalone: true, secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'LEADS_PUSH_KEY'] },
+  { name: 'save-lead', standalone: true, shared: SHEET, secrets: ['SPARK_SUPABASE_URL', 'SPARK_SERVICE_ROLE_KEY', 'LEADS_PUSH_KEY'].concat(SHEET_SECRETS) },
 ];
 
 const IMPORT = /^[ \t]*import[^\n]*?from[ \t]*["'][^"']+["'];?[ \t]*$/gm;
@@ -48,6 +54,7 @@ const read = (p) => fs.readFileSync(path.join(SRC, p), 'utf8');
    every comment and blank line inside left exactly as written */
 function take(rel) {
   const text = read(rel);
+  const REL = rel;
   const absolute = [];
   const body = text.replace(IMPORT, (line) => {
     const spec = /from[ \t]*["']([^"']+)["']/.exec(line)[1];
@@ -55,15 +62,19 @@ function take(rel) {
     return '';
   });
   const without = body.replace(/^\/\/ deno-lint-ignore-file[^\n]*\n/m, '');   // the composed file says it once, at the top
-  return { absolute, body: without.replace(/^export /gm, '').replace(/\n{3,}/g, '\n\n').trim() };
+  return { rel: REL, absolute, body: without.replace(/^export /gm, '').replace(/\n{3,}/g, '\n\n').trim() };
 }
+
+const TITLES = { 'spark-core.js': 'the rules', 'spark-supabase.js': 'the table', 'sheet.js': 'the sheet hook' };
 
 function compose(name) {
   const fn = FUNCS.find(f => f.name === name);
   const door = take(`${name}/index.js`);
+  const list = fn.shared || [];
+  const extras = list.map(rel => take(rel));
 
-  /* a standalone door is its own file already: nothing to inline, so the composed copy is its body
-     with a header that says where it came from and which secrets it wants */
+  /* a standalone door inlines nothing it does not import: its body, plus whatever is named above,
+     under a header that says where it came from and which secrets it wants */
   if (fn.standalone) {
     const alone = `/* ${name} · one file, to paste into the Supabase dashboard
  *
@@ -88,20 +99,22 @@ function compose(name) {
  */
 // deno-lint-ignore-file no-explicit-any
 `;
-    return alone + '\n' + door.absolute.join('\n') +
-      (door.absolute.length ? '\n\n' : '') + door.body + '\n';
+    return alone + '\n' + [...new Set(door.absolute.concat(...extras.map(m => m.absolute)))].join('\n') +
+      (door.absolute.length || extras.length ? '\n\n' : '') +
+      extras.map(m => '/* ── inlined from _shared/' + path.basename(m.rel) + ', as written there ── */\n\n' + m.body).join('\n\n') +
+      (extras.length ? '\n\n' : '') + door.body + '\n';
   }
 
-  const parts = [door, ...SHARED.map(take)];
+  const parts = [door, ...extras];
   const imports = [...new Set(parts.flatMap(m => m.absolute))];
   const doorBody = parts[0].body;
-  const core = parts[1].body;
-  const store = parts[2].body;
+  const inlined = parts.slice(1).map(m => m.body);
+  const names = list.map(rel => '_shared/' + path.basename(rel));
 
   const head = `/* ${name} · one file, to paste into the Supabase dashboard
  *
  * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
- * demo/supabase/functions/${name}/index.js (the door, unchanged) with ${SHARED.map(s => '_shared/' + path.basename(s)).join(' and ')}
+ * demo/supabase/functions/${name}/index.js (the door, unchanged) with ${names.join(', ')}
  * inlined above it, because a function pasted in the browser has no folder beside it to import
  * from. The folder version and this one are the same code; a test recomposes it and fails if the
  * two ever disagree, so neither can be quietly edited into a second opinion about a person's row.
@@ -124,8 +137,10 @@ function compose(name) {
 `;
 
   return head + '\n' + imports.join('\n') +
-    '\n\n/* ── the rules, inlined from _shared/spark-core.js, as written there ── */\n\n' + core +
-    '\n\n/* ── the table, inlined from _shared/spark-supabase.js, as written there ── */\n\n' + store +
+    inlined.map((body, i) => {
+      const base = path.basename(list[i]);
+      return '\n\n/* ── ' + (TITLES[base] || base) + ', inlined from _shared/' + base + ', as written there ── */\n\n' + body;
+    }).join('') +
     '\n\n/* ── ' + name + ', from ' + name + '/index.js, as written there ── */\n\n' + doorBody + '\n';
 }
 

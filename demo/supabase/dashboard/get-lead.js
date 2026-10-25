@@ -1,7 +1,7 @@
 /* get-lead · one file, to paste into the Supabase dashboard
  *
  * GENERATED, do not edit this copy. scripts/make-supabase-single.js writes it from
- * demo/supabase/functions/get-lead/index.js (the door, unchanged) with _shared/spark-core.js and _shared/spark-supabase.js
+ * demo/supabase/functions/get-lead/index.js (the door, unchanged) with _shared/spark-core.js, _shared/spark-supabase.js
  * inlined above it, because a function pasted in the browser has no folder beside it to import
  * from. The folder version and this one are the same code; a test recomposes it and fails if the
  * two ever disagree, so neither can be quietly edited into a second opinion about a person's row.

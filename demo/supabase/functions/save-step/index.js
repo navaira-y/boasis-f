@@ -9,13 +9,15 @@
  * leaves a smaller record rather than a broken one, and a lost request costs one step instead of
  * the visit.
  *
- * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN. No salt and no Brain address, on
+ * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, ALLOW_ORIGIN, SHEET_HOOK_URL, SHEET_HOOK_KEY.
+ * No salt and no Brain address, on
  * purpose: this door only ever updates a row that already exists, and it is told nothing about
  * where to send anyone.
  */
 // deno-lint-ignore-file no-explicit-any
 import { applyStep, checkPass, isPass } from "../_shared/spark-core.js";
 import { client, cors, readLeadAny, writeLead } from "../_shared/spark-supabase.js";
+import { pushLeadToSheet } from "../_shared/sheet.js";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
@@ -50,6 +52,11 @@ Deno.serve(async (req) => {
   } catch {
     return json({ ok: false, error: "storage" }, 500);
   }
+
+  /* the sheet is written from here as well as from create-pass, which is what makes it grow while the
+     person is still talking: every step is one more set of cells on the same row, and a step the
+     sheet missed is filled in by the next one */
+  await pushLeadToSheet(next);
 
   return json({
     ok: true,
