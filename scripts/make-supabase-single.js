@@ -159,9 +159,17 @@ function paste(name) {
   return pragma ? '// deno-lint-ignore-file ' + pragma[1] + '\n' + body : body;
 }
 
+const SQL = ['spark.sql', 'leads.sql', 'sharjah-next.sql', 'sharjah-next-passes.sql'];
+
 function main() {
   fs.mkdirSync(OUT, { recursive: true });
   fs.mkdirSync(PASTE, { recursive: true });
+  const { stripSql } = require('./strip-comments.js');
+  for (const rel of SQL) {
+    const to = path.join(PASTE, path.basename(rel));
+    fs.writeFileSync(to, stripSql(fs.readFileSync(path.join(ROOT, 'demo/supabase', rel), 'utf8')));
+    console.log('  wrote ' + path.relative(ROOT, to) + ' (' + fs.statSync(to).size + ' bytes)');
+  }
   for (const fn of FUNCS) {
     const to = path.join(OUT, fn.name + '.js');
     fs.writeFileSync(to, compose(fn.name));

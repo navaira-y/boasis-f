@@ -11,6 +11,9 @@ sheet decides which of them become columns.
 
 ## Setting it up, once
 
+0. Supabase, SQL Editor: paste `demo/supabase/paste/sharjah-next-passes.sql`, which makes the table Mira
+   writes the visit into (`demo/supabase/sharjah-next-passes.sql` is the same thing with the reasons
+   beside it). Safe to paste twice.
 1. Make the sheet. One blank Google Sheet is the whole thing, no header row and no second tab needed:
    the script makes both.
 2. In the sheet: Extensions, Apps Script. Paste all of

@@ -108,7 +108,42 @@ function strip(src) {
   return lines.replace(/^\n+/, '').trimEnd() + '\n';
 }
 
-module.exports = { strip, tokens };
+/* SQL is the other paste, and its comments are a different shape: two dashes to the end of the line, a
+   block, and single quotes that escape themselves by being written twice, which is where a strip that
+   looks for apostrophes loses a whole file. The same proof is applied after it, so the run of SQL that
+   Supabase executes is the run we tested, with fewer words. */
+function stripSql(src) {
+  let out = '', i = 0;
+  const n = src.length;
+  while (i < n) {
+    const c = src[i], d = src[i + 1];
+    if (c === '-' && d === '-') { let j = i + 2; while (j < n && src[j] !== '\n') j += 1; i = j; continue }
+    if (c === '/' && d === '*') {
+      let j = i + 2;
+      while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j += 1;
+      const text = src.slice(i, Math.min(n, j + 2));
+      out += '\n'.repeat((text.match(/\n/g) || []).length);
+      i = Math.min(n, j + 2); continue;
+    }
+    if (c === "'") {
+      let j = i + 1;
+      while (j < n) { if (src[j] === "'" && src[j + 1] === "'") { j += 2; continue } if (src[j] === "'") { j += 1; break } j += 1 }
+      out += src.slice(i, j); i = j; continue;
+    }
+    if (c === '"' || c === '`') {                      // a quoted identifier, and a dollar quoted body
+      const q = c; let j = i + 1;
+      while (j < n && src[j] !== q) j += 1;
+      out += src.slice(i, Math.min(n, j + 1)); i = Math.min(n, j + 1); continue;
+    }
+    out += c; i += 1;
+  }
+  const lines = out.split('\n').map(l => l.replace(/[ \t]+$/, '')).join('\n').replace(/\n{3,}/g, '\n\n');
+  const flat = t => t.replace(/--[\s\S]*?(?=\n)/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\s+/g, ' ').replace(/\s*([(),;])\s*/g, '$1').trim();
+  if (flat(lines) !== flat(src)) throw new Error('the SQL strip would have changed the statement, so it stopped');
+  return lines.replace(/^\n+/, '').trimEnd() + '\n';
+}
+
+module.exports = { strip, stripSql, tokens };
 
 if (require.main === module) {
   const f = process.argv[2];

@@ -612,6 +612,20 @@ test('nothing on the site links it, every crawler is told to leave it out, and n
   assert.equal(r.status, 200);
 });
 
+test('the paste copies of the SQL are the same statements, with the prose gone', () => {
+  const { stripSql } = require(path.join(ROOT, 'scripts/strip-comments.js'));
+  for (const rel of ['spark.sql', 'leads.sql', 'sharjah-next.sql', 'sharjah-next-passes.sql']) {
+    const src = read('demo/supabase/' + rel);
+    const bare = read('demo/supabase/paste/' + path.basename(rel));
+    assert.equal(bare, stripSql(src), path.basename(rel) + ' in paste/ is exactly what the generator takes out of it');
+    const flat = t => t.replace(/--[\s\S]*?(?=\n)/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/\s+/g, ' ').replace(/\s*([(),;])\s*/g, '$1').trim();
+    assert.equal(flat(bare), flat(src), path.basename(rel) + ': no statement, no quote and no grant changed on the way');
+    assert.ok(bare.length < src.length, path.basename(rel) + ' is the shorter read, ' + bare.length + ' bytes against ' + src.length);
+    assert.match(bare, /row level security/, 'and the lock is still in there, comments or no comments');
+  }
+});
+
 test('the stand leads sit in their own table, and one door writes to both', () => {
   const sql = read('demo/supabase/sharjah-next.sql');
   assert.match(sql, /create table if not exists public\.sharjah_next_leads/, 'the stand has its own table, not a kind inside the site\'s');
