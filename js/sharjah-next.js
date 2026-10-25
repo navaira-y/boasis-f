@@ -179,6 +179,7 @@ async function vPost(url,body){
 function why(j){ return (j&&j.errors&&j.errors[0])||'' }
 async function requestCode(){
   if(!vBtn||vBusy) return;
+  vBtn.hidden=false;
   const e=F['email'].value.trim();
   if(!validEmail(e)){ setErr('email','eEmail'); F['email'].focus(); return }
   setErr('email',''); setErr('code','');
@@ -210,7 +211,10 @@ async function checkCode(){
     vToken.value=r.j.token; vFor=F['email'].value.trim().toLowerCase();
     if(vBox) vBox.hidden=true; codeIn.value=''; vStop();
     vSay(t('vOk')+' \u00b7 '+vFor,true);
-    if(vBtn){ vBtn.textContent=t('vAgain'); vBtn.disabled=false }
+    /* and the button goes away rather than sitting there offering a second code: nothing is
+       missing, and the one thing that can still go wrong, the proof going stale while somebody
+       is talked at, brings it back by itself at the submit that needs it */
+    if(vBtn){ vBtn.hidden=true; vBtn.disabled=false }
     return;
   }
   vToken.value=''; vFor=''; vSay('');
@@ -238,7 +242,7 @@ F['email'].addEventListener('change',()=>{
     /* and the wait is dropped with it, because a different address is a different mailbox and the
        door is only ever strict about the one that just asked */
     vFor=''; vToken.value=''; vSay(''); vStop();
-    if(vBtn){ vBtn.disabled=false; vBtn.textContent=t('vSend') }
+    if(vBtn){ vBtn.hidden=false; vBtn.disabled=false; vBtn.textContent=t('vSend') }
     if(codeIn) codeIn.value='';
     setErr('code',''); openBox();
   }
@@ -275,7 +279,13 @@ form.addEventListener('submit',async e=>{
     if(btn) btn.disabled=false;
     const bad=REFUSE[j&&j.error];
     if(bad) setErr(bad[0],bad[1]);
-    if(j&&j.error==='emailv') openBox();   /* the box is right there, and now it has a reason */
+    if(j&&j.error==='emailv'){
+      /* most of the time this means one thing only: five minutes went by between the code and the
+         button. The proof is gone, so the ask comes back where it was, and one press settles it */
+      vToken.value=''; vFor=''; vSay(''); vStop();
+      if(vBtn){ vBtn.hidden=false; vBtn.disabled=false; vBtn.textContent=t('vSend') }
+      openBox();
+    }
     if(!bad) say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail);
     return;
   }

@@ -528,7 +528,7 @@ line rather than a look:
 1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
    `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
    read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
-2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=4">`, since every page on this host
+2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=5">`, since every page on this host
    is served with `script-src 'self'` and an inline block would simply not run;
 3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
    the shared preview needed so a demo posted nothing, became `true`;
@@ -598,6 +598,12 @@ hidden `emailv` field. `sharjah-next.html` draws the row under the email in the 
 `.vstat`, `.vcode`), and `js/sharjah-next.js` drives it: verify, six digits, a proof. The digits never reach
 this host's storage, and the token is not in the JSON row, not in the Supabase mirror (`lib/leads.js`
 drops it) and not in the browser after the page is left.
+Once a code is read and checked the button disappears and the line beside the field is left saying
+`Verified · their address`: nothing is missing at that moment, so nothing should be offered. It comes
+back on its own in the two cases where it is needed, the address being edited (the proof was about the
+other one) and a submit that arrives more than five minutes later with a stale proof, which is what the
+`emailv` refusal above is for.
+
 Two decisions are worth keeping in mind. The page does not decide who may submit, the door does, and the
 page reacts: a lead with no proof comes back `error: 'emailv'`, the box under the email opens, and nothing
 was written. That is what makes `VERIFY_REQUIRE_FOR_MANAGE` the one switch for the whole site: set it to

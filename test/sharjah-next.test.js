@@ -440,6 +440,9 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
   const w = dom.window, posts = [];
   const answer = b => ({ status: 200, json: () => Promise.resolve(b) });
   let sent = null;
+  /* the door answers the first submit the way a stale proof makes it answer, because the recovery
+     is the half of this flow nobody sees coming and the half most likely to break in six months */
+  let staleOnce = true;
   w.fetch = (u, o) => {
     const body = (o && o.body) || '{}';
     posts.push({ url: String(u), body });
@@ -448,7 +451,11 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
     if (u.includes('/api/verify-email/verify')) {
       return Promise.resolve(answer(b.code === '246813' ? { ok: true, token: 'PROOF-FOR-' + b.email } : { ok: false, errors: ['code'] }));
     }
-    if (u.includes('/api/sharjah-lead')) return Promise.resolve(answer({ ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' }));
+    if (u.includes('/api/sharjah-lead')) {
+      const refused = staleOnce; staleOnce = false;
+      return Promise.resolve(answer(refused ? { ok: false, error: 'emailv' }
+        : { ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' }));
+    }
     return Promise.resolve(answer({ ok: true }));
   };
   w.eval(read('js/countries.js'));
@@ -486,6 +493,7 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
   assert.equal(tokenIn.value, 'PROOF-FOR-reader@corp.example', 'the right six, and the proof is in the form');
   assert.equal(box.hidden, true, 'the box closes once it has done its job');
   assert.match(form.querySelector('[data-vstat]').textContent, /Verified · reader@corp\.example/, 'and the line beside the button says so, with the address it is about');
+  assert.equal(vBtn.hidden, true, 'and the button steps aside, because at that moment nothing is missing');
 
   /* the proof is about one address, so editing the address has to cost it, and the wait has to go
      with it: a different mailbox is a different question, and nothing here may strand a person at a
@@ -495,6 +503,7 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
   assert.equal(tokenIn.value, '', 'a keystroke in the email and the proof is gone');
   assert.equal(box.hidden, false, 'the box is back');
   assert.equal(vBtn.disabled, false, 'and the button works again at once, for the address that is typed now');
+  assert.equal(vBtn.hidden, false, 'and it is visible again, since the thing it asks for is needed again');
   form.elements['email'].value = 'reader2@corp.example';
   vBtn.click();
   await tick(30);
@@ -516,7 +525,25 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
   assert.equal(gone.emailv, 'PROOF-FOR-reader2@corp.example', 'carrying the proof beside the lead');
   assert.ok(!('code' in gone), 'but never the six digits themselves, which are nobody\'s business once they have been read');
   assert.equal(gone.email, 'reader2@corp.example', 'and the address that was checked is the address that is kept');
-  assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'Mira opens, as she did before any of this');
+  assert.equal(d.getElementById('doneView').className.trim(), 'done', 'and the person is not sent to Mira with a record the door refused');
+  assert.equal(tokenIn.value, '', 'the stale proof is dropped, not carried along to be refused twice');
+  assert.equal(errOf('email'), 'Please verify your email first.', 'and the note goes under the field it is about');
+  assert.equal(box.hidden, false, 'with the code box open underneath it');
+  assert.equal(vBtn.hidden, false, 'and the ask came back by itself, so nobody reloads and retypes four fields at a stand');
+
+  /* six minutes at the stand, the case the button exists for: one press, one code, the same fields */
+  vBtn.click();
+  await tick(30);
+  codeIn.value = '246813';
+  codeIn.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await tick(30);
+  assert.equal(tokenIn.value, 'PROOF-FOR-reader2@corp.example', 'a fresh proof for the same address');
+  assert.equal(vBtn.hidden, true, 'and the button is out of the way again');
+  d.querySelector('.cta').click();
+  await tick(250);
+  const last = JSON.parse(posts[posts.length - 1].body);
+  assert.equal(last.emailv, 'PROOF-FOR-reader2@corp.example', 'the fresh proof travelled with the lead');
+  assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'and Mira opens, with nothing retyped');
   dom.window.close();
 });
 
