@@ -351,6 +351,10 @@ require('./lib/spark')(app, {
   salt: SALT,
   limitPerMin: config.limits.spark,
   bucket,
+  /* the stand checks the mailbox the same way the early access page does, with the same switch, so
+     one value on this box decides it for both and nobody has to redeploy a page at a stand */
+  verify: emailVerify,
+  verifyRequire: config.verify.require,
   /* the Sharjah Next lead goes into the same Supabase copy the other four forms make, and that
      mirror lives here rather than in lib/spark.js, because this is where its key is configured */
   pushLead: (kind, record) => leads.push(kind, record),

@@ -528,7 +528,7 @@ line rather than a look:
 1. the `<title>`, description, theme colour, `format-detection` and the font links were sitting in
    `<body>` after a closed `</head>`, so they were moved into `<head>`, where a browser and a crawler
    read them, and `noindex, nofollow` was added there, because the page has to stay out of Google;
-2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=1">`, since every page on this host
+2. the inline `<script>` became `<script src="/js/sharjah-next.js?v=4">`, since every page on this host
    is served with `script-src 'self'` and an inline block would simply not run;
 3. `data-endpoint="/api/event"` became the deployed `create-pass`, and `const SEND = false`, the switch
    the shared preview needed so a demo posted nothing, became `true`;
@@ -587,6 +587,25 @@ reaches the length of the country in the picker (nine digits for +971, ten for +
 wrong entry in that table costs a hint, never a lead. The fifty-nine pairs come from Google's
 libphonenumber metadata, the mobile type alone, floored at the door's seven, and
 `/sharjah-next.test.js` reads the same table shape back so it cannot be quietly edited into a wall.
+
+**The mailbox check, borrowed whole.** After the last event a number of rows carried an address nobody
+could open, which turns a lead into nothing, so the stand asks for a six digit code before it accepts a
+lead. It is the same mechanism `/early-access` already runs, and no second version of it was written:
+`POST /api/verify-email/send` and `POST /api/verify-email/verify` in `server.js`, `lib/email-verify.js`
+holding the code as a hash in memory (one a minute per address, three a ten minute window, six an hour,
+three wrong tries kill a code), and the signed five minute token that `js/early-access.js` puts in a
+hidden `emailv` field. `sharjah-next.html` draws the row under the email in the card's own tokens (`.vbtn`,
+`.vstat`, `.vcode`), and `js/sharjah-next.js` drives it: verify, six digits, a proof. The digits never reach
+this host's storage, and the token is not in the JSON row, not in the Supabase mirror (`lib/leads.js`
+drops it) and not in the browser after the page is left.
+Two decisions are worth keeping in mind. The page does not decide who may submit, the door does, and the
+page reacts: a lead with no proof comes back `error: 'emailv'`, the box under the email opens, and nothing
+was written. That is what makes `VERIFY_REQUIRE_FOR_MANAGE` the one switch for the whole site: set it to
+`0` in hPanel and restart and both forms stop asking, with no redeploy, which is the line to use on a
+morning the mail is stuck rather than closing the stand. The other is that the code mail (`verifyCode` in
+`lib/mail-templates.js`) names no product on purpose, because one template answers both entrances. Note
+what this means on the box: `MAIL_DRY_RUN` has to be `0` in `.env` or nobody ever receives a code, and a
+dry run hands the code back to the page instead, which is why a rehearsal can still be walked through.
 
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2

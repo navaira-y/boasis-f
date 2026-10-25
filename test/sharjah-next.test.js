@@ -51,6 +51,10 @@ before(async () => {
 after(() => { proc.kill('SIGTERM'); try { fs.rmSync(DATA, { recursive: true, force: true }); } catch (e) {} });
 
 const get = p => fetch(base + p);
+const postJSON = async (p, b) => {
+  const r = await fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+  return { status: r.status, j: await r.json().catch(() => null) };
+};
 
 test('the event page answers at its address, with its own headers', async () => {
   for (const p of ['/sharjah-next', '/sharjah-next/', '/sharjah-next.html']) {
@@ -348,6 +352,172 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
     'Mira opens in the card, carrying the reference the mails show');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
   assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
+});
+
+test('the mailbox check is drawn into the form itself, in the form\'s own words', () => {
+  const h = HTML();
+  const iEmail = h.indexOf('id="email"'), iRow = h.indexOf('data-vrow'), iPhone = h.indexOf('id="phone"');
+  assert.ok(iEmail > 0 && iRow > iEmail && iPhone > iRow,
+    'the verify row sits under the email field and above the mobile one, which is where it was asked for');
+  const row = h.slice(iRow, iPhone);
+  assert.match(row, /<button type="button" class="vbtn" data-sendcode/, 'a button that says what it does, and never submits the form by accident');
+  assert.match(row, /data-vcode hidden/, 'the code box is folded away until a code is actually on its way');
+  assert.match(row, /name="emailv"/, 'the proof the door hands back is a field of the form, so it travels with the lead and nowhere else');
+  assert.match(row, /autocomplete="one-time-code"/, 'and the phone is offered the digits out of the message, the way the early access form does');
+  assert.match(row, /maxlength="6"/, 'six, and no more');
+  for (const k of ['vSend', 'vCode', 'vCheck']) {
+    assert.match(row, new RegExp('data-k="' + k + '"'), k + ' is painted from the dictionary, like every other word on this page');
+  }
+  const css = h.slice(h.indexOf('.card.bo{'));   /* the card's own block, where every rule that colours this form lives */
+  assert.match(css, /\.bo \.vbtn\{/, 'it is styled inside the card, in the card\'s own tokens, not a second look bolted on');
+  assert.match(css, /border:1\.5px solid var\(--bo-line\)/, 'the same border as the fields above it');
+  assert.match(css, /\.bo \.vstat\{[^}]*--bo-muted/, 'and the same quiet grey the help text uses');
+  const dict = JS().slice(0, JS().indexOf('const root='));
+  for (const k of ['vSend', 'vAgain', 'vBusy', 'vCode', 'vCheck', 'vSent', 'vOk', 'vSoon', 'eCode', 'eTries', 'eSend', 'eVerify']) {
+    assert.ok(dict.includes(k + ":'"), k + ' has words of its own at the top of the script, where the page keeps them');
+  }
+});
+
+test('the door wants a code the mailbox answered, spends it once, and can be told to drop the whole check', () => {
+  const sp = read('lib/spark.js');
+  assert.match(sp, /o\.verify\.peek\(form\.contact\.email, proof\)/, 'it looks at the proof without spending it, so any other refusal leaves the code usable');
+  assert.match(sp, /error: 'emailv'/, 'and the reason it says is the name of the field the page can act on');
+  assert.ok(sp.indexOf('verify.peek') < sp.indexOf('const ref = newRef()'), 'a lead with no proof is turned away before a reference is made or a file is written');
+  assert.ok(sp.indexOf('saveJson(snFile(ref)') < sp.indexOf('o.verify.consume'), 'the proof is spent only after the record is on disk');
+  assert.match(sp, /const need = !!o\.verify && o\.verifyRequire !== false/, 'the whole thing hangs on one switch, not on an edit to this file');
+  assert.match(read('server.js'), /verify: emailVerify,\s*\n\s*verifyRequire: config\.verify\.require,/,
+    'and the stand is handed the same module and the same switch the early access door reads, so one value decides it for both');
+  assert.match(read('lib/leads.js'), /emailv/, 'the mirror into the table drops the proof, because a row has no business carrying a key to anything');
+});
+
+test('the mail that carries the code says nothing about which form it came from', () => {
+  const { verifyCode } = require(path.join(ROOT, 'lib/mail-templates'));
+  const m = verifyCode({ email: 'a@b.co', code: '246813' });
+  const all = m.subject + ' ' + m.text + ' ' + m.html;
+  assert.match(m.text, /Enter it on the form you are filling in\./, 'it says where to put the code, which is all it needs to say');
+  assert.ok(!/early access|BOASIS Manage/i.test(all), 'and it never names the other entrance, because a person at the stand would read a lie');
+  assert.equal(m.subject, 'Your BOASIS code is 246813', 'the subject is the code, so it is findable in a full inbox at a loud stand');
+});
+
+test('a live box takes the code, then the lead, and never the same code twice', async () => {
+  /* a fresh address every run, because the wait between codes is measured per mailbox and a second
+     run of the suite must not inherit a minute of patience from the first */
+  const email = 'sn-check-' + Date.now().toString(36) + '@example.com';
+  const lead = extra => ({
+    full_name: 'Rehearse Person', email, phone: '501234567', country_code: '+971',
+    consent: 'on', source: 'sharjah-next-2026', _t: 5000, ...extra,
+  });
+  const sent = await postJSON('/api/verify-email/send', { email, _t: Date.now() - 4000 });
+  assert.equal(sent.status, 200, 'the code door answers for this address as it does for the other form');
+  assert.match(String(sent.j.devCode), /^\d{6}$/, 'this box mails nobody, so it hands the code back and the walk through stays possible');
+
+  const blind = await postJSON('/api/sharjah-lead', lead());
+  assert.equal(blind.status, 400, 'a lead without the proof is refused');
+  assert.equal(blind.j.error, 'emailv', 'by the name the page knows what to do with');
+  const snDir = path.join(DATA, 'sharjah-next');
+  const snFiles = () => (fs.existsSync(snDir) ? fs.readdirSync(snDir) : []);
+  assert.equal(snFiles().length, 0, 'and nothing at all was written on the way');
+
+  assert.equal((await postJSON('/api/verify-email/verify', { email, code: '000000' })).j.errors[0], 'code', 'a wrong code is a wrong code');
+  const got = await postJSON('/api/verify-email/verify', { email, code: sent.j.devCode });
+  assert.ok(got.j.ok && got.j.token, 'the right one comes back as a signed proof');
+  const inTime = await postJSON('/api/sharjah-lead', lead({ emailv: got.j.token }));
+  assert.equal(inTime.status, 200, 'and one look at the mailbox is all the stand needs');
+  assert.match(inTime.j.ref, /^SN-[A-Z0-9]{6}$/, 'with the reference the print and the mails show');
+  const replay = await postJSON('/api/sharjah-lead', lead({ emailv: got.j.token }));
+  assert.equal(replay.j.error, 'emailv', 'the same proof does not open the door a second time');
+  const again = await postJSON('/api/verify-email/send', { email, _t: Date.now() - 4000 });
+  assert.equal(again.status, 429, 'and that mailbox is left alone for a minute, so the code is not a way to make the site mail');
+  assert.ok(again.j.retryIn > 0 && again.j.retryIn <= 60, 'which the answer counts down for the page');
+
+  const raw = fs.readFileSync(path.join(snDir, snFiles()[0]), 'utf8');
+  assert.ok(!/eyJ|emailv/.test(raw), 'the proof is nowhere in the record, because only the address was ever worth keeping');
+  assert.match(raw, /"email": "sn-check-/, 'the address itself is there, checked and all');
+});
+
+test('the page opens the box, takes six digits, and carries the proof to the door', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
+  const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
+  const w = dom.window, posts = [];
+  const answer = b => ({ status: 200, json: () => Promise.resolve(b) });
+  let sent = null;
+  w.fetch = (u, o) => {
+    const body = (o && o.body) || '{}';
+    posts.push({ url: String(u), body });
+    const b = JSON.parse(body);
+    if (u.includes('/api/verify-email/send')) { sent = b; return Promise.resolve(answer({ ok: true, devCode: '246813' })); }
+    if (u.includes('/api/verify-email/verify')) {
+      return Promise.resolve(answer(b.code === '246813' ? { ok: true, token: 'PROOF-FOR-' + b.email } : { ok: false, errors: ['code'] }));
+    }
+    if (u.includes('/api/sharjah-lead')) return Promise.resolve(answer({ ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' }));
+    return Promise.resolve(answer({ ok: true }));
+  };
+  w.eval(read('js/countries.js'));
+  w.eval(JS());
+  const d = w.document, form = d.getElementById('snForm');
+  const box = form.querySelector('[data-vcode]'), vBtn = form.querySelector('[data-sendcode]');
+  const codeIn = d.getElementById('vcode'), tokenIn = form.elements['emailv'];
+  const errOf = k => form.querySelector('[data-err="' + k + '"]').textContent.trim();
+  const tick = ms => new Promise(r => setTimeout(r, ms));
+
+  assert.equal(box.hidden, true, 'nobody is shown a code box before a code is on its way');
+  assert.equal(vBtn.textContent.trim(), 'Verify my email', 'the button under the email says what it does');
+  vBtn.click();
+  assert.equal(posts.length, 0, 'and pressing it with nothing typed asks the server for nothing');
+  assert.equal(errOf('email'), 'Please enter a valid email.', 'it says which field is short instead');
+
+  form.elements['email'].value = 'reader@corp.example';
+  vBtn.click();
+  await tick(30);
+  assert.deepEqual(posts.map(p => p.url), ['/api/verify-email/send'], 'one call, for the code, and nothing else');
+  assert.equal(sent.email, 'reader@corp.example', 'about the address in the field at that moment');
+  assert.ok(Number(sent._t) > 0, 'with the age of the page, which is what tells the door a person read it');
+  assert.equal(box.hidden, false, 'the box is open, and the digits are expected in it');
+  assert.match(vBtn.textContent, /^Next code in \d+s$/, 'the button counts the minute out loud rather than waiting to be told no');
+  assert.equal(codeIn.value, '246813', 'a box that mails nobody shows its code, so a rehearsal can be walked all the way through');
+
+  codeIn.value = '111111';
+  codeIn.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await tick(30);
+  assert.match(errOf('code'), /That is not the code/, 'five wrong digits are said out loud, under the box they belong to');
+  assert.equal(tokenIn.value, '', 'a wrong code buys nothing');
+  codeIn.value = '246813';
+  codeIn.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await tick(30);
+  assert.equal(tokenIn.value, 'PROOF-FOR-reader@corp.example', 'the right six, and the proof is in the form');
+  assert.equal(box.hidden, true, 'the box closes once it has done its job');
+  assert.match(form.querySelector('[data-vstat]').textContent, /Verified · reader@corp\.example/, 'and the line beside the button says so, with the address it is about');
+
+  /* the proof is about one address, so editing the address has to cost it, and the wait has to go
+     with it: a different mailbox is a different question, and nothing here may strand a person at a
+     stand with a form they are not allowed to finish */
+  form.elements['email'].value = 'reader@corp.examp';
+  form.elements['email'].dispatchEvent(new w.Event('change', { bubbles: true }));
+  assert.equal(tokenIn.value, '', 'a keystroke in the email and the proof is gone');
+  assert.equal(box.hidden, false, 'the box is back');
+  assert.equal(vBtn.disabled, false, 'and the button works again at once, for the address that is typed now');
+  form.elements['email'].value = 'reader2@corp.example';
+  vBtn.click();
+  await tick(30);
+  assert.equal(sent.email, 'reader2@corp.example', 'a second code, asked for the new address');
+  codeIn.value = '246813';
+  codeIn.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await tick(30);
+  assert.equal(tokenIn.value, 'PROOF-FOR-reader2@corp.example', 'and the proof is for that one');
+
+  d.getElementById('first_name').value = 'Ada';
+  d.getElementById('last_name').value = 'Lovelace';
+  d.getElementById('phone').value = '0501234567';
+  d.getElementById('phone').dispatchEvent(new w.Event('input', { bubbles: true }));
+  d.querySelector('input[name=consent]').checked = true;
+  d.querySelector('.cta').click();
+  await tick(250);
+  const gone = JSON.parse(posts[posts.length - 1].body);
+  assert.equal(posts[posts.length - 1].url, '/api/sharjah-lead', 'then the one call the page has always made');
+  assert.equal(gone.emailv, 'PROOF-FOR-reader2@corp.example', 'carrying the proof beside the lead');
+  assert.ok(!('code' in gone), 'but never the six digits themselves, which are nobody\'s business once they have been read');
+  assert.equal(gone.email, 'reader2@corp.example', 'and the address that was checked is the address that is kept');
+  assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'Mira opens, as she did before any of this');
+  dom.window.close();
 });
 
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {

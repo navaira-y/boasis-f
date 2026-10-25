@@ -6,7 +6,7 @@
  *
  * What the button does is settled for now, and it is small: the four fields are posted to
  *
- *   POST /api/sharjah-lead        { first+last as full_name, email, phone, country_code, consent, source, _t }
+ *   POST /api/sharjah-lead        { first+last as full_name, email, phone, country_code, consent, source, emailv, _t }
  *
  * on this same host. That door writes one JSON file per person, mirrors it into Supabase as kind
  * 'sharjah_next' for the CSV, and answers with a reference (SN-XXXXXX) and the Brain's address.
@@ -53,6 +53,12 @@ const T={
   today:'<b>Open on 28 and 29 October only.</b> Complete your payment in Zone 2 before you leave.',
   sig:'Powered by',
   eFirst:'Please enter your first name.', eLast:'Please enter your last name.', eEmail:'Please enter a valid email.', ePhone:'Please enter a valid number.', eConsent:'Please tick the box to continue.',
+  vSend:'Verify my email', vAgain:'Send another code', vBusy:'One moment',
+  vCode:'Six digit code', vCheck:'Check', vSent:'Code on its way to your inbox', vOk:'Verified', vSoon:'Next code in',
+  eCode:'That is not the code. Read it once more and press Check.',
+  eTries:'Three tries is enough for now. Ask for a new code in a minute.',
+  eSend:'The code did not go out. Press again, or ask us at the desk.',
+  eVerify:'Please verify your email first.',
   eBusy:'Too many tries just now. Wait a moment and press again.',
   eFail:'We could not send that. Press again, or ask us at the desk.'
  }
@@ -130,6 +136,114 @@ if(ccEl) ccEl.addEventListener('codechange', rejudgePhone);
 ['first_name','last_name','email'].forEach((k,i,a)=>F[k].addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault(); (i<a.length-1?F[a[i+1]]:F['phone']).focus()}
 }));
+/* ── the mailbox check ─────────────────────────────────────────────────────────────
+   Last event a number of people typed an address they cannot open, so the code the early access form
+   already sends is sent here too. Nothing is invented for it: the same two doors on this host
+   (POST /api/verify-email/send, POST /api/verify-email/verify), the same six digits, the same signed
+   proof that rides back onto the lead as `emailv` and is spent once when the record is written. The
+   code itself is never kept here, only that proof, and it is good for five minutes.
+   The page does not decide who may submit, the door does. That way one value on the server,
+   VERIFY_REQUIRE_FOR_MANAGE, takes the check away from both forms in a morning when the mail is
+   stuck, without a new copy of this file. What the page adds is the invitation: a button under the
+   email, and the code box that appears only once a code is on its way. */
+const vBox=form.querySelector('[data-vcode]'), vBtn=form.querySelector('[data-sendcode]');
+const cBtn=form.querySelector('[data-verifycode]'), vStat=form.querySelector('[data-vstat]');
+const codeIn=document.getElementById('vcode');
+/* an old copy of the page in a tablet's cache has no such field, so the proof is read from a field
+   that simply holds nothing rather than from a missing one: every other check in here is already
+   written to survive an element that is not there */
+const vToken=F['emailv']||{value:''};
+let vBusy=false, vTimer=null, vFor='';
+function vSay(msg,ok){ if(vStat){ vStat.textContent=msg||''; vStat.classList.toggle('ok',!!ok) } }
+function openBox(){ if(vBox) vBox.hidden=false; if(codeIn) codeIn.focus() }
+function vStop(){ if(vTimer){ clearInterval(vTimer); vTimer=null } }
+/* the minute the door makes anyone wait between codes, counted where it can be seen, so nobody
+   presses a button that is only going to say no */
+function vLock(secs){
+  if(!vBtn) return;
+  vStop();
+  let left=Math.max(0,Math.round(secs||0));
+  const label=()=>{
+    vBtn.disabled=left>0;
+    vBtn.textContent=left>0?(t('vSoon')+' '+left+'s'):(vToken.value?t('vAgain'):t('vSend'));
+  };
+  label();
+  if(left>0) vTimer=setInterval(()=>{ left-=1; label(); if(left<=0) vStop() },1000);
+}
+async function vPost(url,body){
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return {status:r.status,j:await r.json().catch(()=>null)};
+  }catch(e){ return {status:0,j:null} }
+}
+function why(j){ return (j&&j.errors&&j.errors[0])||'' }
+async function requestCode(){
+  if(!vBtn||vBusy) return;
+  const e=F['email'].value.trim();
+  if(!validEmail(e)){ setErr('email','eEmail'); F['email'].focus(); return }
+  setErr('email',''); setErr('code','');
+  vBusy=true; vBtn.disabled=true; vBtn.textContent=t('vBusy');
+  const r=await vPost('/api/verify-email/send',{email:e,hp:F['hp'].value,_t:opened});
+  vBusy=false;
+  if(r.status!==200||!r.j||!r.j.ok){
+    vBtn.textContent=t('vSend');
+    /* too soon is not a failure to read out loud, the button is already counting the wait; any
+       other no is, because it means nothing arrived and the person should know it here */
+    vSay(why(r.j)==='too-soon'?'':t('eSend'));
+    vLock((r.j&&r.j.retryIn)||6); return;
+  }
+  vToken.value=''; vFor=''; if(codeIn) codeIn.value='';
+  openBox(); vSay(t('vSent')); vLock(60);
+  /* a box that mails nobody hands its code back, so a rehearsal can still be walked all the way
+     through; wherever the mail is real the page says nothing about the code at all */
+  if(r.j.devCode&&codeIn) codeIn.value=r.j.devCode;
+}
+async function checkCode(){
+  if(vBusy||!codeIn) return;
+  const c=digits(codeIn.value);
+  if(c.length!==6){ setErr('code','eCode'); return }
+  setErr('code','');
+  vBusy=true; if(cBtn){ cBtn.disabled=true; cBtn.textContent=t('vBusy') }
+  const r=await vPost('/api/verify-email/verify',{email:F['email'].value.trim(),code:c});
+  vBusy=false; if(cBtn){ cBtn.disabled=false; cBtn.textContent=t('vCheck') }
+  if(r.status===200&&r.j&&r.j.ok&&r.j.token){
+    vToken.value=r.j.token; vFor=F['email'].value.trim().toLowerCase();
+    if(vBox) vBox.hidden=true; codeIn.value=''; vStop();
+    vSay(t('vOk')+' \u00b7 '+vFor,true);
+    if(vBtn){ vBtn.textContent=t('vAgain'); vBtn.disabled=false }
+    return;
+  }
+  vToken.value=''; vFor=''; vSay('');
+  /* the address can be emptied or edited between the two clicks, and then the door is right and the
+     code box is not, so the note goes where the mistake is */
+  if(why(r.j)==='email'){ setErr('code',''); setErr('email','eEmail'); F['email'].focus(); return }
+  setErr('code',why(r.j)==='attempts'?'eTries':'eCode');
+  if(codeIn) codeIn.select();
+}
+if(vBtn) vBtn.addEventListener('click',requestCode);
+if(cBtn) cBtn.addEventListener('click',checkCode);
+if(codeIn){
+  codeIn.addEventListener('input',()=>{
+    const c=digits(codeIn.value); if(c!==codeIn.value) codeIn.value=c;
+    setErr('code','');
+    if(c.length===6) checkCode();
+  });
+  codeIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkCode() } });
+}
+/* a code is a proof about one address: move a digit in the email and it stops being true, so the
+   proof is dropped here rather than carried to the door to be refused */
+F['email'].addEventListener('change',()=>{
+  if(!vFor) return;
+  if(F['email'].value.trim().toLowerCase()!==vFor){
+    /* and the wait is dropped with it, because a different address is a different mailbox and the
+       door is only ever strict about the one that just asked */
+    vFor=''; vToken.value=''; vSay(''); vStop();
+    if(vBtn){ vBtn.disabled=false; vBtn.textContent=t('vSend') }
+    if(codeIn) codeIn.value='';
+    setErr('code',''); openBox();
+  }
+});
+
 form.addEventListener('submit',async e=>{
   e.preventDefault();
   if(F['hp'].value) return;
@@ -156,12 +270,13 @@ form.addEventListener('submit',async e=>{
   const ref=(j&&j.ok!==false)?cleanRef(j.ref):'';
   /* the door judges the same fields, and says which one it refused; the note goes under that field
      rather than joining the button, and a refusal we cannot name still says something */
-  const REFUSE={email:['email','eEmail'],phone:['phone','ePhone'],full_name:['first_name','eLast'],consent:['consent','eConsent']};
+  const REFUSE={email:['email','eEmail'],phone:['phone','ePhone'],full_name:['first_name','eLast'],consent:['consent','eConsent'],emailv:['email','eVerify']};
   if(SEND&&!ref){
     if(btn) btn.disabled=false;
     const bad=REFUSE[j&&j.error];
     if(bad) setErr(bad[0],bad[1]);
-    say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail);
+    if(j&&j.error==='emailv') openBox();   /* the box is right there, and now it has a reason */
+    if(!bad) say(j&&j.error==='limited'?T[L()].eBusy:T[L()].eFail);
     return;
   }
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);

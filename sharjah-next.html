@@ -136,6 +136,25 @@ footer .brand img{width:1.06em; height:1.06em; margin:0 .02em}
 .bo .consent{color:var(--bo-muted)}
 .bo .consent input{accent-color:var(--bo-blue)}
 .bo .err{color:#F2B8B5}
+
+/* The mailbox check under the email: one quiet button, and a code box that only exists once a
+   code is on its way. Same field language as the rest of the card, nothing red until something
+   is actually wrong. */
+.bo .vline{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.bo .vbtn{font:inherit; font-size:15px; font-weight:600; color:#fff; background:rgba(255,255,255,.09);
+  border:1.5px solid var(--bo-line); border-radius:999px; padding:0 16px; min-height:44px; cursor:pointer;
+  transition:border-color .2s, transform .1s}
+.bo .vbtn:active{transform:scale(.98)}
+.bo .vbtn[disabled]{opacity:.55; cursor:default}
+.bo .vstat{font-size:14.5px; color:var(--bo-muted)}
+.bo .vstat.ok{color:var(--bo-teal)}
+.bo .vcode{margin-top:10px}
+.bo .vrow2{display:flex; gap:8px; align-items:stretch}
+.bo .vrow2 .vbtn{min-height:54px}
+.bo .vrow2 input[type=text]{max-width:150px; text-align:center; letter-spacing:.32em;
+  font-variant-numeric:tabular-nums; padding-left:0; padding-right:0}
+@media (max-width:420px){ .bo .vrow2{flex-wrap:wrap} .bo .vrow2 input[type=text]{max-width:118px} }
+@media (hover:hover){ .bo .vbtn:hover{border-color:#3A4D68} }
 .bo .cta{background:var(--bo-blue); box-shadow:0 14px 30px -12px rgba(14,134,196,.8)}
 .bo .cta:active{background:#0B74AC}
 .bo .done h2{color:#fff}
@@ -255,6 +274,21 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
           <div class="field"><label class="lbl" for="last_name" data-k="last"></label><input id="last_name" name="last_name" type="text" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" required><p class="err" data-err="last_name"></p></div>
         </div>
         <div class="field"><label class="lbl" for="email" data-k="email"></label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" enterkeyhint="next" required><p class="err" data-err="email"></p></div>
+          <div class="field vfield" data-vrow>
+            <div class="vline">
+              <button type="button" class="vbtn" data-sendcode data-k="vSend"></button>
+              <p class="vstat" data-vstat></p>
+            </div>
+            <div class="vcode" data-vcode hidden>
+              <label class="lbl" for="vcode" data-k="vCode"></label>
+              <div class="vrow2">
+                <input id="vcode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" enterkeyhint="next">
+                <button type="button" class="vbtn" data-verifycode data-k="vCheck"></button>
+              </div>
+              <p class="err" data-err="code"></p>
+            </div>
+            <input type="hidden" name="emailv" value="">
+          </div>
         <div class="field"><label class="lbl" for="phone" data-k="mobile"></label>
           <div class="phone">
             <div class="cc" data-cc>
@@ -306,7 +340,7 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 
 
 <script src="/js/countries.js?v=4"></script>
-<script src="/js/sharjah-next.js?v=3"></script>
+<script src="/js/sharjah-next.js?v=4"></script>
 
 
 </body></html>
