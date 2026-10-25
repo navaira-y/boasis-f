@@ -137,6 +137,21 @@ test('the three doors push after the write, and the row they write to is the one
     'and it goes inside the record rather than beside it, so no column has to be created for the sheet to show it');
 });
 
+test('the comment free copies are the same code, and only the same code', () => {
+  const { compose, paste } = require(path.join(ROOT, 'scripts/make-supabase-single.js'));
+  const { tokens } = require(path.join(ROOT, 'scripts/strip-comments.js'));
+  for (const name of ['create-pass', 'save-step', 'get-lead', 'save-lead']) {
+    const both = read('demo/supabase/paste/' + name + '.js');
+    assert.equal(both, paste(name), name + ' in paste/ is exactly what the generator writes from the folder, not an edited copy');
+    const coded = t => tokens(t).out.filter(x => x.kind === 'code').map(x => x.text).join('').replace(/\s+/g, ' ').trim();
+    const full = compose(name);
+    assert.ok(coded(both).length > coded(full).length * 0.4, name + ' kept its code, it is ' + Math.round(coded(both).length / 1000) + 'k of it');
+    assert.equal(coded(both), coded(full).replace(/^\s*\/\/ deno-lint-ignore-file no-explicit-any/, ''),
+      name + ': taking the comments out changed no string, no regular expression and no line');
+    assert.ok(!/\/\*[ \t]*[A-Z]/.test(both), name + ': not one sentence of prose is left in it');
+  }
+});
+
 test('the sheet file writes cells, locks, and reads nothing it does not have to', () => {
   const gs = read(GS);
   assert.match(gs, /if \(String\(body\.secret\) !== String\(CONFIG\.SECRET\)\) return out\(\{ ok: false, why: 'key' \}\);/,

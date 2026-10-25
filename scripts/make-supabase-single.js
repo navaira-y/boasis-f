@@ -20,10 +20,16 @@
 
 const fs = require('fs');
 const path = require('path');
+const { strip } = require('./strip-comments.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'demo/supabase/functions');
 const OUT = path.join(ROOT, 'demo/supabase/dashboard');
+/* the same four files again, with the comments taken out, in a folder of their own: a long file of
+   prose is not what anybody wants to scroll through while a stand is being set up, and a second copy
+   by hand is how two opinions about one function get born. So the generator writes both, one strip of
+   comments away from the other, and a test rebuilds it and compares */
+const PASTE = path.join(ROOT, 'demo/supabase/paste');
 
 const SHARED = ['_shared/spark-core.js', '_shared/spark-supabase.js'];
 
@@ -144,14 +150,27 @@ function compose(name) {
     '\n\n/* ── ' + name + ', from ' + name + '/index.js, as written there ── */\n\n' + doorBody + '\n';
 }
 
+/* the paste copy: comments out, and the one comment kept is the lint pragma, because a function
+   typed into the dashboard is read as TypeScript there and a pragma is not prose */
+function paste(name) {
+  const src = compose(name);
+  const pragma = /^\/\/ deno-lint-ignore-file (\S+)\n/m.exec(src);
+  const body = strip(src);
+  return pragma ? '// deno-lint-ignore-file ' + pragma[1] + '\n' + body : body;
+}
+
 function main() {
   fs.mkdirSync(OUT, { recursive: true });
+  fs.mkdirSync(PASTE, { recursive: true });
   for (const fn of FUNCS) {
     const to = path.join(OUT, fn.name + '.js');
     fs.writeFileSync(to, compose(fn.name));
-    console.log('  wrote ' + path.relative(ROOT, to) + ' (' + fs.statSync(to).size + ' bytes)');
+    const bare = path.join(PASTE, fn.name + '.js');
+    fs.writeFileSync(bare, paste(fn.name));
+    console.log('  wrote ' + path.relative(ROOT, to) + ' (' + fs.statSync(to).size + ' bytes)'
+      + ' and ' + path.relative(ROOT, bare) + ' (' + fs.statSync(bare).size + ')');
   }
 }
 
-module.exports = { compose, OUT, FUNCS };
+module.exports = { compose, paste, OUT, PASTE, FUNCS };
 if (require.main === module) main();

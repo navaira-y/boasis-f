@@ -19,8 +19,10 @@ sheet decides which of them become columns.
    address. First run asks for permission to edit the spreadsheet, and nothing else.
 4. In Supabase, Project Settings, Edge Functions, Secrets: `SHEET_HOOK_URL` (that `/exec` address) and
    `SHEET_HOOK_KEY` (the same random string).
-5. Re-paste the three functions from `demo/supabase/dashboard/`: `create-pass`, `save-step`,
-   `save-lead`. `get-lead` is unchanged.
+5. Re-paste the three functions: `demo/supabase/paste/create-pass.js`, `save-step.js` and `save-lead.js`.
+   Those three are the same files as the ones in `demo/supabase/dashboard/` with the comments taken out,
+   which is the copy worth pasting at a stand; a test rebuilds both from the folder and fails if the two
+   ever disagree by anything but prose. `get-lead.js` is in the folder too and does not need a re-paste.
 6. On boasis.ae, in hPanel Environment Variables: `SPARK_SN_PASS = on`. That is what gives a person at
    this stand a pass at all, which is what lets Mira write on their row, which is what the sheet reads.
 
