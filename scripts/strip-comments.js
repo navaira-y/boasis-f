@@ -146,7 +146,21 @@ function stripSql(src) {
 module.exports = { strip, stripSql, tokens };
 
 if (require.main === module) {
-  const f = process.argv[2];
-  if (!f) { console.error('usage: node scripts/strip-comments.js file.js'); process.exit(2) }
-  process.stdout.write(strip(require('fs').readFileSync(f, 'utf8')));
+  const fs = require('fs');
+  const argv = process.argv.slice(2);
+  /* --write is the mode the repo uses: the plain copy of a paste file is generated and committed, so
+     it can never be a hand trimmed second opinion about the original, and a test rebuilds it */
+  const w = argv[0] === '--write';
+  const [from, to] = w ? argv.slice(1) : argv;
+  if (!from || (w && !to)) {
+    console.error('usage: node scripts/strip-comments.js file.js\n       node scripts/strip-comments.js --write file.gs file.paste.gs');
+    process.exit(2);
+  }
+  const src = fs.readFileSync(from, 'utf8');
+  const out = /\.sql$/i.test(from) ? stripSql(src) : strip(src);
+  if (w) {
+    fs.mkdirSync(require('path').dirname(to), { recursive: true });
+    fs.writeFileSync(to, out);
+    console.log('wrote ' + to + ' (' + out.length + ' bytes from ' + src.length + ')');
+  } else process.stdout.write(out);
 }

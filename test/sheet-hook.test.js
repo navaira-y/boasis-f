@@ -176,6 +176,19 @@ test('the comment free copies are the same code, and only the same code', () => 
   }
 });
 
+test('the plain copy of the sheet file is the same program, and nobody has typed into it', () => {
+  const { strip, tokens } = require(path.join(ROOT, 'scripts/strip-comments.js'));
+  const src = read(GS);
+  const bare = read('demo/sheet/paste/stand-sheet.gs');
+  assert.equal(bare, strip(src), 'it is what the strip makes: node scripts/strip-comments.js --write "demo/sheet/Boasis stand sheet.gs" "demo/sheet/paste/stand-sheet.gs"');
+  const coded = t => tokens(t).out.filter(x => x.kind === 'code').map(x => x.text).join('').replace(/\s+/g, ' ').trim();
+  assert.equal(coded(bare), coded(src), 'the notes came out and not one string, quote or line of logic with them');
+  assert.ok(bare.length < src.length * 0.65, 'and it is the shorter read, ' + bare.length + ' bytes against ' + src.length);
+  assert.ok(!/\/\*|[ \t]\/\//.test(bare), 'with nothing left that looks like a sentence');
+  assert.ok(/SECRET: 'PASTE-THE-SAME-RANDOM-STRING-HERE'/.test(bare), 'and the one line she has to change is still in it');
+  assert.ok(/LockService|getScriptLock/.test(bare), 'with the lock, since a note about it is not the lock itself');
+});
+
 test('the sheet file writes cells, locks, and reads nothing it does not have to', () => {
   const gs = read(GS);
   assert.match(gs, /if \(String\(body\.secret\) !== String\(CONFIG\.SECRET\)\) return out\(\{ ok: false, why: 'key' \}\);/,

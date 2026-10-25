@@ -17,7 +17,10 @@ sheet decides which of them become columns.
 1. Make the sheet. One blank Google Sheet is the whole thing, no header row and no second tab needed:
    the script makes both.
 2. In the sheet: Extensions, Apps Script. Paste all of
-   `demo/sheet/Boasis stand sheet.gs`. Put a long random string in `CONFIG.SECRET`.
+   `demo/sheet/Boasis stand sheet.gs`, or its plain copy `demo/sheet/paste/stand-sheet.gs` for anybody
+   pasting it in front of someone: same program, notes taken out by `node scripts/strip-comments.js
+   --write`, and a test fails if the two ever disagree by more than prose. Put a long random string in
+   `CONFIG.SECRET`.
 3. Deploy, New deployment, Web app. Execute as **me**, Who has access **anyone**. Copy the `/exec`
    address. First run asks for permission to edit the spreadsheet, and nothing else.
 4. In Supabase, Project Settings, Edge Functions, Secrets: `SHEET_HOOK_URL` (that `/exec` address) and
