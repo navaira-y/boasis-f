@@ -97,9 +97,9 @@ test('the hook is a courtesy: it cannot fail a visitor, and it is off unless bot
   const seen = [];
   const ok = await m.pushSheet({ key: 'a@b.co', fields: { email: 'a@b.co' } }, {
     url: 'https://example.test/exec', key: 'sekret',
-    fetch: (u, o) => { seen.push({ u, o }); return Promise.resolve({ ok: true, status: 200 }) },
+    fetch: (u, o) => { seen.push({ u, o }); return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('{\"ok\":true,\"row\":3}') }) },
   });
-  assert.deepEqual(ok, { ok: true }, 'one try, and a good answer is not read for anything');
+  assert.deepEqual(ok, { ok: true }, 'one try, and a real yes is not read for more than a yes');
   assert.equal(seen[0].u, 'https://example.test/exec');
   const sent = JSON.parse(seen[0].o.body);
   assert.equal(sent.secret, 'sekret', 'the secret travels in the body, where neither of us logs it and a browser cannot stumble on it');
@@ -118,6 +118,31 @@ test('the hook is a courtesy: it cannot fail a visitor, and it is off unless bot
   });
   assert.equal(down.ok, false, 'and any other failure is the same: nothing throws at a caller that is waiting to answer a person');
   assert.match(down.why, /socket/);
+});
+
+test('a 200 from Google is read, because a sheet that refused us must not be logged as written', async () => {
+  const m = await core();
+  const at = async (body, init) => m.pushSheet({ key: 'a@b.co', fields: {} }, {
+    url: 'https://script.google.com/macros/s/ABC/exec', key: 'k',
+    fetch: () => Promise.resolve(Object.assign({ ok: true, status: 200, text: () => Promise.resolve(body) }, init || {})),
+  });
+  assert.deepEqual(await at('{"ok":false,"why":"key"}'), { ok: false, why: 'refused: key to script.google.com' },
+    'the sheet said no, so the log says no, and says who said it');
+  assert.deepEqual(await at('{"ok":false,"why":"body"}'), { ok: false, why: 'refused: body to script.google.com' }, 'same for a payload it could not use');
+  const consent = await at('<html><head><title>Google</title></head><body>You need authorization to run this script</body></html>');
+  assert.equal(consent.ok, false, 'an authorization page is a failure, not a success in a browser window');
+  assert.match(consent.why, /not json/);
+  assert.match(consent.why, /authorization/, 'and the words Google used are in the line, so the fix is obvious from the log');
+  const http = await m.pushSheet({ key: 'a@b.co', fields: {} }, {
+    url: 'https://script.google.com/x/exec', key: 'k', fetch: () => Promise.resolve({ ok: false, status: 500 }),
+  });
+  assert.equal(http.why, 'http 500 to script.google.com', 'a hard error keeps its number and names its host');
+  const typo = await m.pushSheet({ key: 'a@b.co', fields: {} }, {
+    url: '[https://script.google.com/macros/s/ABC/exec](https://script.google.com/macros/s/ABC/exec)', key: 'k',
+    fetch: () => { throw new Error('Invalid URL') },
+  });
+  assert.match(typo.why, /Invalid URL/, 'and an address pasted with markdown brackets around it fails as the bad address it is');
+  assert.deepEqual(await at('', { ok: true }), { ok: true }, 'an answer with no body at all stays a yes, since fetch can be silent on 204');
 });
 
 test('the sheet belongs to the stand, and a website row stays out of it', async () => {

@@ -20,6 +20,11 @@
  * seconds, and a log line. The row in Supabase is the record, the sheet is the view.
  */
 
+function hostOf(u) {
+  const m = /^[a-z]+:\/{2}([^/?#]+)/i.exec(String(u || ''));
+  return m ? m[1] : 'bad address ' + snip(u, 40);
+}
+
 const CLIP = 900;                 // one cell of prose, which is a long answer and a short lead
 const SHORT = 220;                // one item inside a list that goes in a cell
 const MAX_ANSWERS = 40;           // one visit at a stand is four or five, this is the runaway guard
@@ -168,8 +173,19 @@ export async function pushSheet(body, o = {}) {
       body: JSON.stringify({ secret: key, ...body }),
       signal: ctl.signal,
     });
-    if (!res.ok) return { ok: false, why: 'http ' + res.status };
-    return { ok: true };
+    if (!res.ok) return { ok: false, why: 'http ' + res.status + ' to ' + hostOf(url) };
+    /* An Apps Script web app answers 200 for everything, including the time it refused us and the
+       time Google intercepted it to ask for permission nobody granted. So "200" is not an answer, the
+       body is: read it, and if it is not the JSON our own file writes, say so, because a log line that
+       flatters us while the sheet stays empty is the one thing a stand cannot afford to read. */
+    let text = '';
+    try { text = typeof res.text === 'function' ? await res.text() : ''; } catch { text = '' }
+    if (!text) return { ok: true };
+    let said = null;
+    try { said = JSON.parse(text); } catch { said = null }
+    if (!said) return { ok: false, why: 'not json, page says: ' + snip(text.replace(/<[^>]*>/g, ' '), 70) + ' to ' + hostOf(url) };
+    if (said.ok) return { ok: true };
+    return { ok: false, why: 'refused: ' + snip(said.why || 'no reason', 40) + ' to ' + hostOf(url) };
   } catch (e) {
     return { ok: false, why: (e && e.name === 'AbortError') ? 'timeout' : snip(e && e.message, 80) };
   } finally {

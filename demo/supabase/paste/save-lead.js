@@ -1,6 +1,11 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function hostOf(u) {
+  const m = /^[a-z]+:\/{2}([^/?#]+)/i.exec(String(u || ''));
+  return m ? m[1] : 'bad address ' + snip(u, 40);
+}
+
 const CLIP = 900;
 const SHORT = 220;
 const MAX_ANSWERS = 40;
@@ -118,8 +123,16 @@ async function pushSheet(body, o = {}) {
       body: JSON.stringify({ secret: key, ...body }),
       signal: ctl.signal,
     });
-    if (!res.ok) return { ok: false, why: 'http ' + res.status };
-    return { ok: true };
+    if (!res.ok) return { ok: false, why: 'http ' + res.status + ' to ' + hostOf(url) };
+
+    let text = '';
+    try { text = typeof res.text === 'function' ? await res.text() : ''; } catch { text = '' }
+    if (!text) return { ok: true };
+    let said = null;
+    try { said = JSON.parse(text); } catch { said = null }
+    if (!said) return { ok: false, why: 'not json, page says: ' + snip(text.replace(/<[^>]*>/g, ' '), 70) + ' to ' + hostOf(url) };
+    if (said.ok) return { ok: true };
+    return { ok: false, why: 'refused: ' + snip(said.why || 'no reason', 40) + ' to ' + hostOf(url) };
   } catch (e) {
     return { ok: false, why: (e && e.name === 'AbortError') ? 'timeout' : snip(e && e.message, 80) };
   } finally {
