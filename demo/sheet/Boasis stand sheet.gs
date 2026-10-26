@@ -27,35 +27,31 @@ var CONFIG = {
      change it here and there and the whole hook is rotated in a minute, with the site untouched */
   SECRET: 'PASTE-THE-SAME-RANDOM-STRING-HERE',
 
-  TAB_LEADS: 'Leads',
+  /* which tab holds the table. Left empty on purpose: the stand's list is the first tab of this
+     spreadsheet, the one the boss made with her own headers in it, and a tab that already exists needs
+     no name agreed between two files. Give it a name only if the table ever moves to a tab of its own,
+     and then the script creates that tab if it is missing. */
+  TAB_LEADS: '',
   TAB_ANSWERS: 'Answers',
 
-  /* which name in the post becomes which column, left to right. `f` is the field the function
-     sends, `h` is the header a person reads, `w` is the column width in pixels. Adding one is a
-     line here; removing one leaves the data in Supabase, where it was always the record. */
+  /* which name in the post becomes which column, left to right, and only as far as the last line
+     here: whatever the team keeps to the right of Est. total, Stage, Reminder sent, Payment complete,
+     Receipt number, is theirs, never opened, never cleared, never written by us. `f` is the field the
+     function sends, `h` is the header a person reads, `w` is the column width in pixels, `n` means the
+     column holds a number you might want to add up. Adding a column is a line here and nothing else. */
   COLS: [
-    { f: 'ref',                h: 'Reference',        w: 110 },
-    { f: 'at',                 h: 'Started',          w: 150 },
-    { f: 'full_name',          h: 'Name',             w: 150 },
-    { f: 'email',              h: 'Email',            w: 210 },
-    { f: 'phone',              h: 'Mobile',           w: 150 },
-    { f: 'country_code',       h: 'Code',             w: 60 },
-    { f: 'residence',          h: 'In the UAE',       w: 90 },
-    { f: 'consent',            h: 'Agreed',           w: 70 },
-    { f: 'source',             h: 'Offer',            w: 150 },
-    { f: 'described',          h: 'What they said they do', w: 340 },
-    { f: 'activities_picked',  h: 'Activities picked',      w: 300 },
-    { f: 'activities_confirmed', h: 'Activities agreed',  w: 100 },
-    { f: 'package',            h: 'Package',          w: 140 },
-    { f: 'price_aed',          h: 'Price AED',        w: 100, n: 1 },
-    { f: 'visas',              h: 'Visas',            w: 70 },
-    { f: 'shareholders',       h: 'Shareholders',     w: 90 },
-    { f: 'premises',           h: 'Premises',         w: 150 },
-    { f: 'last_step',          h: 'Reached',          w: 100 },
-    { f: 'steps_done',         h: 'Steps done',       w: 80, n: 1 },
-    { f: 'turns',              h: 'Questions asked',  w: 90, n: 1 },
-    { f: 'frozen',             h: 'Locked',           w: 70 },
-    { f: 'updated',            h: 'Last write',       w: 150 }
+    { f: 'ref',               h: 'Unique Reference No', w: 140 },
+    { f: 'at',                h: 'Started',             w: 150 },
+    { f: 'updated',           h: 'Submitted at',        w: 150 },
+    { f: 'full_name',         h: 'Shareholder Name',    w: 160 },
+    { f: 'email',             h: 'Email ID',            w: 210 },
+    { f: 'phone',             h: 'Mobile Number',       w: 150 },
+    { f: 'described',         h: 'Sector',              w: 320 },
+    { f: 'shareholders',      h: 'No of shareholders',  w: 130 },
+    { f: 'activities_picked', h: 'Confirmed activities', w: 300 },
+    { f: 'package',           h: 'Package',             w: 140 },
+    { f: 'visas',             h: 'Visa Quota',          w: 100 },
+    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 }
   ],
 
   /* the answers tab, one row per question, oldest first */
@@ -196,6 +192,9 @@ function writeAnswers(ss, key, body) {
 
 /* the tab, made if it is not there: a fresh sheet needs nothing typed into it by hand */
 function tab(ss, name, cols) {
+  /* no name means the first tab, which is the boss's own table: naming it would make our file able to
+     create a second one beside it and the stand would end up with two half lists */
+  if (!name) return ss.getSheets()[0];
   var sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
   if (sh.getName() !== name) sh.setName(name);
@@ -210,6 +209,16 @@ function tab(ss, name, cols) {
 function header(sh, cols) {
   var at = {}, want = [], i;
   for (i = 0; i < cols.length; i++) { at[cols[i].f] = i + 1; want.push(cols[i].h); }
+
+  /* done once per table rather than once per post. Reading the header every time and writing nothing
+     when it matches is cheap, but the widths and the text formats are not, and a person at a stand
+     should not pay for them on every step, so the agreement is remembered in Script Properties against
+     the tab's own id and only redone when the list of columns changes */
+  var props = PropertiesService.getScriptProperties();
+  var mark = 'boasis.header.' + sh.getSheetId();
+  var sig = cols.length + ':' + want.join('\u0001');
+  if (props.getProperty(mark) === sig) return at;
+
   var have = sh.getMaxColumns() >= cols.length
     ? sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0] : [];
   var same = have.length === cols.length;
@@ -217,13 +226,16 @@ function header(sh, cols) {
   if (!same) {
     sh.getRange(1, 1, 1, want.length).setValues([want]);
     sh.setFrozenRows(1);
-    for (i = 0; i < cols.length; i++) {
-      sh.setColumnWidth(i + 1, cols[i].w || 120);
-      /* everything a person typed is held as text, which is what keeps a value starting with = from
-         arriving as a formula; the few columns meant for adding up are left numeric on purpose */
-      if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
-    }
   }
+  for (i = 0; i < cols.length; i++) {
+    sh.setColumnWidth(i + 1, cols[i].w || 120);
+    /* everything a person typed is held as text, which is what keeps a value starting with = from
+       arriving as a formula; the few columns meant for adding up are left numeric on purpose. This runs
+       whether or not the header had to be written, because a table somebody made by hand has exactly
+       the right headers and exactly the wrong formatting */
+    if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+  }
+  props.setProperty(mark, sig);
   return at;
 }
 

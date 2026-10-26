@@ -2,32 +2,22 @@ var CONFIG = {
 
   SECRET: 'PASTE-THE-SAME-RANDOM-STRING-HERE',
 
-  TAB_LEADS: 'Leads',
+  TAB_LEADS: '',
   TAB_ANSWERS: 'Answers',
 
   COLS: [
-    { f: 'ref',                h: 'Reference',        w: 110 },
-    { f: 'at',                 h: 'Started',          w: 150 },
-    { f: 'full_name',          h: 'Name',             w: 150 },
-    { f: 'email',              h: 'Email',            w: 210 },
-    { f: 'phone',              h: 'Mobile',           w: 150 },
-    { f: 'country_code',       h: 'Code',             w: 60 },
-    { f: 'residence',          h: 'In the UAE',       w: 90 },
-    { f: 'consent',            h: 'Agreed',           w: 70 },
-    { f: 'source',             h: 'Offer',            w: 150 },
-    { f: 'described',          h: 'What they said they do', w: 340 },
-    { f: 'activities_picked',  h: 'Activities picked',      w: 300 },
-    { f: 'activities_confirmed', h: 'Activities agreed',  w: 100 },
-    { f: 'package',            h: 'Package',          w: 140 },
-    { f: 'price_aed',          h: 'Price AED',        w: 100, n: 1 },
-    { f: 'visas',              h: 'Visas',            w: 70 },
-    { f: 'shareholders',       h: 'Shareholders',     w: 90 },
-    { f: 'premises',           h: 'Premises',         w: 150 },
-    { f: 'last_step',          h: 'Reached',          w: 100 },
-    { f: 'steps_done',         h: 'Steps done',       w: 80, n: 1 },
-    { f: 'turns',              h: 'Questions asked',  w: 90, n: 1 },
-    { f: 'frozen',             h: 'Locked',           w: 70 },
-    { f: 'updated',            h: 'Last write',       w: 150 }
+    { f: 'ref',               h: 'Unique Reference No', w: 140 },
+    { f: 'at',                h: 'Started',             w: 150 },
+    { f: 'updated',           h: 'Submitted at',        w: 150 },
+    { f: 'full_name',         h: 'Shareholder Name',    w: 160 },
+    { f: 'email',             h: 'Email ID',            w: 210 },
+    { f: 'phone',             h: 'Mobile Number',       w: 150 },
+    { f: 'described',         h: 'Sector',              w: 320 },
+    { f: 'shareholders',      h: 'No of shareholders',  w: 130 },
+    { f: 'activities_picked', h: 'Confirmed activities', w: 300 },
+    { f: 'package',           h: 'Package',             w: 140 },
+    { f: 'visas',             h: 'Visa Quota',          w: 100 },
+    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 }
   ],
 
   ACOLS: [
@@ -151,6 +141,8 @@ function writeAnswers(ss, key, body) {
 }
 
 function tab(ss, name, cols) {
+
+  if (!name) return ss.getSheets()[0];
   var sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
   if (sh.getName() !== name) sh.setName(name);
@@ -160,6 +152,12 @@ function tab(ss, name, cols) {
 function header(sh, cols) {
   var at = {}, want = [], i;
   for (i = 0; i < cols.length; i++) { at[cols[i].f] = i + 1; want.push(cols[i].h); }
+
+  var props = PropertiesService.getScriptProperties();
+  var mark = 'boasis.header.' + sh.getSheetId();
+  var sig = cols.length + ':' + want.join('\u0001');
+  if (props.getProperty(mark) === sig) return at;
+
   var have = sh.getMaxColumns() >= cols.length
     ? sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0] : [];
   var same = have.length === cols.length;
@@ -167,12 +165,13 @@ function header(sh, cols) {
   if (!same) {
     sh.getRange(1, 1, 1, want.length).setValues([want]);
     sh.setFrozenRows(1);
-    for (i = 0; i < cols.length; i++) {
-      sh.setColumnWidth(i + 1, cols[i].w || 120);
-
-      if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
-    }
   }
+  for (i = 0; i < cols.length; i++) {
+    sh.setColumnWidth(i + 1, cols[i].w || 120);
+
+    if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+  }
+  props.setProperty(mark, sig);
   return at;
 }
 

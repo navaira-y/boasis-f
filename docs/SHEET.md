@@ -14,8 +14,10 @@ sheet decides which of them become columns.
 0. Supabase, SQL Editor: paste `demo/supabase/paste/sharjah-next-passes.sql`, which makes the table Mira
    writes the visit into (`demo/supabase/sharjah-next-passes.sql` is the same thing with the reasons
    beside it). Safe to paste twice.
-1. Make the sheet. One blank Google Sheet is the whole thing, no header row and no second tab needed:
-   the script makes both.
+1. Make the sheet, or use the one that exists. The stand's table is the **first tab** of the file, with
+   `CONFIG.TAB_LEADS` left empty so nothing is created beside it, so the sheet the boss already typed her
+   headers into is the one that gets written. Only the `Answers` tab is made for us, on the first post
+   that carries questions.
 2. In the sheet: Extensions, Apps Script. Paste all of
    `demo/sheet/Boasis stand sheet.gs`, or its plain copy `demo/sheet/paste/stand-sheet.gs` for anybody
    pasting it in front of someone: same program, notes taken out by `node scripts/strip-comments.js
@@ -62,15 +64,43 @@ expires, and the mailbox proof. `fieldsFromLead` in `demo/supabase/functions/_sh
 only list that leaves, and it is a list rather than the row, so a field added to a record next month
 does not arrive in a Google file by itself.
 
-## Changing what she reads
+## The columns, and whose they are
+
+Twelve, in the order the boss's header row has them, and they are the whole of what we write:
+
+| column | filled by |
+|---|---|
+| Unique Reference No | the `SN-XXXXXX` the stand quotes and the email carries |
+| Started | when the row was created, which for a form at the desk is the moment it was accepted |
+| Submitted at | the last write we made about that person, so a finished visit reads later than a half one |
+| Shareholder Name | the name they typed |
+| Email ID | their address, which is also how a row is found again |
+| Mobile Number | the number, dial code first |
+| Sector | what they said they do, in their words |
+| No of shareholders | from the package step |
+| Confirmed activities | the activities they picked |
+| Package | the package they were shown and agreed |
+| Visa Quota | from the package step |
+| Est. total | the estimate, held as a number so the column can be totalled |
+
+`Stage`, `Reminder sent`, `Payment complete` and `Receipt number` are the team's own columns and are never
+opened by us: every write stops at the last line of `CONFIG.COLS`, so the four to the right of Est. total
+keep whatever a person typed into them. Nothing is written as `no` for a payment we did not see, which is
+why a paid row and an unpaid row look the same to the script and different to whoever is working the list.
+The agreement tick, the dial code on its own and the In the UAE answer are not written either, because
+there is no column for them in her table, and a field nobody asked for is a field nobody reads.
+
+## Changing what the boss reads
 
 The columns live in `CONFIG.COLS` in the sheet file and nowhere else: header words, order, widths, and
 which cells are numbers. Add a line at the **end** of that list, and add the name to `fieldsFromLead`
 only if the value is not already being sent. No page change, no site deploy, and nothing in the Brain.
+A test holds the twelve names and their header words letter for letter, so a header cannot be retyped on
+one side only and quietly start writing into the wrong column of her table.
 
 ## The Brain team
 
-Nothing. She hands Mira a URL with `?pass=` in it, exactly as `/try-mira` does, and the Brain writes
+Nothing. The site hands Mira a URL with `?pass=` in it, exactly as `/try-mira` does, and the Brain writes
 through `get-lead` and `save-step` by that pass as it already does. Which table the row lives in is
 decided by the site, not by them, and the sheet is written by our functions after their write, so they
 are not told about it, not given a key, and not asked for a change.

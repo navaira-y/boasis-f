@@ -253,11 +253,25 @@ test('the sheet file writes cells, locks, and reads nothing it does not have to'
   assert.ok(!/removeRow|\.clear\(\)/.test(gs.replace(/deleteRow/g, '')), 'it never clears a range, only the rows of the one person it is rewriting');
   assert.match(gs, /CONFIG\.MAX_FIELDS/, 'a post with more names than this is a mistake and is left alone');
   assert.match(gs, /MAX_ANSWERS: 40/, 'as is one with more answers than a visit holds');
-  const cols = (gs.match(/\{ f: '/g) || []).length;
-  assert.ok(cols >= 25, 'the map holds ' + cols + ' columns, which is the sheet half of the contract and the only place the order lives');
-  for (const name of ['ref', 'full_name', 'email', 'phone', 'described', 'activities_picked', 'price_aed', 'last_step', 'turns']) {
-    assert.ok(gs.includes("f: '" + name + "'"), name + ' has a column of its own');
+  /* the boss's own table, in her words and her order, and not one column beside them: this list IS the
+     contract on the sheet side, so it is pinned here letter by letter rather than counted */
+  const from = t => gs.slice(gs.indexOf(t + ': ['), gs.indexOf('\n  ],', gs.indexOf(t + ': [')));
+  const heads = [...from('COLS').matchAll(/\{ f: '([a-z_]+)',\s+h: '([^']+)',\s+w: \d+(?:, n: 1)? \}/g)]
+    .map(m => m[1] + '|' + m[2]);
+  assert.equal(heads.length, 12, 'the leads table has twelve columns and no more');
+  assert.deepEqual(heads.join(' '), [
+    'ref|Unique Reference No', 'at|Started', 'updated|Submitted at', 'full_name|Shareholder Name',
+    'email|Email ID', 'phone|Mobile Number', 'described|Sector', 'shareholders|No of shareholders',
+    'activities_picked|Confirmed activities', 'package|Package', 'visas|Visa Quota', 'price_aed|Est. total',
+  ].join(' '), 'twelve columns, named the way her header row names them, left to right');
+  for (const gone of ['residence', 'consent', 'last_step', 'steps_done', 'turns', 'frozen', 'premises']) {
+    assert.ok(!heads.some(h => h.startsWith(gone + '|')),
+      gone + ' is no longer written, because her table has no column for it and a field nobody asked for is a field nobody reads');
   }
+  assert.match(gs, /TAB_LEADS: '',/, 'the leads table is the first tab of the file, not a tab of our own');
+  assert.match(gs, /if \(!name\) return ss\.getSheets\(\)\[0\];/, 'and an empty name means exactly that');
+  assert.match(gs, /var width = cols\[CONFIG\.COLS\[CONFIG\.COLS\.length - 1\]\.f\]\;/,
+    'every write stops at our last column, so Stage, Reminder sent, Payment complete and Receipt number are never touched');
   assert.ok(!/getValues\(\)/.test(gs.split('function writeAnswers')[1].split('/* \u2500\u2500 the small parts')[0] || ''),
     'and the answers tab is written from the post alone, not read back out of anything');
 });
