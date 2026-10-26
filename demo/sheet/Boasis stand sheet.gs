@@ -43,7 +43,11 @@ var CONFIG = {
     { f: 'ref',               h: 'Unique Reference No', w: 140 },
     { f: 'at',                h: 'Started',             w: 150 },
     { f: 'updated',           h: 'Submitted at',        w: 150 },
-    { f: 'full_name',         h: 'Shareholder Name',    w: 160 },
+    /* the desk asks for a name, not for a shareholder, so the name goes in its own column, and her
+       `Shareholder Name` is prefilled from it once, only while it is empty: whoever opens the file
+       later can put the real applicant there and we will not write over them */
+    { f: 'full_name',         h: 'Name',                w: 150 },
+    { f: 'shareholder_name',  h: 'Shareholder Name',    w: 160, from: 'full_name', first: 1 },
     { f: 'email',             h: 'Email ID',            w: 210 },
     { f: 'phone',             h: 'Mobile Number',       w: 150 },
     { f: 'described',         h: 'Sector',              w: 320 },
@@ -180,8 +184,12 @@ function writeLeads(ss, key, fields) {
     if (!first) first = col;
     var keep = have[col - 1];
     /* a sender that has nothing to say about a field says it by saying nothing at all, which is how a
-       form write that arrives after the visit leaves the finished steps alone */
-    var val = names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep;
+       form write that arrives after the visit leaves the finished steps alone. `from` is a second name
+       to read when the first one is not in the post, and `first` means this cell is only ever filled
+       once, which is how a value copied into somebody else's column never overwrites what they typed */
+    var src = names[c.f] ? c.f : (c.from && names[c.from] ? c.from : '');
+    var val = src ? (c.n ? number(fields[src]) : clean(fields[src])) : keep;
+    if (c.first && String(keep).trim() !== '') val = keep;
     out.push(val);
     if (val !== keep) touched++;
   }
@@ -262,7 +270,7 @@ function header(sh, cols) {
      header retyped as "Confirmed activity" instead of "Confirmed activities" is a person correcting a
      plural, not a request for a second column beside the first one */
   var pass;
-  for (pass = 0; pass < 2; pass++) {
+  for (pass = 0; pass < 3; pass++) {
     for (i = 0; i < cols.length; i++) {
       if (at[cols[i].f]) continue;
       var word = String(cols[i].h).trim().toLowerCase();
@@ -274,15 +282,20 @@ function header(sh, cols) {
         if (pass ? norm(cell) === word : cell === word) { found = c + 1; break; }
       }
       if (found) { at[cols[i].f] = found; used[found] = 1; }
-      else if (!pass) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
+      else if (pass === 2) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
     }
-    if (!pass) {
-      /* the team's own headers are put in the table too, so one list is the whole shape of the row and
-         a fresh sheet at the next event is ready to be typed into, not half built */
+    if (pass === 2) {
+      /* the team's own headers go in the table last of all, so one list is the whole shape of the row
+         and a fresh sheet at the next event is ready to be typed into rather than half built. They are
+         matched the same forgiving way as ours, because the aim is to find her column, not to add one */
       var extra = arguments[2] || [];
       for (i = 0; i < extra.length; i++) {
         var h2 = String(extra[i]), hit = 0;
-        for (c = 0; c < have.length; c++) { if (!used[c + 1] && String(have[c]).trim().toLowerCase() === h2.toLowerCase()) { hit = c + 1; break } }
+        for (c = 0; c < have.length; c++) {
+          if (used[c + 1]) continue;
+          var cell = String(have[c]).trim().toLowerCase();
+          if (cell === h2.toLowerCase() || norm(cell) === norm(h2)) { hit = c + 1; break }
+        }
         if (hit) { used[hit] = 1; continue }
         taken += 1; used[taken] = 1; want.push({ col: taken, h: h2 }); added++;
       }

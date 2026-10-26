@@ -9,7 +9,9 @@ var CONFIG = {
     { f: 'ref',               h: 'Unique Reference No', w: 140 },
     { f: 'at',                h: 'Started',             w: 150 },
     { f: 'updated',           h: 'Submitted at',        w: 150 },
-    { f: 'full_name',         h: 'Shareholder Name',    w: 160 },
+
+    { f: 'full_name',         h: 'Name',                w: 150 },
+    { f: 'shareholder_name',  h: 'Shareholder Name',    w: 160, from: 'full_name', first: 1 },
     { f: 'email',             h: 'Email ID',            w: 210 },
     { f: 'phone',             h: 'Mobile Number',       w: 150 },
     { f: 'described',         h: 'Sector',              w: 320 },
@@ -124,7 +126,9 @@ function writeLeads(ss, key, fields) {
     if (!first) first = col;
     var keep = have[col - 1];
 
-    var val = names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep;
+    var src = names[c.f] ? c.f : (c.from && names[c.from] ? c.from : '');
+    var val = src ? (c.n ? number(fields[src]) : clean(fields[src])) : keep;
+    if (c.first && String(keep).trim() !== '') val = keep;
     out.push(val);
     if (val !== keep) touched++;
   }
@@ -189,7 +193,7 @@ function header(sh, cols) {
   };
 
   var pass;
-  for (pass = 0; pass < 2; pass++) {
+  for (pass = 0; pass < 3; pass++) {
     for (i = 0; i < cols.length; i++) {
       if (at[cols[i].f]) continue;
       var word = String(cols[i].h).trim().toLowerCase();
@@ -201,14 +205,18 @@ function header(sh, cols) {
         if (pass ? norm(cell) === word : cell === word) { found = c + 1; break; }
       }
       if (found) { at[cols[i].f] = found; used[found] = 1; }
-      else if (!pass) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
+      else if (pass === 2) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
     }
-    if (!pass) {
+    if (pass === 2) {
 
       var extra = arguments[2] || [];
       for (i = 0; i < extra.length; i++) {
         var h2 = String(extra[i]), hit = 0;
-        for (c = 0; c < have.length; c++) { if (!used[c + 1] && String(have[c]).trim().toLowerCase() === h2.toLowerCase()) { hit = c + 1; break } }
+        for (c = 0; c < have.length; c++) {
+          if (used[c + 1]) continue;
+          var cell = String(have[c]).trim().toLowerCase();
+          if (cell === h2.toLowerCase() || norm(cell) === norm(h2)) { hit = c + 1; break }
+        }
         if (hit) { used[hit] = 1; continue }
         taken += 1; used[taken] = 1; want.push({ col: taken, h: h2 }); added++;
       }

@@ -287,11 +287,11 @@ function theScript(rows) {
 const HEADS = ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID', 'Mobile Number', 'Sector',
   'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'];
 
-test('her table is written into, not over: her headers, her four columns, and our twelve', () => {
+test('her table is written into, not over: her headers, her four cells, and the name in its own column', () => {
   const rows = [HEADS.slice(), ['', '', '', '', 'm@boasis.ae', '', '', '', '', '', '', '', 'Contacted', 'sent today', 'no', 'R-11']];
   const t = theScript(rows);
   const sh = sheetApi(rows);
-  const fields = t.CONFIG.COLS.reduce((f, c) => (f[c.f] = '', f), {});
+  const fields = {};
   Object.assign(fields, {
     ref: 'SN-7QF3KM', at: '2026-10-26 09:40', updated: '2026-10-26 10:05', full_name: 'Mehran Zare',
     email: 'm@boasis.ae', phone: '+971 501234567', described: 'A workshop that services drones',
@@ -301,18 +301,29 @@ test('her table is written into, not over: her headers, her four columns, and ou
   const row = t.writeLeads({ getSheets: () => [sh], getSheetByName: () => sh, insertSheet: () => sh }, 'm@boasis.ae', fields);
   assert.equal(row, 2, 'the row is found by the address in her Email ID column, not by counting');
   const got = sh.grid[1];
-  assert.equal(got[0], 'SN-7QF3KM'); assert.equal(got[3], 'Mehran Zare'); assert.equal(got[5], '+971 501234567');
+  assert.equal(got[0], 'SN-7QF3KM');
+  assert.equal(got[3], 'Mehran Zare', 'her Shareholder Name is prefilled once, because it was empty');
+  assert.equal(got[5], '+971 501234567');
   assert.equal(got[6], 'A workshop that services drones', 'Sector is what they said they do');
-  assert.equal(got[11], '27189.75', 'and Est. total is the number');
+  assert.equal(got[8], 'Import and sale of drones', 'her singular Confirmed activity is the column we wrote');
+  assert.equal(sh.grid[0][8], 'Confirmed activity', 'and no second column was created beside it for a plural');
+  assert.equal(got[11], '27189.75', 'and Est. total is a number, which is the column that threw before');
   assert.deepEqual([got[12], got[13], got[14], got[15]], ['Contacted', 'sent today', 'no', 'R-11'],
-    'Stage, Reminder sent, Payment complete and Receipt number came through exactly as they were');
-  assert.equal(got[16], 'yes', 'Agreed had no column, so it was appended after hers rather than dropped');
-  assert.equal(sh.grid[0][16], 'Agreed', 'with a header of its own, at the end of the row');
-  assert.equal(got[17], 'Sharjah Next offer', 'and so did the offer they took at the desk');
-  assert.equal(got[18], '+971', 'and the dial code, which is beside the number rather than only inside it');
-  assert.equal(sh.grid[0][8], 'Confirmed activity', 'her own spelling of that header is the one that stayed');
-  assert.deepEqual(sh.grid[0].slice(0, 16), HEADS, 'and not one character of her header row was rewritten');
+    'Stage, Reminder sent, Payment Complete and Receipt Number came through exactly as they were');
+  assert.equal(got[16], 'Mehran Zare', 'the name the desk asked for gets a column of its own');
+  assert.equal(got[17], 'yes', 'Agreed was appended after hers rather than dropped');
+  assert.equal(got[18], 'Sharjah Next offer', 'and so was the offer they took at the desk');
+  assert.equal(got[19], '+971', 'and the dial code, beside the number rather than only inside it');
+  assert.deepEqual(sh.grid[0].slice(0, 16), HEADS, 'not one character of her header row was rewritten');
+  assert.deepEqual(sh.grid[0].slice(16), ['Name', 'Agreed', 'Offer', 'Code'], 'ours go at the end, in the order the file lists them');
   assert.ok(!sh.formats.some(f => f.from <= 16 && f.to >= 13), 'the text formats are set on our columns only, never across hers');
+
+  /* and first means first: a name the team typed into her own column is theirs from then on */
+  const mine = sheetApi([HEADS.slice(), ['', '', '', 'Someone Else', 'm@boasis.ae']]);
+  t.writeLeads({ getSheets: () => [mine], getSheetByName: () => mine, insertSheet: () => mine }, 'm@boasis.ae',
+    { full_name: 'Mehran Zare', email: 'm@boasis.ae' });
+  assert.equal(mine.grid[1][3], 'Someone Else', 'Shareholder Name is never corrected by a post from the desk');
+  assert.equal(mine.grid[1][16], 'Mehran Zare', 'and the name still lands in our own column, which is what it is for');
 });
 
 test('a sender that knows one field rewrites one field, and a table with no headers at all starts at column one', () => {
@@ -330,11 +341,11 @@ test('a sender that knows one field rewrites one field, and a table with no head
      not begin with somebody remembering to type sixteen headers */
   const blank = sheetApi([[]]);
   const built = t.header(blank, t.CONFIG.COLS, t.CONFIG.COLS_TEAM);
-  assert.deepEqual(blank.grid[0], ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID',
-    'Mobile Number', 'Sector', 'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total',
-    'Agreed', 'Offer', 'Code', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
-    'our columns first, then the four the team types into, all of them present before a single write');
-  assert.equal(built['price_aed'], 12, 'and the map points at the right one of them');
+  assert.deepEqual(blank.grid[0], ['Unique Reference No', 'Started', 'Submitted at', 'Name', 'Shareholder Name',
+    'Email ID', 'Mobile Number', 'Sector', 'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota',
+    'Est. total', 'Agreed', 'Offer', 'Code', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
+    'the whole row, ours in the order the file lists them and then the four the team types into');
+  assert.equal(built['price_aed'], 13, 'and the map points at the right one of them');
 });
 
 test('the plain copy of the sheet file is the same program, and nobody has typed into it', () => {
@@ -368,11 +379,12 @@ test('the sheet file writes cells, locks, and reads nothing it does not have to'
   /* the boss's own table, in her words and her order, and not one column beside them: this list IS the
      contract on the sheet side, so it is pinned here letter by letter rather than counted */
   const from = t => gs.slice(gs.indexOf(t + ': ['), gs.indexOf('\n  ],', gs.indexOf(t + ': [')));
-  const heads = [...from('COLS').matchAll(/\{ f: '([a-z_]+)',\s+h: '([^']+)',\s+w: \d+(?:, n: 1)? \}/g)]
+  const heads = [...from('COLS').matchAll(/\{ f: '([a-z_]+)',\s+h: '([^']+)',[^}]*\}/g)]
     .map(m => m[1] + '|' + m[2]);
-  assert.equal(heads.length, 15, 'her twelve columns, our three appended ones, and nothing else');
+  assert.equal(heads.length, 16, 'her thirteen columns and our three appended ones, and nothing else');
   assert.deepEqual(heads.join(' '), [
-    'ref|Unique Reference No', 'at|Started', 'updated|Submitted at', 'full_name|Shareholder Name',
+    'ref|Unique Reference No', 'at|Started', 'updated|Submitted at', 'full_name|Name',
+    'shareholder_name|Shareholder Name',
     'email|Email ID', 'phone|Mobile Number', 'described|Sector', 'shareholders|No of shareholders',
     'activities_picked|Confirmed activity', 'package|Package', 'visas|Visa Quota', 'price_aed|Est. total',
     'consent|Agreed', 'source|Offer', 'country_code|Code',
