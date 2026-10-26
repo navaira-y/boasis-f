@@ -225,6 +225,104 @@ test('the comment free copies are the same code, and only the same code', () => 
   }
 });
 
+/* the file is run here, not read: a script that writes into the boss's own table has to be proven
+   against a table, and no amount of looking at the source says whether her cells survive the write */
+function sheetApi(rows) {
+  const grid = (rows || [[]]).map(r => r.slice());
+  const str = v => v === undefined || v === null ? '' : String(v);
+  const formats = [], widths = [];
+  const api = {
+    grid, formats, widths,
+    getName: () => 'Sheet1',
+    getSheetId: () => 7,
+    getMaxRows: () => grid.length,
+    getMaxColumns: () => grid.reduce((m, r) => Math.max(m, r.length), 0),
+    getLastRow: () => grid.reduce((m, r, i) => (r.some(v => str(v) !== '') ? i + 1 : m), 0),
+    getLastColumn: () => grid.reduce((m, r) => {
+      let n = 0; r.forEach((v, i) => { if (str(v) !== '') n = i + 1 }); return Math.max(m, n)
+    }, 0),
+    insertColumnsAfter: (at, count) => { grid.forEach(r => { const fill = new Array(count).fill(''); r.splice(at, 0, ...fill) }) },
+    setColumnWidth: (c, w) => { widths[c] = w },
+    setFrozenRows: n => { api.frozen = n },
+    getRange: (r, c, nr, nc) => ({
+      getDisplayValues: () => {
+        const out = [];
+        for (let i = 0; i < nr; i++) {
+          const row = grid[r - 1 + i] || [];
+          const slice = [];
+          for (let j = 0; j < nc; j++) slice.push(str(row[c - 1 + j]));
+          out.push(slice);
+        }
+        return out;
+      },
+      setValues: vals => {
+        for (let i = 0; i < vals.length; i++) {
+          grid[r - 1 + i] = grid[r - 1 + i] || [];
+          for (let j = 0; j < vals[i].length; j++) grid[r - 1 + i][c - 1 + j] = str(vals[i][j]);
+        }
+      },
+      setValue: v => { grid[r - 1] = grid[r - 1] || []; grid[r - 1][c - 1] = str(v) },
+      setNumberFormat: f => { formats.push({ from: c, to: c + nc - 1, f }) },
+    }),
+  };
+  return api;
+}
+
+function theScript(rows) {
+  const src = read(GS);
+  const props = {};
+  const shims = {
+    SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheets: () => [sheetApi(rows)], getSheetByName: () => sheetApi(rows), insertSheet: () => sheetApi([[]]) }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k], setProperty: (k, v) => { props[k] = v } }) },
+    LockService: { getScriptLock: () => ({ waitLock: () => { }, releaseLock: () => { } }) },
+    ContentService: { createTextOutput: () => ({ setMimeType: () => { } }), MimeType: { JSON: 'json' } },
+    Utilities: { getUuid: () => 'uuid' },
+    console: { log: () => { } },
+  };
+  const made = new Function(...Object.keys(shims), src + '\nreturn { CONFIG, header, writeLeads, tab, findRow, clean, number };');
+  return Object.assign(made(...Object.values(shims)), { shims, props });
+}
+
+const HEADS = ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID', 'Mobile Number', 'Sector',
+  'No of shareholders', 'Confirmed activities', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment complete', 'Receipt number'];
+
+test('her table is written into, not over: her headers, her four columns, and our twelve', () => {
+  const rows = [HEADS.slice(), ['', '', '', '', 'm@boasis.ae', '', '', '', '', '', '', '', 'Contacted', 'sent today', 'no', 'R-11']];
+  const t = theScript(rows);
+  const sh = sheetApi(rows);
+  const fields = t.CONFIG.COLS.reduce((f, c) => (f[c.f] = '', f), {});
+  Object.assign(fields, {
+    ref: 'SN-7QF3KM', at: '2026-10-26 09:40', updated: '2026-10-26 10:05', full_name: 'Mehran Zare',
+    email: 'm@boasis.ae', phone: '+971 501234567', described: 'A workshop that services drones',
+    shareholders: '3', activities_picked: 'Import and sale of drones', package: 'Beyond+', visas: '2',
+    price_aed: 27189.75, consent: 'yes',
+  });
+  const row = t.writeLeads({ getSheets: () => [sh], getSheetByName: () => sh, insertSheet: () => sh }, 'm@boasis.ae', fields);
+  assert.equal(row, 2, 'the row is found by the address in her Email ID column, not by counting');
+  const got = sh.grid[1];
+  assert.equal(got[0], 'SN-7QF3KM'); assert.equal(got[3], 'Mehran Zare'); assert.equal(got[5], '+971 501234567');
+  assert.equal(got[6], 'A workshop that services drones', 'Sector is what they said they do');
+  assert.equal(got[11], '27189.75', 'and Est. total is the number');
+  assert.deepEqual([got[12], got[13], got[14], got[15]], ['Contacted', 'sent today', 'no', 'R-11'],
+    'Stage, Reminder sent, Payment complete and Receipt number came through exactly as they were');
+  assert.equal(got[16], 'yes', 'Agreed had no column, so it was appended after hers rather than dropped');
+  assert.equal(sh.grid[0][16], 'Agreed', 'with a header of its own, at the end of the row');
+  assert.deepEqual(sh.grid[0].slice(0, 16), HEADS, 'and not one character of her header row was rewritten');
+  assert.ok(!sh.formats.some(f => f.from <= 16 && f.to >= 13), 'the text formats are set on our columns only, never across hers');
+});
+
+test('a sender that knows one field rewrites one field, and a table with no headers at all starts at column one', () => {
+  const rows = [HEADS.slice(), ['', '2026-10-26 09:40', '', 'Half a name', 'm@boasis.ae', '', '', '', '', '', '', '', '', '', 'no', '']];
+  const t = theScript(rows);
+  const sh = sheetApi(rows);
+  t.writeLeads({ getSheets: () => [sh], getSheetByName: () => sh, insertSheet: () => sh }, 'm@boasis.ae', { ref: '', at: '', full_name: '', email: 'm@boasis.ae', phone: '', described: '', shareholders: '', activities_picked: '', package: '', visas: '', price_aed: '', consent: '' });
+  assert.equal(sh.grid[1][1], '2026-10-26 09:40', 'Started stays, because a sender with nothing to say says nothing');
+  assert.equal(sh.grid[1][3], 'Half a name', 'and the name the form carried stays as the form left it');
+  assert.equal(sh.grid[1][14], 'no', 'and the payment the team marked stays marked');
+  const fresh = t.header(sheetApi([[]]), t.CONFIG.ACOLS);
+  assert.deepEqual([fresh.ref, fresh.key], [1, 2], 'a tab we make ourselves is filled from the first column');
+});
+
 test('the plain copy of the sheet file is the same program, and nobody has typed into it', () => {
   const { strip, tokens } = require(path.join(ROOT, 'scripts/strip-comments.js'));
   const src = read(GS);
@@ -258,20 +356,24 @@ test('the sheet file writes cells, locks, and reads nothing it does not have to'
   const from = t => gs.slice(gs.indexOf(t + ': ['), gs.indexOf('\n  ],', gs.indexOf(t + ': [')));
   const heads = [...from('COLS').matchAll(/\{ f: '([a-z_]+)',\s+h: '([^']+)',\s+w: \d+(?:, n: 1)? \}/g)]
     .map(m => m[1] + '|' + m[2]);
-  assert.equal(heads.length, 12, 'the leads table has twelve columns and no more');
+  assert.equal(heads.length, 13, 'her twelve columns and our one appended column, and nothing else');
   assert.deepEqual(heads.join(' '), [
     'ref|Unique Reference No', 'at|Started', 'updated|Submitted at', 'full_name|Shareholder Name',
     'email|Email ID', 'phone|Mobile Number', 'described|Sector', 'shareholders|No of shareholders',
     'activities_picked|Confirmed activities', 'package|Package', 'visas|Visa Quota', 'price_aed|Est. total',
-  ].join(' '), 'twelve columns, named the way her header row names them, left to right');
-  for (const gone of ['residence', 'consent', 'last_step', 'steps_done', 'turns', 'frozen', 'premises']) {
+    'consent|Agreed',
+  ].join(' '), 'her twelve columns in her words, then the one we add at the end of the row');
+  for (const gone of ['residence', 'last_step', 'steps_done', 'turns', 'frozen', 'premises', 'country_code']) {
     assert.ok(!heads.some(h => h.startsWith(gone + '|')),
       gone + ' is no longer written, because her table has no column for it and a field nobody asked for is a field nobody reads');
   }
   assert.match(gs, /TAB_LEADS: '',/, 'the leads table is the first tab of the file, not a tab of our own');
   assert.match(gs, /if \(!name\) return ss\.getSheets\(\)\[0\];/, 'and an empty name means exactly that');
-  assert.match(gs, /var width = cols\[CONFIG\.COLS\[CONFIG\.COLS\.length - 1\]\.f\]\;/,
-    'every write stops at our last column, so Stage, Reminder sent, Payment complete and Receipt number are never touched');
+  assert.ok(!/getRange\(row, 1, 1, span\)\.setValues/.test(gs), 'no write spans the row, so a range of ours can never reach her cells');
+  assert.match(gs, /if \(!c\) \{ if \(out\.length\) \{ flush\(col - 1\); \} first = 0; continue; \}/,
+    'a column that is not ours closes the run, which is how Stage, Reminder sent, Payment complete and Receipt number stay untouched');
+  assert.match(gs, /if \(raw === '' \|\| raw === null \|\| raw === undefined\) continue;/,
+    'and an empty field is treated as nothing to say rather than as a reason to clear a cell');
   assert.ok(!/getValues\(\)/.test(gs.split('function writeAnswers')[1].split('/* \u2500\u2500 the small parts')[0] || ''),
     'and the answers tab is written from the post alone, not read back out of anything');
 });

@@ -66,7 +66,9 @@ does not arrive in a Google file by itself.
 
 ## The columns, and whose they are
 
-Twelve, in the order the boss's header row has them, and they are the whole of what we write:
+Thirteen, in the order the boss's header row has them, found by the words in row 1 rather than by
+counting from the left, which is what lets a table with somebody else's columns in the middle be written
+into without writing over them:
 
 | column | filled by |
 |---|---|
@@ -82,10 +84,12 @@ Twelve, in the order the boss's header row has them, and they are the whole of w
 | Package | the package they were shown and agreed |
 | Visa Quota | from the package step |
 | Est. total | the estimate, held as a number so the column can be totalled |
+| Agreed | the tick on the form, and the only header we add: it goes after her last column, never inside them |
 
 `Stage`, `Reminder sent`, `Payment complete` and `Receipt number` are the team's own columns and are never
-opened by us: every write stops at the last line of `CONFIG.COLS`, so the four to the right of Est. total
-keep whatever a person typed into them. Nothing is written as `no` for a payment we did not see, which is
+opened by us: a run of our cells is written, then broken at the first column that is not ours, so a value
+someone typed in the middle of the row survives every post we make, and a date or a formula there is never
+carried back out as text by us. Nothing is written as `no` for a payment we did not see, which is
 why a paid row and an unpaid row look the same to the script and different to whoever is working the list.
 The agreement tick, the dial code on its own and the In the UAE answer are not written either, because
 there is no column for them in her table, and a field nobody asked for is a field nobody reads.

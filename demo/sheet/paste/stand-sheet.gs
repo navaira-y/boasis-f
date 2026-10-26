@@ -17,7 +17,9 @@ var CONFIG = {
     { f: 'activities_picked', h: 'Confirmed activities', w: 300 },
     { f: 'package',           h: 'Package',             w: 140 },
     { f: 'visas',             h: 'Visa Quota',          w: 100 },
-    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 }
+    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 },
+
+    { f: 'consent',           h: 'Agreed',              w: 90 }
   ],
 
   ACOLS: [
@@ -84,25 +86,45 @@ function readBody(e) {
 function writeLeads(ss, key, fields) {
   var sh = tab(ss, CONFIG.TAB_LEADS, CONFIG.COLS);
   var cols = header(sh, CONFIG.COLS);
+
+  var names = {}, k;
+
+  for (k in fields) {
+    if (!Object.prototype.hasOwnProperty.call(fields, k)) continue;
+    var raw = fields[k];
+    if (raw === '' || raw === null || raw === undefined) continue;
+    names[k] = 1;
+  }
+
   var row = findRow(sh, cols['email'], key);
   var isNew = !row;
   if (isNew) row = sh.getLastRow() + 1;
 
-  var names = {}, k;
-  for (k in fields) { if (Object.prototype.hasOwnProperty.call(fields, k)) names[k] = 1; }
+  var byCol = {}, i;
+  for (i = 0; i < CONFIG.COLS.length; i++) byCol[cols[CONFIG.COLS[i].f]] = CONFIG.COLS[i];
 
-  var width = cols[CONFIG.COLS[CONFIG.COLS.length - 1].f];
-  var have = sh.getRange(row, 1, 1, width).getDisplayValues()[0];
-  var out = [], touched = 0;
-  for (var i = 0; i < CONFIG.COLS.length; i++) {
-    var c = CONFIG.COLS[i], col = cols[c.f], keep = have[col - 1];
+  var span = 0, col;
+  for (col in byCol) { if (Number(col) > span) span = Number(col); }
+  var have = sh.getRange(row, 1, 1, span).getDisplayValues()[0];
 
-    out.push(names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep);
-    if (out[i] !== keep) touched++;
+  var out = [], first = 0, touched = 0;
+  var flush = function (upto) {
+    if (!out.length) return;
+    sh.getRange(row, first, 1, out.length).setValues([out]);
+    out = [];
+  };
+  for (col = 1; col <= span; col++) {
+    var c = byCol[col];
+    if (!c) { if (out.length) { flush(col - 1); } first = 0; continue; }
+    if (!first) first = col;
+    var keep = have[col - 1];
+
+    var val = names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep;
+    out.push(val);
+    if (val !== keep) touched++;
   }
-  if (isNew) out[cols['email'] - 1] = key;
-
-  if (touched || isNew) sh.getRange(row, 1, 1, out.length).setValues([out]);
+  if (out.length) flush(span);
+  if (isNew && cols['email']) sh.getRange(row, cols['email'], 1, 1).setValue(key);
   return row;
 }
 
@@ -150,30 +172,47 @@ function tab(ss, name, cols) {
 }
 
 function header(sh, cols) {
-  var at = {}, want = [], i;
-  for (i = 0; i < cols.length; i++) { at[cols[i].f] = i + 1; want.push(cols[i].h); }
 
+  var last = Math.max(sh.getLastColumn(), 1);
+  var have = sh.getRange(1, 1, 1, last).getDisplayValues()[0];
+  var taken = 0, i, c;
+  for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') taken = i + 1; }
+
+  var at = {}, used = {}, want = [], added = 0;
+  for (i = 0; i < cols.length; i++) {
+    var word = String(cols[i].h).trim().toLowerCase();
+    var found = 0;
+    for (c = 0; c < have.length; c++) {
+      if (used[c + 1]) continue;
+      if (String(have[c]).trim().toLowerCase() === word) { found = c + 1; break; }
+    }
+    if (found) { at[cols[i].f] = found; used[found] = 1; }
+    else { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
+  }
+  if (added) {
+    var max = sh.getMaxColumns();
+    if (taken > max) sh.insertColumnsAfter(max, taken - max);
+    for (i = 0; i < want.length; i++) sh.getRange(1, want[i].col, 1, 1).setValue(want[i].h);
+  }
+
+  var sig = [], k;
+  for (i = 0; i < cols.length; i++) sig.push(cols[i].f + '@' + at[cols[i].f] + '=' + cols[i].h);
   var props = PropertiesService.getScriptProperties();
   var mark = 'boasis.header.' + sh.getSheetId();
-  var sig = cols.length + ':' + want.join('\u0001');
-  if (props.getProperty(mark) === sig) return at;
-
-  var have = sh.getMaxColumns() >= cols.length
-    ? sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0] : [];
-  var same = have.length === cols.length;
-  for (i = 0; same && i < cols.length; i++) { if (String(have[i]) !== String(want[i])) same = false; }
-  if (!same) {
-    sh.getRange(1, 1, 1, want.length).setValues([want]);
+  var join = sig.join('|');
+  if (props.getProperty(mark) !== join) {
     sh.setFrozenRows(1);
-  }
-  for (i = 0; i < cols.length; i++) {
-    sh.setColumnWidth(i + 1, cols[i].w || 120);
+    for (i = 0; i < cols.length; i++) {
+      sh.setColumnWidth(at[cols[i].f], cols[i].w || 120);
 
-    if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+      if (!cols[i].n) sh.getRange(2, at[cols[i].f], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+    }
+    props.setProperty(mark, join);
   }
-  props.setProperty(mark, sig);
   return at;
 }
+
+function indexOf_(at, field) { return at[field] || 0; }
 
 function findRow(sh, col, key) {
   var last = sh.getLastRow();
@@ -199,6 +238,8 @@ function clean(v) {
 }
 
 function number(v) {
-  var n = Number(clean(v).replace(/[^0-9.\-]/g, ''));
+
+  var t = typeof v === 'number' ? String(v) : String(clean(v));
+  var n = Number(t.replace(/[^0-9.\-]/g, ''));
   return isFinite(n) ? n : '';
 }

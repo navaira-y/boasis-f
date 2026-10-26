@@ -51,7 +51,11 @@ var CONFIG = {
     { f: 'activities_picked', h: 'Confirmed activities', w: 300 },
     { f: 'package',           h: 'Package',             w: 140 },
     { f: 'visas',             h: 'Visa Quota',          w: 100 },
-    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 }
+    { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 },
+    /* the agreement is asked by our form and not by her table, so it is the one column we add: put it
+       last, where the script appends a missing header, rather than in the middle where it would sit on
+       top of Stage */
+    { f: 'consent',           h: 'Agreed',              w: 90 }
   ],
 
   /* the answers tab, one row per question, oldest first */
@@ -128,32 +132,54 @@ function readBody(e) {
 function writeLeads(ss, key, fields) {
   var sh = tab(ss, CONFIG.TAB_LEADS, CONFIG.COLS);
   var cols = header(sh, CONFIG.COLS);
+
+  var names = {}, k;
+  /* which fields this sender actually carried. A post from `create-pass` holds the form half and knows
+     nothing about the package, and it sends those as empty strings, so empty has to mean the same thing
+     as absent: without this a pass minted after a finished visit would blank the visit */
+  for (k in fields) {
+    if (!Object.prototype.hasOwnProperty.call(fields, k)) continue;
+    var raw = fields[k];
+    if (raw === '' || raw === null || raw === undefined) continue;
+    names[k] = 1;
+  }
+
   var row = findRow(sh, cols['email'], key);
   var isNew = !row;
   if (isNew) row = sh.getLastRow() + 1;
 
-  var names = {}, k;
-  for (k in fields) { if (Object.prototype.hasOwnProperty.call(fields, k)) names[k] = 1; }
+  /* one pass over our own columns, and a run of neighbours is written in a single setValues call. The
+     cells between them are never read and never written: they belong to whoever types in the sheet, and
+     carrying a displayed date or a formula back out as text is how a helper script ruins a table */
+  var byCol = {}, i;
+  for (i = 0; i < CONFIG.COLS.length; i++) byCol[cols[CONFIG.COLS[i].f]] = CONFIG.COLS[i];
 
-  var width = cols[CONFIG.COLS[CONFIG.COLS.length - 1].f];
-  var have = sh.getRange(row, 1, 1, width).getDisplayValues()[0];
-  var out = [], touched = 0;
-  for (var i = 0; i < CONFIG.COLS.length; i++) {
-    var c = CONFIG.COLS[i], col = cols[c.f], keep = have[col - 1];
+  var span = 0, col;
+  for (col in byCol) { if (Number(col) > span) span = Number(col); }
+  var have = sh.getRange(row, 1, 1, span).getDisplayValues()[0];
+
+  var out = [], first = 0, touched = 0;
+  var flush = function (upto) {
+    if (!out.length) return;
+    sh.getRange(row, first, 1, out.length).setValues([out]);
+    out = [];
+  };
+  for (col = 1; col <= span; col++) {
+    var c = byCol[col];
+    if (!c) { if (out.length) { flush(col - 1); } first = 0; continue; }
+    if (!first) first = col;
+    var keep = have[col - 1];
     /* a sender that has nothing to say about a field says it by saying nothing at all, which is how a
        form write that arrives after the visit leaves the finished steps alone */
-    out.push(names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep);
-    if (out[i] !== keep) touched++;
+    var val = names[c.f] ? (c.n ? number(fields[c.f]) : clean(fields[c.f])) : keep;
+    out.push(val);
+    if (val !== keep) touched++;
   }
-  if (isNew) out[cols['email'] - 1] = key;
-  /* one write per row rather than one per cell: a person at a stand should not wait on a sheet, and
-     a row is then put down all at once rather than half of it appearing in a screen someone glances */
-  if (touched || isNew) sh.getRange(row, 1, 1, out.length).setValues([out]);
+  if (out.length) flush(span);
+  if (isNew && cols['email']) sh.getRange(row, cols['email'], 1, 1).setValue(key);
   return row;
 }
 
-/* the answers of one person are rewritten whole rather than appended to, so the same step arriving
-   twice (a retry, or a person pressing on) leaves the same rows it left the first time */
 function writeAnswers(ss, key, body) {
   var sh = tab(ss, CONFIG.TAB_ANSWERS, CONFIG.ACOLS);
   var cols = header(sh, CONFIG.ACOLS);
@@ -207,39 +233,57 @@ function tab(ss, name, cols) {
    add a column at the END of the list, never in the middle, because a middle insertion moves every
    cell after it under a header that was written for its neighbour. */
 function header(sh, cols) {
-  var at = {}, want = [], i;
-  for (i = 0; i < cols.length; i++) { at[cols[i].f] = i + 1; want.push(cols[i].h); }
+  /* the columns are found by the words in row 1, not by counting from the left. That is the difference
+     between writing into the boss's table and writing over it: her own columns sit in the middle of the
+     row, and a list counted from one would land the twelfth of ours on top of Stage. A name she has
+     already typed is used once and matched plainly; anything of ours that has no column yet is appended
+     after the last header in the row, which is where a new column belongs and where nothing of hers is */
+  var last = Math.max(sh.getLastColumn(), 1);
+  var have = sh.getRange(1, 1, 1, last).getDisplayValues()[0];
+  var taken = 0, i, c;
+  for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') taken = i + 1; }
 
-  /* done once per table rather than once per post. Reading the header every time and writing nothing
-     when it matches is cheap, but the widths and the text formats are not, and a person at a stand
-     should not pay for them on every step, so the agreement is remembered in Script Properties against
-     the tab's own id and only redone when the list of columns changes */
+  var at = {}, used = {}, want = [], added = 0;
+  for (i = 0; i < cols.length; i++) {
+    var word = String(cols[i].h).trim().toLowerCase();
+    var found = 0;
+    for (c = 0; c < have.length; c++) {
+      if (used[c + 1]) continue;
+      if (String(have[c]).trim().toLowerCase() === word) { found = c + 1; break; }
+    }
+    if (found) { at[cols[i].f] = found; used[found] = 1; }
+    else { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
+  }
+  if (added) {
+    var max = sh.getMaxColumns();
+    if (taken > max) sh.insertColumnsAfter(max, taken - max);
+    for (i = 0; i < want.length; i++) sh.getRange(1, want[i].col, 1, 1).setValue(want[i].h);
+  }
+
+  /* widths and the text formats are set up once per layout rather than on every post, because a person
+     at a stand should not wait on a sheet. The layout is in the memo key, so a column that moves or a
+     name that changes brings them back without any of us remembering to ask */
+  var sig = [], k;
+  for (i = 0; i < cols.length; i++) sig.push(cols[i].f + '@' + at[cols[i].f] + '=' + cols[i].h);
   var props = PropertiesService.getScriptProperties();
   var mark = 'boasis.header.' + sh.getSheetId();
-  var sig = cols.length + ':' + want.join('\u0001');
-  if (props.getProperty(mark) === sig) return at;
-
-  var have = sh.getMaxColumns() >= cols.length
-    ? sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0] : [];
-  var same = have.length === cols.length;
-  for (i = 0; same && i < cols.length; i++) { if (String(have[i]) !== String(want[i])) same = false; }
-  if (!same) {
-    sh.getRange(1, 1, 1, want.length).setValues([want]);
+  var join = sig.join('|');
+  if (props.getProperty(mark) !== join) {
     sh.setFrozenRows(1);
+    for (i = 0; i < cols.length; i++) {
+      sh.setColumnWidth(at[cols[i].f], cols[i].w || 120);
+      /* everything a person typed is held as text, which is what keeps a value starting with = from
+         arriving as a formula; the few columns meant for adding up are left numeric on purpose. Ours
+         only: her columns keep whatever format she gave them */
+      if (!cols[i].n) sh.getRange(2, at[cols[i].f], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+    }
+    props.setProperty(mark, join);
   }
-  for (i = 0; i < cols.length; i++) {
-    sh.setColumnWidth(i + 1, cols[i].w || 120);
-    /* everything a person typed is held as text, which is what keeps a value starting with = from
-       arriving as a formula; the few columns meant for adding up are left numeric on purpose. This runs
-       whether or not the header had to be written, because a table somebody made by hand has exactly
-       the right headers and exactly the wrong formatting */
-    if (!cols[i].n) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
-  }
-  props.setProperty(mark, sig);
   return at;
 }
 
-/* the row of one person, by their address, in the only column this file searches */
+function indexOf_(at, field) { return at[field] || 0; }
+
 function findRow(sh, col, key) {
   var last = sh.getLastRow();
   if (last < 2) return 0;
@@ -272,6 +316,10 @@ function clean(v) {
 /* the four columns a person totals, kept as a number so the sheet can add them up, and empty rather
    than zero when the post had nothing in it, because a zero reads like an answer */
 function number(v) {
-  var n = Number(clean(v).replace(/[^0-9.\-]/g, ''));
+  /* clean hands a number straight through, which is what the hook sends for a price, so it is turned to
+     text here rather than asked for a replace it does not have: a price that arrives as 27189.75 is the
+     common case, not the odd one, and throwing on it would take the whole row down with it */
+  var t = typeof v === 'number' ? String(v) : String(clean(v));
+  var n = Number(t.replace(/[^0-9.\-]/g, ''));
   return isFinite(n) ? n : '';
 }
