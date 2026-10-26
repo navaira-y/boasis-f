@@ -6,6 +6,11 @@ function hostOf(u) {
   return m ? m[1] : 'bad address ' + snip(u, 40);
 }
 
+function say(o, line) {
+  if (o && typeof o.log === 'function') { o.log(line); return }
+  try { console.log(line) } catch {  }
+}
+
 const CLIP = 900;
 const SHORT = 220;
 const MAX_ANSWERS = 40;
@@ -142,7 +147,7 @@ async function pushSheet(body, o = {}) {
 
 async function pushLeadToSheet(lead, o = {}) {
   if (!STAND_TABLES.has(String(o.table || ''))) {
-    if (o.log) o.log('sheet skipped: not the stand');
+    say(o, 'sheet skipped: not the stand');
     return { ok: true, skipped: 'not the stand' };
   }
   const r = await pushSheet(payloadFor({
@@ -150,20 +155,20 @@ async function pushLeadToSheet(lead, o = {}) {
     fields: fieldsFromLead(lead),
     answers: answersFromLead(lead),
   }), o);
-  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  say(o, 'sheet ' + (r.ok ? 'written to ' + o.table : 'skipped: ' + r.why));
   return r;
 }
 
 async function pushRecordToSheet(record, o = {}) {
   if (!STAND_TABLES.has(String(o.table || ''))) {
-    if (o.log) o.log('sheet skipped: not the stand');
+    say(o, 'sheet skipped: not the stand');
     return { ok: true, skipped: 'not the stand' };
   }
   const r = await pushSheet(payloadFor({
     email: record && record.email ? record.email : '',
     fields: fieldsFromRecord(record),
   }), o);
-  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  say(o, 'sheet ' + (r.ok ? 'written to ' + o.table : 'skipped: ' + r.why));
   return r;
 }
 

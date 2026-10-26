@@ -52,6 +52,15 @@ function hostOf(u) {
   return m ? m[1] : 'bad address ' + snip(u, 40);
 }
 
+/* what happened, said out loud, whether anybody asked or not. Silence here cost an evening: a hook
+   that only logs when a caller hands it a logger is a hook that never logs, because the callers are small
+   and busy, and the person debugging at 11pm opens the function's Logs tab and finds `booted`,
+   `shutdown`, and no word at all about the sheet. console.log inside an Edge Function lands in that tab. */
+function say(o, line) {
+  if (o && typeof o.log === 'function') { o.log(line); return }
+  try { console.log(line) } catch { /* a runtime without a console has nowhere to put it anyway */ }
+}
+
 const CLIP = 900;                 // one cell of prose, which is a long answer and a short lead
 const SHORT = 220;                // one item inside a list that goes in a cell
 const MAX_ANSWERS = 40;           // one visit at a stand is four or five, this is the runaway guard
@@ -223,7 +232,7 @@ async function pushSheet(body, o = {}) {
 /* the one call each door makes, so nothing in those files has to know what a payload is */
 async function pushLeadToSheet(lead, o = {}) {
   if (!STAND_TABLES.has(String(o.table || ''))) {
-    if (o.log) o.log('sheet skipped: not the stand');
+    say(o, 'sheet skipped: not the stand');
     return { ok: true, skipped: 'not the stand' };
   }
   const r = await pushSheet(payloadFor({
@@ -231,20 +240,20 @@ async function pushLeadToSheet(lead, o = {}) {
     fields: fieldsFromLead(lead),
     answers: answersFromLead(lead),
   }), o);
-  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  say(o, 'sheet ' + (r.ok ? 'written to ' + o.table : 'skipped: ' + r.why));
   return r;
 }
 
 async function pushRecordToSheet(record, o = {}) {
   if (!STAND_TABLES.has(String(o.table || ''))) {
-    if (o.log) o.log('sheet skipped: not the stand');
+    say(o, 'sheet skipped: not the stand');
     return { ok: true, skipped: 'not the stand' };
   }
   const r = await pushSheet(payloadFor({
     email: record && record.email ? record.email : '',
     fields: fieldsFromRecord(record),
   }), o);
-  if (o.log) o.log('sheet ' + (r.ok ? 'written' : 'skipped: ' + r.why));
+  say(o, 'sheet ' + (r.ok ? 'written to ' + o.table : 'skipped: ' + r.why));
   return r;
 }
 
