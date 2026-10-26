@@ -456,8 +456,16 @@ const list = v => Array.isArray(v) ? v.map(x => snip(isObj(x) ? (x.name || x.tit
 const yes = v => v === true || v === 'true' || v === 'on' ? 'yes' : v === false || v === 'false' || v === 'off' ? 'no' : '';
 
 function envOf(names) {
-  const env = typeof Deno !== 'undefined' ? Deno.env : (typeof process !== 'undefined' ? process.env : {});
-  for (const n of names) { const v = env[n]; if (v) return String(v).trim(); }
+  /* Deno's environment is an object you ask, not a box you index: `Deno.env.SHEET_HOOK_URL` is
+     undefined in the cloud and `process.env.SHEET_HOOK_URL` is a value in the tests, which is the most
+     expensive kind of bug there is, the one that only appears where the secrets actually live. So: ask
+     with get when there is a get, and only reach for the box when there is no other way. */
+  const deno = typeof Deno !== 'undefined' && Deno.env && typeof Deno.env.get === 'function' ? Deno.env : null;
+  const box = typeof process !== 'undefined' && process.env ? process.env : null;
+  for (const n of names) {
+    const v = deno ? deno.get(n) : (box ? box[n] : '');
+    if (v) return String(v).trim();
+  }
   return '';
 }
 

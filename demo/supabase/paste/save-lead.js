@@ -29,8 +29,13 @@ const list = v => Array.isArray(v) ? v.map(x => snip(isObj(x) ? (x.name || x.tit
 const yes = v => v === true || v === 'true' || v === 'on' ? 'yes' : v === false || v === 'false' || v === 'off' ? 'no' : '';
 
 function envOf(names) {
-  const env = typeof Deno !== 'undefined' ? Deno.env : (typeof process !== 'undefined' ? process.env : {});
-  for (const n of names) { const v = env[n]; if (v) return String(v).trim(); }
+
+  const deno = typeof Deno !== 'undefined' && Deno.env && typeof Deno.env.get === 'function' ? Deno.env : null;
+  const box = typeof process !== 'undefined' && process.env ? process.env : null;
+  for (const n of names) {
+    const v = deno ? deno.get(n) : (box ? box[n] : '');
+    if (v) return String(v).trim();
+  }
   return '';
 }
 

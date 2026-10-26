@@ -87,6 +87,30 @@ test('what goes to Google is names and words, never a key into the record', asyn
   assert.ok(!('answers' in form), 'and it says nothing about answers rather than saying zero, which is how a late form write leaves the visit alone');
 });
 
+test('the secrets are read the way Deno hands them out, not the way Node does', async () => {
+  const m = await core();
+  const seen = [];
+  const asked = { SHEET_HOOK_URL: 'https://script.google.com/macros/s/ABC/exec', SHEET_HOOK_KEY: 'sekret' };
+  globalThis.Deno = { env: { get: n => { seen.push(n); return asked[n] } } };
+  try {
+    assert.equal(m.envOf(['SHEET_HOOK_URL']), 'https://script.google.com/macros/s/ABC/exec', 'a get, because Deno.env is an object you ask');
+    assert.equal(m.envOf(['NOPE_AT_ALL']), '', 'and nothing invented when the name is not there');
+    const r = await m.pushSheet({ key: 'a@b.co', fields: { email: 'a@b.co' } }, {
+      fetch: (u, o) => { seen.push('POST ' + u); return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('{"ok":true}') }) },
+    });
+    assert.deepEqual(r, { ok: true }, 'so a function running in the cloud finds its secrets and calls Google');
+    assert.ok(seen.includes('POST ' + asked.SHEET_HOOK_URL), 'and the address it used is the one from the secret');
+  } finally { delete globalThis.Deno }
+  const box = process.env.SHEET_HOOK_URL;
+  process.env.SHEET_HOOK_URL = 'https://example.test/from-node';
+  process.env.SHEET_HOOK_KEY = 'k';
+  try {
+    assert.equal(m.envOf(['SHEET_HOOK_URL']), 'https://example.test/from-node', 'and the same code still reads Node, which is where these tests run');
+  } finally {
+    if (box === undefined) { delete process.env.SHEET_HOOK_URL; delete process.env.SHEET_HOOK_KEY } else process.env.SHEET_HOOK_URL = box;
+  }
+});
+
 test('the hook is a courtesy: it cannot fail a visitor, and it is off unless both halves are set', async () => {
   const m = await core();
   assert.deepEqual(await m.pushSheet({ key: 'a@b.co', fields: {} }, { url: '', key: 'k', fetch: () => { throw new Error('never') } }),
