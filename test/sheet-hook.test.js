@@ -283,8 +283,9 @@ function theScript(rows) {
   return Object.assign(made(...Object.values(shims)), { shims, props });
 }
 
+/* her real header row, in her spellings, with the plurals and the caps the way a person types them */
 const HEADS = ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID', 'Mobile Number', 'Sector',
-  'No of shareholders', 'Confirmed activities', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment complete', 'Receipt number'];
+  'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'];
 
 test('her table is written into, not over: her headers, her four columns, and our twelve', () => {
   const rows = [HEADS.slice(), ['', '', '', '', 'm@boasis.ae', '', '', '', '', '', '', '', 'Contacted', 'sent today', 'no', 'R-11']];
@@ -295,7 +296,7 @@ test('her table is written into, not over: her headers, her four columns, and ou
     ref: 'SN-7QF3KM', at: '2026-10-26 09:40', updated: '2026-10-26 10:05', full_name: 'Mehran Zare',
     email: 'm@boasis.ae', phone: '+971 501234567', described: 'A workshop that services drones',
     shareholders: '3', activities_picked: 'Import and sale of drones', package: 'Beyond+', visas: '2',
-    price_aed: 27189.75, consent: 'yes',
+    price_aed: 27189.75, consent: 'yes', source: 'Sharjah Next offer', country_code: '+971',
   });
   const row = t.writeLeads({ getSheets: () => [sh], getSheetByName: () => sh, insertSheet: () => sh }, 'm@boasis.ae', fields);
   assert.equal(row, 2, 'the row is found by the address in her Email ID column, not by counting');
@@ -307,6 +308,9 @@ test('her table is written into, not over: her headers, her four columns, and ou
     'Stage, Reminder sent, Payment complete and Receipt number came through exactly as they were');
   assert.equal(got[16], 'yes', 'Agreed had no column, so it was appended after hers rather than dropped');
   assert.equal(sh.grid[0][16], 'Agreed', 'with a header of its own, at the end of the row');
+  assert.equal(got[17], 'Sharjah Next offer', 'and so did the offer they took at the desk');
+  assert.equal(got[18], '+971', 'and the dial code, which is beside the number rather than only inside it');
+  assert.equal(sh.grid[0][8], 'Confirmed activity', 'her own spelling of that header is the one that stayed');
   assert.deepEqual(sh.grid[0].slice(0, 16), HEADS, 'and not one character of her header row was rewritten');
   assert.ok(!sh.formats.some(f => f.from <= 16 && f.to >= 13), 'the text formats are set on our columns only, never across hers');
 });
@@ -321,6 +325,16 @@ test('a sender that knows one field rewrites one field, and a table with no head
   assert.equal(sh.grid[1][14], 'no', 'and the payment the team marked stays marked');
   const fresh = t.header(sheetApi([[]]), t.CONFIG.ACOLS);
   assert.deepEqual([fresh.ref, fresh.key], [1, 2], 'a tab we make ourselves is filled from the first column');
+
+  /* a blank sheet at the next event: the whole row is laid out for us, hers included, so the stand does
+     not begin with somebody remembering to type sixteen headers */
+  const blank = sheetApi([[]]);
+  const built = t.header(blank, t.CONFIG.COLS, t.CONFIG.COLS_TEAM);
+  assert.deepEqual(blank.grid[0], ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID',
+    'Mobile Number', 'Sector', 'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total',
+    'Agreed', 'Offer', 'Code', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
+    'our columns first, then the four the team types into, all of them present before a single write');
+  assert.equal(built['price_aed'], 12, 'and the map points at the right one of them');
 });
 
 test('the plain copy of the sheet file is the same program, and nobody has typed into it', () => {
@@ -356,14 +370,14 @@ test('the sheet file writes cells, locks, and reads nothing it does not have to'
   const from = t => gs.slice(gs.indexOf(t + ': ['), gs.indexOf('\n  ],', gs.indexOf(t + ': [')));
   const heads = [...from('COLS').matchAll(/\{ f: '([a-z_]+)',\s+h: '([^']+)',\s+w: \d+(?:, n: 1)? \}/g)]
     .map(m => m[1] + '|' + m[2]);
-  assert.equal(heads.length, 13, 'her twelve columns and our one appended column, and nothing else');
+  assert.equal(heads.length, 15, 'her twelve columns, our three appended ones, and nothing else');
   assert.deepEqual(heads.join(' '), [
     'ref|Unique Reference No', 'at|Started', 'updated|Submitted at', 'full_name|Shareholder Name',
     'email|Email ID', 'phone|Mobile Number', 'described|Sector', 'shareholders|No of shareholders',
-    'activities_picked|Confirmed activities', 'package|Package', 'visas|Visa Quota', 'price_aed|Est. total',
-    'consent|Agreed',
-  ].join(' '), 'her twelve columns in her words, then the one we add at the end of the row');
-  for (const gone of ['residence', 'last_step', 'steps_done', 'turns', 'frozen', 'premises', 'country_code']) {
+    'activities_picked|Confirmed activity', 'package|Package', 'visas|Visa Quota', 'price_aed|Est. total',
+    'consent|Agreed', 'source|Offer', 'country_code|Code',
+  ].join(' '), 'her twelve columns in her words, then the three we add at the end of the row');
+  for (const gone of ['residence', 'last_step', 'steps_done', 'turns', 'frozen', 'premises']) {
     assert.ok(!heads.some(h => h.startsWith(gone + '|')),
       gone + ' is no longer written, because her table has no column for it and a field nobody asked for is a field nobody reads');
   }

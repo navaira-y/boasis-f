@@ -48,15 +48,25 @@ var CONFIG = {
     { f: 'phone',             h: 'Mobile Number',       w: 150 },
     { f: 'described',         h: 'Sector',              w: 320 },
     { f: 'shareholders',      h: 'No of shareholders',  w: 130 },
-    { f: 'activities_picked', h: 'Confirmed activities', w: 300 },
+    { f: 'activities_picked', h: 'Confirmed activity',   w: 300 },
     { f: 'package',           h: 'Package',             w: 140 },
     { f: 'visas',             h: 'Visa Quota',          w: 100 },
     { f: 'price_aed',         h: 'Est. total',          w: 110, n: 1 },
     /* the agreement is asked by our form and not by her table, so it is the one column we add: put it
        last, where the script appends a missing header, rather than in the middle where it would sit on
        top of Stage */
-    { f: 'consent',           h: 'Agreed',              w: 90 }
+    { f: 'consent',           h: 'Agreed',              w: 90 },
+    /* the two other things the form asks and her table has no place for: the offer they took at the
+       desk gets its own column rather than being hidden inside Package, and the dial code goes beside
+       the number rather than only inside it */
+    { f: 'source',            h: 'Offer',               w: 150 },
+    { f: 'country_code',      h: 'Code',                w: 80 }
   ],
+
+  /* the four columns that belong to whoever works the list. They are part of the table, they are made
+     here if the table ever starts out without them, and no value of ours is ever written into them: a
+     row is not paid, reminded, staged or receipted by a form at a desk */
+  COLS_TEAM: ['Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
 
   /* the answers tab, one row per question, oldest first */
   ACOLS: [
@@ -131,7 +141,7 @@ function readBody(e) {
 
 function writeLeads(ss, key, fields) {
   var sh = tab(ss, CONFIG.TAB_LEADS, CONFIG.COLS);
-  var cols = header(sh, CONFIG.COLS);
+  var cols = header(sh, CONFIG.COLS, CONFIG.COLS_TEAM);
 
   var names = {}, k;
   /* which fields this sender actually carried. A post from `create-pass` holds the form half and knows
@@ -244,15 +254,39 @@ function header(sh, cols) {
   for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') taken = i + 1; }
 
   var at = {}, used = {}, want = [], added = 0;
-  for (i = 0; i < cols.length; i++) {
-    var word = String(cols[i].h).trim().toLowerCase();
-    var found = 0;
-    for (c = 0; c < have.length; c++) {
-      if (used[c + 1]) continue;
-      if (String(have[c]).trim().toLowerCase() === word) { found = c + 1; break; }
+  var norm = function (t) {
+    return String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/ s$/, '');
+  };
+
+  /* two passes, exact words first and then the same words with the plurals and the spacing ignored: a
+     header retyped as "Confirmed activity" instead of "Confirmed activities" is a person correcting a
+     plural, not a request for a second column beside the first one */
+  var pass;
+  for (pass = 0; pass < 2; pass++) {
+    for (i = 0; i < cols.length; i++) {
+      if (at[cols[i].f]) continue;
+      var word = String(cols[i].h).trim().toLowerCase();
+      if (pass) word = norm(word);
+      var found = 0;
+      for (c = 0; c < have.length; c++) {
+        if (used[c + 1]) continue;
+        var cell = String(have[c]).trim().toLowerCase();
+        if (pass ? norm(cell) === word : cell === word) { found = c + 1; break; }
+      }
+      if (found) { at[cols[i].f] = found; used[found] = 1; }
+      else if (!pass) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
     }
-    if (found) { at[cols[i].f] = found; used[found] = 1; }
-    else { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
+    if (!pass) {
+      /* the team's own headers are put in the table too, so one list is the whole shape of the row and
+         a fresh sheet at the next event is ready to be typed into, not half built */
+      var extra = arguments[2] || [];
+      for (i = 0; i < extra.length; i++) {
+        var h2 = String(extra[i]), hit = 0;
+        for (c = 0; c < have.length; c++) { if (!used[c + 1] && String(have[c]).trim().toLowerCase() === h2.toLowerCase()) { hit = c + 1; break } }
+        if (hit) { used[hit] = 1; continue }
+        taken += 1; used[taken] = 1; want.push({ col: taken, h: h2 }); added++;
+      }
+    }
   }
   if (added) {
     var max = sh.getMaxColumns();
