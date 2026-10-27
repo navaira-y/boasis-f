@@ -252,6 +252,14 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 .main.opened{grid-template-columns:minmax(0,1fr)}
 .main.opened .side,.main.opened .today{display:none}
 .main.opened>.card:first-child{grid-row:auto; position:static}
+/* the black air around the Brain is the card's own padding, and once the frame is all that card holds it
+   is pulled in tight: fifteen above and below with ten at the sides where the screen is wide enough for
+   that to read as a margin at all, six and four on a phone, where every one of those pixels is the
+   Brain's rather than the page's. Only the opened state is touched, so the form keeps the air the design
+   drew around it and the fields do not creep to the edge. */
+.main.opened #start{padding:6px 4px}
+.main.opened .done{padding:0; gap:0}
+@media (min-width:640px){ .main.opened #start{padding:15px 10px} }
 @media (hover:hover){
   input:hover,select:hover{border-color:var(--line2)}
   .cta:hover{background:#1F4878}

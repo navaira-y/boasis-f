@@ -197,6 +197,12 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'and the ready view is the frame alone: no headline, no ring, nothing a person has to read past');
   assert.match(h, /\.brain\{border:0\.5px solid var\(--night\); border-radius:12px; overflow:hidden; background:var\(--night\)\}/,
     'the Mira black sits around the frame as half a pixel of hairline and behind it while it fills, because every pixel of border is a pixel the Brain does not get');
+  assert.match(h, /\.main\.opened #start\{padding:6px 4px\}/,
+    'the black around the frame is four pixels at the sides and six above and below on a phone, which is the whole of what the Brain gives up to the page there');
+  assert.match(h, /@media \(min-width:640px\)\{ \.main\.opened #start\{padding:15px 10px\}/,
+    'and ten with fifteen on a wider screen, where that reads as a margin rather than as a border, and the card is left alone until the frame is what it holds');
+  assert.match(h, /\.main\.opened \.done\{padding:0; gap:0\}/,
+    'and the ready view adds nothing of its own on top of that, so the numbers above are the numbers a person sees');
   assert.match(h, /\.wrap\{max-width:1140px\}/,
     'and at desktop width the row the offer and the card live in is ten pixels wider on each side, the two containers the person works in, with the header and the footer on the same rule so the edges still line up');
   assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
