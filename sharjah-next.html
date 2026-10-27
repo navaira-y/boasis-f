@@ -242,6 +242,13 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
   .main>.card:first-child{grid-row:span 2; position:sticky; top:20px}
   .steps{grid-template-columns:1fr}
 }
+/* Once the record is in and the frame is filled, the page becomes the window into the Brain, the way
+   /try-mira does it: the four points and the date box step aside, the sticky half column trick is over,
+   and everything under the green offer is Mira at the width of the page. A stand tablet showing a half
+   width chat with a "how it works" list next to it is the one thing this page must not do at that moment. */
+.main.opened{grid-template-columns:minmax(0,1fr)}
+.main.opened .side,.main.opened .today{display:none}
+.main.opened>.card:first-child{grid-row:auto; position:static}
 @media (hover:hover){
   input:hover,select:hover{border-color:var(--line2)}
   .cta:hover{background:#1F4878}
@@ -327,7 +334,7 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
   </section>
 
 
-  <div class="card">
+  <div class="card side">
     <div class="eyebrow" data-k="howEy"></div>
     <div class="steps">
       <div class="step"><div class="n">1</div><div><b data-k="st1"></b><span data-k="st1s"></span></div></div>
@@ -349,7 +356,7 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 
 
 <script src="/js/countries.js?v=4"></script>
-<script src="/js/sharjah-next.js?v=8"></script>
+<script src="/js/sharjah-next.js?v=9"></script>
 
 
 </body></html>

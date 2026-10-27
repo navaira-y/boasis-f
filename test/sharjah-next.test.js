@@ -192,6 +192,12 @@ test('the button records the lead, checks it the way the site checks it, and ope
   assert.ok(!/brain\.boasis\.ae/.test(h), 'and the Brain is named in no line of this page\'s markup, only in its script');
   assert.match(h, /<a id="miraLink" href="#" target="_blank" rel="noopener">/,
     'the way out of a frame a browser refuses is the same one line the other page gives, into a tab of its own, with nothing carried across');
+  assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
+  assert.match(h, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/,
+    'and the moment Mira is open the card takes the whole width, which is what the other page does and the only way a framed app is workable on a tablet at a stand');
+  assert.match(h, /\.main\.opened \.side,\.main\.opened \.today\{display:none\}/,
+    'the how it works card and the date box step out at that moment, because both of them describe a step the person has just finished');
+  assert.match(js, /main\.classList\.add\('opened'\)/, 'and the page puts itself into that shape on the same click that fills the frame');
   assert.match(h, /\.brain iframe\{display:block; width:100%; height:min\(78vh,780px\)/,
     'and the frame is sized the way the other page sizes it, vh with a cap, so a tall laptop does not get an endless white box');
   assert.ok(!/location\.href\s*=/.test(js), 'the page no longer jumps: the record, the receipt and Mira stay on one screen');
@@ -358,6 +364,8 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
   assert.equal(d.getElementById('miraFrame').getAttribute('src'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
     'Mira opens in the card, carrying the reference the mails show');
+  assert.equal(/(^| )opened( |$)/.test(d.querySelector('.main').className), true,
+    'the shipped page is in its Mira shape after the submit: one column, steps and date box gone');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
   assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
 });

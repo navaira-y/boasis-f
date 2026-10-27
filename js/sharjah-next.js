@@ -302,7 +302,11 @@ form.addEventListener('submit',async e=>{
   const fr=document.getElementById('miraFrame'); if(fr&&src&&fr.getAttribute('src')!==src) fr.setAttribute('src',src);
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
+  const main=document.querySelector('.main'); if(main) main.classList.add('opened');
   if(fr){ try { fr.contentWindow.focus() } catch (e) { /* framed, and not ours to focus */ } }
+  /* and the card comes up to the top of the screen, so what a person sees first is Mira, not the tail of
+     the form they just filled: the offer above it stays, which is the one thing worth still seeing */
+  const card=document.getElementById('start'); if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
   /* no window.location on purpose, the way /try-mira does it: the person stays on the page they were
      handed, the reference and the conversation stay on one screen on the phone they are holding, and the
      line under the frame is for the browsers that refuse framing rather than for anything here can fail
