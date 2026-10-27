@@ -433,8 +433,8 @@ test('the site hands Mira a pass only when it is told to, and only a real one', 
   assert.match(js, /function cleanPass\(v\)\{const s=String\(v\|\|''\);return \/\^PASS\[ABCDEFGHJKLMNPQRSTUVWXYZ23456789\]\{8\}\$\/\.test\(s\)\?s:''\}/,
     'the page accepts a pass only in the shape the doors accept it, because it is a key into somebody\'s row');
   assert.match(js, /pass\?'&pass='\+encodeURIComponent\(pass\)\+'&embed=1'/, 'with the pass the frame asks for the embedded chrome, the way the other entrance does');
-  assert.match(js, /if\(link\) link\.href=src\|\|'#';[\s\S]{0,160}fr\.setAttribute\('src',src\);/,
-    'and the line under the frame is handed the very string the frame was given, one statement apart, so the two can never point at different visits');
+  assert.match(js, /const fr=document\.getElementById\('miraFrame'\); if\(fr&&src&&fr\.getAttribute\('src'\)!==src\) fr\.setAttribute\('src',src\);/,
+    'and the frame is the one and only thing handed the address, so a visit cannot be opened from two places that might disagree');
 });
 
 const JS = () => read('js/sharjah-next.js');

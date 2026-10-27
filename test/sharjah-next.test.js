@@ -74,7 +74,8 @@ test('the event page answers at its address, with its own headers', async () => 
   /* every picture is inside the page, as the design file had it: two logos, the orb three times, the
      photograph behind the hero. Nothing at a stand depends on a second request. */
   const h = HTML();
-  assert.equal((h.match(/data:image\/png;base64,/g) || []).length, 5, 'the two logos and the orb, three times, inline');
+  assert.equal((h.match(/data:image\/png;base64,/g) || []).length, 4,
+    'the two logos and the orb twice, inline, one fewer than before because the ready view gave up its copy of the orb with its headline');
   assert.equal((h.match(/data:image\/jpeg;base64,/g) || []).length, 1, 'and the hero photograph');
   assert.ok(!/src="\/assets|url\("\/assets/.test(h), 'no picture is asked for from the site, so none can go missing');
 });
@@ -131,7 +132,7 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     'I agree that SPARK and Boasis may contact me about my project.',
     /* one line is not the design's: it read "If she didn't open automatically", and Mira is not a she.
        Words the boss corrects outrank words the design typed. */
-    'Start with Mira', 'Mira is ready for you', 'Not showing?', 'Open Mira in a new tab',
+    'Start with Mira',
     'How it works', 'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
@@ -185,13 +186,17 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'the two names the design drew arrive as the one name every form here writes');
   assert.ok(!/data\.page=/.test(js), 'no table is named by the visitor, because the backend is not decided yet');
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
-  assert.match(js, /const src=brainHref\(url, ref, pass\);\s*\n\s*const link=document\.getElementById\('miraLink'\); if\(link\) link\.href=src\|\|'#';\s*\n\s*const fr=document\.getElementById\('miraFrame'\); if\(fr&&src&&fr\.getAttribute\('src'\)!==src\) fr\.setAttribute\('src',src\);/,
-    'and Mira is put in the card where the form was, out of one built address, with that reference and the pass if there is one');
+  assert.match(js, /const src=brainHref\(url, ref, pass\);\s*\n\s*const fr=document\.getElementById\('miraFrame'\); if\(fr&&src&&fr\.getAttribute\('src'\)!==src\) fr\.setAttribute\('src',src\);/,
+    'and Mira is put in the card where the form was, out of one built address, with that reference and the pass if there is one, and that is the only line in the page that writes anywhere');
   assert.match(h, /<iframe id="miraFrame" title="Mira" src="about:blank">/,
     'the frame starts on about:blank, the way the other entrance does, so a person who only reads the offer asks the Brain for nothing');
   assert.ok(!/brain\.boasis\.ae/.test(h), 'and the Brain is named in no line of this page\'s markup, only in its script');
-  assert.match(h, /<a id="miraLink" href="#" target="_blank" rel="noopener">/,
-    'the way out of a frame a browser refuses is the same one line the other page gives, into a tab of its own, with nothing carried across');
+  assert.ok(!/class="fine"|miraLink|notShowing/.test(h),
+    'and there is no spare way out under the frame at all, because a second thing to press is how a desk loses a person');
+  assert.ok(!/data-k="doneH"|data-k="doneP"|class="done"[^>]*>\s*<img/.test(h),
+    'and the ready view is the frame alone: no headline, no ring, nothing a person has to read past');
+  assert.match(h, /\.brain\{border:1px solid var\(--night\); border-radius:14px; overflow:hidden; background:var\(--night\)\}/,
+    'the Mira black sits around the frame as a hairline and behind it while it fills, so the panel reads as one object and not as a card');
   assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
   assert.match(h, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/,
     'and the moment Mira is open the card takes the whole width, which is what the other page does and the only way a framed app is workable on a tablet at a stand');
@@ -586,7 +591,6 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
     await new Promise(r => setTimeout(r, 250));
     const out = {
       src: d.getElementById('miraFrame').getAttribute('src') || '',
-      href: d.getElementById('miraLink').getAttribute('href') || '',
       posts: posts.map(p => p.url),
     };
     dom.window.close();
@@ -596,7 +600,7 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
   const withPass = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS4SBM6NN5', brain_url: 'https://brain.boasis.ae' });
   assert.equal(withPass.src, 'https://brain.boasis.ae?src=sharjah-next&pass=PASS4SBM6NN5&embed=1&ref=SN-K7QF3M',
     'the pass goes to Mira in the address, which is the only credential she needs to write on that row');
-  assert.equal(withPass.href, withPass.src, 'and the link under the frame is the same address, so the two can never open two different visits');
+  assert.ok(!('href' in withPass), 'and that address is handed to nothing else, so there is no second visit to open by accident');
   assert.deepEqual(withPass.posts, ['/api/sharjah-lead'], 'and the page still speaks to one door, our own: it never reaches the project directly');
 
   const junk = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS123', brain_url: 'https://brain.boasis.ae' });

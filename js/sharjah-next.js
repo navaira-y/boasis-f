@@ -45,7 +45,6 @@ const T={
   first:'First name', last:'Last name', email:'Email', mobile:'Mobile number',
   consent:'I agree that SPARK and Boasis may contact me about my project.',
   cta:'Start with Mira',
-  doneH:'Mira is ready for you', notShowing:'Not showing?', open:'Open Mira in a new tab',
   offEy:'Sharjah Next offer · 28 & 29 Oct', offH:'Your SPARK company, at the event price',
   y1:'year 1', y2:'from, year 1',
   b1:'1 activity', b2:'1 shareholder', b3:'Free lease',
@@ -298,7 +297,6 @@ form.addEventListener('submit',async e=>{
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
   const pass=cleanPass(j&&j.pass);
   const src=brainHref(url, ref, pass);
-  const link=document.getElementById('miraLink'); if(link) link.href=src||'#';
   const fr=document.getElementById('miraFrame'); if(fr&&src&&fr.getAttribute('src')!==src) fr.setAttribute('src',src);
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
@@ -308,9 +306,9 @@ form.addEventListener('submit',async e=>{
      the form they just filled: the offer above it stays, which is the one thing worth still seeing */
   const card=document.getElementById('start'); if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
   /* no window.location on purpose, the way /try-mira does it: the person stays on the page they were
-     handed, the reference and the conversation stay on one screen on the phone they are holding, and the
-     line under the frame is for the browsers that refuse framing rather than for anything here can fail
-     at. The frame is given the address only now, so a Brain is never loaded for a person who walked. */
+     handed, and the frame, the offer and this conversation stay on one screen on the phone they are
+     holding at the stand. The frame is given the address only now, so a Brain is never loaded for a person
+     who read the offer and walked away, and the frame is the only thing on this page that gets one. */
 });
 
 /* ── what a submission leaves behind ────────────────────────────────────────────
