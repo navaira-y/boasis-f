@@ -197,7 +197,9 @@ test('the three doors push after the write, and the row they write to is the one
   for (const f of ['create-pass', 'save-step']) {
     const src = read('demo/supabase/functions/' + f + '/index.js');
     assert.match(src, /import \{ pushLeadToSheet \} from "\.\.\/_shared\/sheet\.js";/, f + ' asks the hook, in the same module the others use');
-    const at = src.indexOf('await pushLeadToSheet');
+    /* the call, not the await: create-pass hands the sheet to the runtime instead of waiting on
+       it, and the ordering this asserts is what still has to hold */
+    const at = src.search(/pushLeadToSheet\(/);
     assert.ok(at > src.indexOf('writeLead(sb'), f + ' sends it after the row is safe, never instead of writing it');
     assert.ok(at > src.indexOf('return json({ ok: false, error: "storage" }'), f + ' does not send when the write failed');
   }
