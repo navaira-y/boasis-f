@@ -54,7 +54,7 @@ const T={
   st1:'Tell Mira what you do', st1s:'In your own words, typed or spoken.',
   st2:'Choose your activities', st2s:'Mira suggests them. Your package shows on top.',
   st3:'Get your reference number', st3s:'On screen, and by email.',
-  st4:'Finish in Zone 2, Block B', st4s:'Show your reference, apply and pay. Follow the green signs.',
+  st4:'Finish at the payment desk', st4s:'Show your reference, apply and pay. Follow the green signs.',
   today:'<b>Open on 28 and 29 October only.</b> Complete your payment in Zone 2 before you leave.',
   sig:'Powered by',
   eFirst:'Please enter your first name.', eLast:'Please enter your last name.', eEmail:'Please enter a valid email.', ePhone:'Please enter a valid number.', eConsent:'Please tick the box to continue.',
