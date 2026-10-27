@@ -124,6 +124,17 @@ test('the watch runs on a five second beat, once at a time, over a queue that is
     'and with nothing waiting there is no call at all, so the short beat costs the site nothing on a quiet hour');
 });
 
+test('every script in scripts/ still parses, because none of them is imported by the site', () => {
+  const path = require('path'), fs2 = require('fs'), { execFileSync } = require('child_process');
+  const d = path.join(__dirname, '..', 'scripts');
+  const files = fs2.readdirSync(d).filter(f => f.slice(-3) === '.js');
+  assert.ok(files.length >= 3, 'and there is something to check: ' + files.join(', '));
+  for (const f of files) {
+    try { execFileSync(process.execPath, ['--check', path.join(d, f)], { stdio: 'pipe' }); }
+    catch (e) { assert.ok(false, f + ' does not parse, and a test suite that never loads it would never notice: ' + String(e.stderr || e.message).split('\n').slice(0, 3).join(' ')); }
+  }
+});
+
 test('a second submit of the same reference does not re-arm the letters', async () => {
   const path = require('path'), fs2 = require('fs'), os2 = require('os');
   const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-twice-'));

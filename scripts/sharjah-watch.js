@@ -2,14 +2,11 @@
 /* One pass of the three Sharjah Next triggers, run by hand instead of waiting for the timer:
 
      BOASIS_NO_ENV_FILE=1 node scripts/sharjah-watch.js
-/* Running this while the app is up is safe on purpose: a letter is claimed on the disk before it is
-   posted, so the two of them cannot send the same mail twice. The app's own beat is five seconds, so
-   this exists to answer "did it go?" right now rather than waiting for the next pass. */
 
    It reads the stand's own queue in the data directory, asks the project what the visit and the sheet say
-   about each reference, sends whichever mail is due, and prints what it did. Running it twice is safe for
-   the same reason the timer is: a mail is marked when it goes, and the duplicate rule is per reference and
-   per mail, so a second pass cannot send a person the same letter again.
+   about each reference, sends whichever mail is due, and prints what it did. Running it while the app is up
+   is safe on purpose, and running it twice is safe the same way: a letter is claimed on the disk before it
+   is posted, one file per reference and per mail, so this and the app's own beat cannot each send a copy.
 
    It is here because two things about this feature are otherwise invisible from a shell: whether the read
    of the sheet and of the pass rows actually answers, and how long a lead has been waiting. Both are
