@@ -631,7 +631,7 @@ what this means on the box: `MAIL_DRY_RUN` has to be `0` in `.env` or nobody eve
 dry run hands the code back to the page instead, which is why a rehearsal can still be walked through.
 
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
-the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a Zone 2
+the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a payment desk
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
 `lib/mail-templates.js`, in their palette and their box, signed The SPARK Team, with the two marks at
 `https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. Nothing is mailed yet: the trigger was
