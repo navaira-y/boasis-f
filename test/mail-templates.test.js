@@ -144,6 +144,17 @@ test('the Sharjah Next mails say what the design file says, and only those three
   assert.equal(m2.subject, 'Welcome to SPARK · Reference SN-0148');
   assert.ok(m2.html.includes('PAID') && m2.html.includes('Strike a pose with Mira'), 'the receipt carries the badge and the robot');
   assert.ok(m2.html.includes('@shjrtipark and @boasisae'), 'and the two accounts to tag');
+  /* the welcome letter says what the boss wrote for it, in his order: confirmed, Mira, the number,
+     what happens next without a day count, and a wish. Nothing in it promises a date. */
+  for (const line of ['Your payment is confirmed', 'Mira was happy to be part of your business registration journey',
+    'The SPARK team will contact you soon to process your application and coordinate all the remaining steps',
+    'Wishing you all the success'])
+    assert.ok(m2.html.includes(line) && m2.text.includes(line), 'the receipt says "' + line + '", in the html and in the plain text both');
+  /* the number itself sits in the dashed box in the html, label and value in their own paragraphs, so
+     the two halves are checked apart and together they have to read as one line in the plain text */
+  assert.ok(m2.html.includes('Your reference number') && m2.html.includes('>SN-0148<') && m2.text.includes('Your reference number: SN-0148'),
+    'and the receipt carries the reference number, in the box and in the text');
+  assert.ok(!/3 business days|within \d+ business/.test(m2.html + m2.text), 'and the three day count is off it, because soon is the promise');
 
   const m3 = T.sharjahReminder({ name: 'Mihail Three', ref: 'SN-0149' });
   assert.equal(m3.subject, 'Your Sharjah Next offer is waiting for you at the payment counter');
@@ -153,14 +164,20 @@ test('the Sharjah Next mails say what the design file says, and only those three
 
   for (const m of [m1, m2, m3]) {
     assert.match(m.html, /background:#FBF7EA/, 'the band is the sand of their palette');
-    assert.ok(m.html.includes('/assets/brand/sharjah-next.png') && m.html.includes('/assets/brand/spark.png'),
-      'the two event marks are absolute addresses, which is all a mail client will fetch');
+    assert.ok(m.html.includes('/assets/brand/sharjah-next.png'),
+      'the event mark at the top is an absolute address, which is all a mail client will fetch');
     assert.ok(m.html.includes('Powered by'), 'and the navy strip says who powers it');
     assert.ok(/Powered by <a[^>]*>B<img src="https:\/\/boasis\.ae\/assets\/logo\/orb-160\.png"[^>]*alt="O"/.test(m.html),
       'and it is the wordmark there, the orb as the O, the way the site draws it, not the name typed out in caps');
     assert.ok(!/style="[^"]*expression|<script/.test(m.html), 'no script, nothing a client has to be talked into');
-    assert.ok(m.text.includes('The SPARK Team'), 'every one signs the same way, in text too');
+    /* the plain text signs with whoever the html signs as, and the welcome letter is ours, not the park's */
+    const team = m === m2 ? 'BOASIS' : 'SPARK';
+    assert.ok(m.text.includes('The ' + team + ' Team'), 'and its text signs the same way, as The ' + team + ' Team');
   }
+  for (const m of [m1, m3]) assert.ok(m.html.includes('/assets/brand/spark.png'),
+    'and the two stand mails close with the park mark, absolute like the other one');
+  assert.ok(!m2.html.includes('/assets/brand/spark.png') && m2.html.includes('aria-label="BOASIS"'),
+    'and the welcome letter closes with ours instead, because it is a BOASIS letter and not the park\'s');
   /* the AI Everything note is another event's words, so a Sharjah row must never be sent it */
   const spark = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
   assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\) \{\s*\n\s*r = await mail\.notifySpark\(/,

@@ -136,10 +136,15 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     'How it works', 'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
-    'Finish at the payment counter', 'Show your reference, apply and pay. Follow the green signs.',
+    'Finish at the payment counter', 'Show your reference, apply and pay.',
     'Open on 28 and 29 October only.', 'Head to the counter with your reference number and finish the payment before you leave.', 'Powered by',
   ];
   for (const s of need) assert.ok(t.includes(s), 'the design says "' + s + '" and so does the page');
+  /* two things the boss took back off this page: the page promises a coloured line to follow and there is
+     no such line at this event, and the date box painted a calendar chip that only repeated the dates
+     the sentence next to it had just said. Neither comes back, markup and CSS both. */
+  assert.ok(!/Follow the green|green signs/i.test(h + js), 'and no instruction to follow anything green survives on the page');
+  assert.ok(!/class="cal"/.test(h) && !/\.today \.cal/.test(h), 'and the calendar chip is gone from the box and from the rules that drew it');
   assert.ok(!/lorem|TODO|FIXME|REPLACE/i.test(t), 'and nothing is left to be filled in');
   /* the fourth heading is the boss's, not the design's: the stand is a desk with a card machine at it,
      and a visitor who is told to find a block number in a free zone will ask somebody anyway */
