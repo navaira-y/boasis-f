@@ -47,7 +47,7 @@ const T={
   first:'First name', last:'Last name', email:'Email', mobile:'Mobile number',
   consent:'I agree that SPARK and Boasis may contact me about my project.',
   cta:'Start with Mira',
-  doneH:'Mira is ready for you', doneP:"If Mira didn't open automatically, tap below.", open:'Talk to Mira',
+  doneH:'Mira is ready for you', doneP:'Your place at the stand is booked. Mira is opening now.',
   offEy:'Sharjah Next offer · 28 & 29 Oct', offH:'Your SPARK company, at the event price',
   y1:'year 1', y2:'from, year 1',
   b1:'1 activity', b2:'1 shareholder', b3:'Free lease',
@@ -300,13 +300,11 @@ form.addEventListener('submit',async e=>{
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
   const pass=cleanPass(j&&j.pass);
   const href=brainHref(url, ref, pass);
-  document.getElementById('miraLink').href=href||'#';
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
-  /* the reference stays on the screen for a moment before they are gone, because it is what the mails
-     quote and what a desk is asked for when something goes missing. Then the browser is handed to
-     Mira, with its own header and its own address, which is what a person on their own phone expects to
-     arrive at. If a jump is ever stopped by the browser itself, the line above is that same address. */
+  /* a moment on their own page first, so the screen says the record is in before anything else happens,
+     then the browser is handed to Mira as a page of its own, with its own header and its own address.
+     Nothing is left behind to tap: a whole page navigation cannot be blocked the way a new tab can. */
   if(href) setTimeout(function(){ location.href=href },900);
 });
 
@@ -327,15 +325,15 @@ function safeBase(v){
   if(!/^https?:\/\/[^\s"'<>]+$/.test(s)&&!/^\/[^\s"'<>]*$/.test(s)) return '';
   return s.length>1?s.replace(/\/+$/,''):s;
 }
-/* The address is written only now, so a person who reads the offer and walks away never asks the
-   Brain for anything at all. */
+/* Nothing in the page points at the Brain until a lead has actually been recorded, so a person who
+   reads the offer and walks away never asks the Brain for anything at all. */
 /* the address Mira is opened at, in one place because the link and the jump must never disagree. With
    a pass the visit is written on that person's row, which is the whole point of the pass; without one
    the reference still goes along, so Mira can greet them by it and the stand can quote it, exactly as
    this page did before passes existed here. embed is not asked for: this is the Brain as a page, so
    the Brain keeps its own chrome. */
 function brainHref(url, ref, pass){
-  const base=safeBase(url)||safeBase(document.getElementById('miraLink')&&document.getElementById('miraLink').dataset.src)||safeBase(MIRA_URL);
+  const base=safeBase(url)||safeBase(MIRA_URL);
   if(!base) return '';
   const q='src=sharjah-next'
     +(pass?'&pass='+encodeURIComponent(pass):'')

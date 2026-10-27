@@ -129,9 +129,11 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     "Hi. I'm Mira. A few details, and we start.",
     'First name', 'Last name', 'Email', 'Mobile number',
     'I agree that SPARK and Boasis may contact me about my project.',
-    /* one line is not the design's: it read "If she didn't open automatically", and Mira is not a she.
-       Words the boss corrects outrank words the design typed. */
-    'Start with Mira', 'Mira is ready for you', "If Mira didn't open automatically, tap below.", 'Talk to Mira',
+    /* two of the design's lines are gone on purpose, and one more with them: it read "If she didn't
+       open automatically, tap below." beside a button that said "Talk to Mira", which is advice about a
+       frame that is no longer in the page, in a language that mistakes Mira for a person. What is left of
+       that moment is one line, in the same two keys, saying only that the record is in. */
+    'Start with Mira', 'Mira is ready for you', 'Your place at the stand is booked. Mira is opening now.',
     'How it works', 'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
@@ -187,10 +189,10 @@ test('the button records the lead, checks it the way the site checks it, and sen
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
   assert.match(js, /const href=brainHref\(url, ref, pass\);/, 'the address the person is sent to is built once, from the reference and the pass the door answered with');
   assert.ok(!/<iframe/.test(h), 'there is no frame in the page: the Brain is where they go, not a window inside this page');
-  assert.match(h, /<a class="cta" id="miraLink" href="#" data-src="https:\/\/brain\.boasis\.ae\/">/,
-    'the base address sits on the link with no pass and no reference on it, so a person who reads the offer and walks away never asks the Brain for anything');
+  assert.ok(!/id="miraLink"|data-src=/.test(h),
+    'and there is no address of the Brain in the markup at all, neither a frame nor a spare button, so nothing reaches out until a lead is recorded');
   assert.match(js, /setTimeout\(function\(\)\{ location\.href=href \},900\)/,
-    'and the jump is the last thing a submit does, a moment after the reference is drawn, so the screen can be read before it goes');
+    'and the jump is the last thing a submit does, a moment after the ready line is drawn, so the page is read before it goes');
   const code = js.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');   // the header names what is not wired, on purpose
   assert.ok(!/localStorage|PASS_RE|get-lead|create-pass/.test(code), 'no pass, no resume, nothing kept in the browser, until the backend is settled');
   assert.match(js, /if\(F\['hp'\]\.value\) return/, 'the honeypot is honoured before anything is posted');
@@ -352,8 +354,10 @@ test('the page as shipped fills itself, validates, joins the names and hands the
   assert.ok(!('hp' in body), 'the honeypot field is never posted');
   assert.ok(Number(body._t) >= 1, 'with how long the form was open, for the door to judge');
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
-  assert.equal(d.getElementById('miraLink').getAttribute('href'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
-    'and Mira is opened at the address that carries the reference the mails show');
+  assert.equal(d.querySelectorAll('#doneView a, #doneView button').length, 0,
+    'the ready screen is one line of words with nothing to press on it, because a tablet at a stand should not have a step two');
+  assert.equal(d.querySelector('#doneView p').textContent, 'Your place at the stand is booked. Mira is opening now.',
+    'and that line is what the person reads while the browser turns towards Mira');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
   assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
 });
@@ -579,7 +583,11 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
     d.querySelector('.cta').click();
     await new Promise(r => setTimeout(r, 1100));      // past the pause the page gives the reference
     const out = {
-      href: d.getElementById('miraLink').getAttribute('href') || '',
+      /* the page's own two steps, in its own order: the door's answer is cleaned before it is put in an
+         address, which is exactly what has to be true for a string that only looks like a pass */
+      href: w.eval('typeof brainHref==="function"&&typeof cleanPass==="function" ? brainHref(' +
+        JSON.stringify(String(answer.brain_url || '')) + ', ' + JSON.stringify(String(answer.ref || '')) +
+        ', cleanPass(' + JSON.stringify(String(answer.pass || '')) + ')) : ""'),
       navs,
       posts: posts.map(p => p.url),
     };
@@ -589,7 +597,7 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
 
   const withPass = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS4SBM6NN5', brain_url: 'https://brain.boasis.ae' });
   assert.equal(withPass.href, 'https://brain.boasis.ae?src=sharjah-next&pass=PASS4SBM6NN5&ref=SN-K7QF3M',
-    'the pass goes to Mira in the address, which is the only credential she needs to write on that row');
+    'the address the page turns to carries the pass, which is the only credential Mira needs to write on that person\'s row');
   assert.ok(!/embed=/.test(withPass.href), 'and nothing asks the Brain to hide its own header, because this is a whole page now rather than a box inside one');
   assert.equal(withPass.navs, 1, 'the page jumps once and no more, in the tab it was already in');
   assert.deepEqual(withPass.posts, ['/api/sharjah-lead'], 'and the page still speaks to one door, our own: it never reaches the project directly');

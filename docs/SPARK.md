@@ -565,9 +565,10 @@ checks the mailbox code, validates with the same `readForm` as everything else, 
 `kind = 'sharjah_next'`, and, with `SPARK_SN_PASS=on`, mints the pass by calling the very same
 `create-pass` that `/try-mira` posts to, with `page: 'sharjah-next'` and the reference, so the row that
 Mira writes is the stand's own. It answers `{ ok, ref, pass, brain_url }` and the page sends the browser to
-`https://brain.boasis.ae/?src=sharjah-next&pass=PASSxxxxxxxx&ref=SN-XXXXXX`, a moment after the reference is
-drawn, as its own page with its own header: no frame, and `embed` is not asked for, because there is no
-chrome to keep out. Nothing is kept in `localStorage`. There is no resumable journey here
+`https://brain.boasis.ae/?src=sharjah-next&pass=PASSxxxxxxxx&ref=SN-XXXXXX` a moment after the page has
+said the record is in, as its own page with its own header: no frame, no `embed`, and nothing under the
+line telling a person what to do if the Brain did not arrive, because a whole page navigation cannot be
+blocked the way a new tab can. Nothing is kept in `localStorage`. There is no resumable journey here
 on purpose: a stand is a shared tablet, so the way back to a row is the address, which `create-pass`
 already looks up, rather than a pass sitting in somebody else's browser. With no pass the page still
 opens Mira on the reference alone, which is why the mint is allowed to fail quietly and why the lead is
