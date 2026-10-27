@@ -74,16 +74,13 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
 .done img{width:84px; height:84px; margin:0 auto; filter:drop-shadow(0 0 18px rgba(95,211,232,.5))}
 .done h2{font-size:26px; color:var(--navy)}
 .done p{color:var(--muted)}
-/* the frame, taken from /try-mira rule for rule, so the two entrances show Mira the same way: the
-   panel is the window into the Brain, it starts blank, and the address is written into it only once a
-   lead is recorded. The height is in vh with a cap, and the card clips the corners, so nothing in here
-   can push the page sideways at any width. Nothing is asked of the person under it either: the frame
-   either arrives or the visit is not started, and one more line to read and one more thing to press is
-   how a busy desk loses somebody. */
-/* half a pixel, because every pixel of this is a pixel the Brain does not get, and on a phone screen
-   it is still a line you can see */
-.brain{border:0.5px solid var(--night); border-radius:12px; overflow:hidden; background:var(--night)}
-.brain iframe{display:block; width:100%; height:min(78vh,780px); border:0; background:var(--bo-night)}
+/* the frame is the window into the Brain: it starts blank, and the address is written into it only once
+   a lead is recorded. It is the viewport itself, vh first and dvh over the top of that because a phone
+   keeps its own bars, and the Mira black is behind it while it fills, so there is never a white page
+   where the Brain is about to be. Nothing is asked of the person under it, and nothing frames it either:
+   the Brain brings its own header and its own "Powered by Boasis", so a border, a card and a headline on
+   top of that would be the same three lines twice on one screen. */
+.brain iframe{display:block; width:100%; height:100vh; height:100dvh; border:0; background:var(--night)}
 
 /* L'offre : les deux packages côte à côte, même sur téléphone */
 .offer{background:var(--olive); color:#fff; border-radius:20px; padding:20px; position:relative; overflow:hidden}
@@ -218,7 +215,6 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
   .two{grid-template-columns:1fr}
   .pk{grid-template-columns:1fr}
   .top img{height:28px} .top img.spark{height:23px}
-  .brain iframe{height:min(74vh,680px)}
 }
 /* Tablette portrait : une colonne plus large, les étapes en 2 × 2 */
 @media (min-width:640px){
@@ -252,14 +248,16 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 .main.opened{grid-template-columns:minmax(0,1fr)}
 .main.opened .side,.main.opened .today{display:none}
 .main.opened>.card:first-child{grid-row:auto; position:static}
-/* the black air around the Brain is the card's own padding, and once the frame is all that card holds it
-   is pulled in tight: fifteen above and below with ten at the sides where the screen is wide enough for
-   that to read as a margin at all, six and four on a phone, where every one of those pixels is the
-   Brain's rather than the page's. Only the opened state is touched, so the form keeps the air the design
-   drew around it and the fields do not creep to the edge. */
-.main.opened #start{padding:6px 4px}
-.main.opened .done{padding:0; gap:0}
-@media (min-width:640px){ .main.opened #start{padding:15px 10px} }
+/* and then the page gets out of the way completely: no header, no footer, no offer they have already
+   read, no card, no padding, no scroll, because at this moment the only thing worth the screen is the
+   conversation. Every one of these lines hangs on the class the submit puts on the html element, so
+   before that click nothing here is moved, hidden or resized: the form keeps the page the design drew. */
+html.mira-open .top,html.mira-open footer,html.mira-open .hero,html.mira-open .side,html.mira-open .today{display:none}
+html.mira-open{background:var(--night)}
+html.mira-open body{background:var(--night); min-height:100vh; min-height:100dvh; overflow:hidden}
+html.mira-open .main,html.mira-open .wrap.main{max-width:none; margin:0; padding:0; gap:0}
+html.mira-open #start{padding:0; margin:0; border:0; border-radius:0; box-shadow:none; background:none}
+html.mira-open .done{padding:0; gap:0}
 @media (hover:hover){
   input:hover,select:hover{border-color:var(--line2)}
   .cta:hover{background:#1F4878}
@@ -365,7 +363,7 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 
 
 <script src="/js/countries.js?v=4"></script>
-<script src="/js/sharjah-next.js?v=11"></script>
+<script src="/js/sharjah-next.js?v=12"></script>
 
 
 </body></html>

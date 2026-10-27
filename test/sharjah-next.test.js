@@ -195,24 +195,29 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'and there is no spare way out under the frame at all, because a second thing to press is how a desk loses a person');
   assert.ok(!/data-k="doneH"|data-k="doneP"|class="done"[^>]*>\s*<img/.test(h),
     'and the ready view is the frame alone: no headline, no ring, nothing a person has to read past');
-  assert.match(h, /\.brain\{border:0\.5px solid var\(--night\); border-radius:12px; overflow:hidden; background:var\(--night\)\}/,
-    'the Mira black sits around the frame as half a pixel of hairline and behind it while it fills, because every pixel of border is a pixel the Brain does not get');
-  assert.match(h, /\.main\.opened #start\{padding:6px 4px\}/,
-    'the black around the frame is four pixels at the sides and six above and below on a phone, which is the whole of what the Brain gives up to the page there');
-  assert.match(h, /@media \(min-width:640px\)\{ \.main\.opened #start\{padding:15px 10px\}/,
-    'and ten with fifteen on a wider screen, where that reads as a margin rather than as a border, and the card is left alone until the frame is what it holds');
-  assert.match(h, /\.main\.opened \.done\{padding:0; gap:0\}/,
-    'and the ready view adds nothing of its own on top of that, so the numbers above are the numbers a person sees');
-  assert.match(h, /\.wrap\{max-width:1140px\}/,
-    'and at desktop width the row the offer and the card live in is ten pixels wider on each side, the two containers the person works in, with the header and the footer on the same rule so the edges still line up');
+  assert.ok(!/\.brain\{/.test(h),
+    'the frame has no box of its own at all any more: no border, no radius, no background of ours around the Brain, because at that moment the Brain is the screen');
+  assert.match(h, /\.brain iframe\{display:block; width:100%; height:100vh; height:100dvh; border:0; background:var\(--night\)\}/,
+    'the frame is the viewport, dvh written over vh so a phone with its own bars gives the Brain a whole screen rather than one that scrolls a little');
+  assert.match(h, /html\.mira-open \.top,html\.mira-open footer,html\.mira-open \.hero,html\.mira-open \.side,html\.mira-open \.today\{display:none\}/,
+    'and at that moment the header, the footer, the offer they have just read, the four points and the date box all step out together');
+  assert.match(h, /html\.mira-open #start\{padding:0; margin:0; border:0; border-radius:0; box-shadow:none; background:none\}/,
+    'the card gives up its padding, its border, its radius, its shadow and its own background too, so the Brain has the page and not a window in it');
+  assert.match(h, /html\.mira-open \.main,html\.mira-open \.wrap\.main\{max-width:none; margin:0; padding:0; gap:0\}/,
+    'the row it sits in is uncapped and unpadded at every width, which is the one answer that is right on a 360px phone and on a 1440px tablet alike');
+  assert.match(h, /html\.mira-open\{background:var\(--night\)\}/,
+    'and the page turns the Mira black behind it, with the body not scrolling, so there is no white band at the bottom of a phone while the Brain fills');
+  assert.match(js, /root\.classList\.add\('mira-open'\)/,
+    'one class on the html element does all of it, put there on the same click that fills the frame, and before that click nothing of the page has moved');
+  assert.ok(!/scrollIntoView\(\{behavior:'smooth',block:'start'\}\)/.test(js),
+    'and there is no scroll to the card any more, because there is nothing above it left to scroll past');
+  assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
   assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
   assert.match(h, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/,
     'and the moment Mira is open the card takes the whole width, which is what the other page does and the only way a framed app is workable on a tablet at a stand');
   assert.match(h, /\.main\.opened \.side,\.main\.opened \.today\{display:none\}/,
     'the how it works card and the date box step out at that moment, because both of them describe a step the person has just finished');
   assert.match(js, /main\.classList\.add\('opened'\)/, 'and the page puts itself into that shape on the same click that fills the frame');
-  assert.match(h, /\.brain iframe\{display:block; width:100%; height:min\(78vh,780px\)/,
-    'and the frame is sized the way the other page sizes it, vh with a cap, so a tall laptop does not get an endless white box');
   assert.ok(!/location\.href\s*=/.test(js), 'the page no longer jumps: the record, the receipt and Mira stay on one screen');
   const code = js.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');   // the header names what is not wired, on purpose
   assert.ok(!/localStorage|PASS_RE|get-lead|create-pass/.test(code), 'no pass, no resume, nothing kept in the browser, until the backend is settled');
@@ -379,6 +384,8 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
     'Mira opens in the card, carrying the reference the mails show');
   assert.equal(/(^| )opened( |$)/.test(d.querySelector('.main').className), true,
     'the shipped page is in its Mira shape after the submit: one column, steps and date box gone');
+  assert.equal(/(^| )mira-open( |$)/.test(d.documentElement.className), true,
+    'and the html element itself carries the opened class, so the header, the footer and the offer are gone from the page the person is looking at');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
   assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
 });

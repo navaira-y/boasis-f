@@ -301,10 +301,12 @@ form.addEventListener('submit',async e=>{
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
   const main=document.querySelector('.main'); if(main) main.classList.add('opened');
+  /* on the html element, because at this point the page is not a page any more, it is the Brain: the
+     header, the footer and the offer they have just read step out and the frame takes the viewport. The
+     Brain has its own header and its own "Powered by Boasis", so ours beside it is the same words twice,
+     and nothing here scrolls, because there is nothing here left to scroll to. */
+  root.classList.add('mira-open');
   if(fr){ try { fr.contentWindow.focus() } catch (e) { /* framed, and not ours to focus */ } }
-  /* and the card comes up to the top of the screen, so what a person sees first is Mira, not the tail of
-     the form they just filled: the offer above it stays, which is the one thing worth still seeing */
-  const card=document.getElementById('start'); if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
   /* no window.location on purpose, the way /try-mira does it: the person stays on the page they were
      handed, and the frame, the offer and this conversation stay on one screen on the phone they are
      holding at the stand. The frame is given the address only now, so a Brain is never loaded for a person
