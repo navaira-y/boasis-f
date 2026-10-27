@@ -124,6 +124,41 @@ test('the watch runs on a five second beat, once at a time, over a queue that is
     'and with nothing waiting there is no call at all, so the short beat costs the site nothing on a quiet hour');
 });
 
+test('a long queue is read to the end in one pass, and an old row stops being asked about', async () => {
+  const path = require('path'), fs2 = require('fs'), os2 = require('os');
+  const src = fs2.readFileSync(path.join(__dirname, '..', 'lib', 'sharjah-watch.js'), 'utf8');
+  assert.match(src, /for \(let i = 0; i < list\.length; i \+= BATCH\)/,
+    'one pass walks every open row in batches, so a lead cannot sit behind the same first forty for the whole event');
+  assert.match(src, /out\.sort\(\(x, y\) => String\(y\.at/, 'and it walks them newest first, which is who is actually waiting for a mail');
+  assert.match(src, /if \(age > STALE_AFTER && \(s\.sent\.congrats \|\| s\.sent\.reminder\)\)/,
+    'and a row that has had its say and never got a yes is closed a day and a bit later rather than read for a week');
+
+  const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-queue-'));
+  let asked = [];
+  const w = require('../lib/sharjah-watch').create({
+    dir, log: () => {},
+    mail: { notifySparkSharjah: async () => ({ sent: 1 }) },
+    readFacts: async (want) => { asked.push(...want.map(x => x.ref)); return { ok: true, rows: {} }; },
+  });
+  const many = 45;                                     // BATCH is forty, so this is two calls or one starvation
+  for (let n = 0; n < many; n++) {
+    w.note({ ref: 'SN-Q' + String(100000 + n), at: new Date(Date.now() - n * 60000).toISOString(), email: 'a@b.co', name: 'N' });
+  }
+  const r = await w.tick();
+  assert.equal(r.checked, many, 'all of them were looked at in one pass');
+  assert.equal(new Set(asked).size, many, 'and every reference was actually asked about, not the first forty');
+  assert.equal(r.reads, 2, 'in two reads, which is what one call can carry');
+
+  asked = [];
+  const old = w.note({ ref: 'SN-OLDX1', at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(), email: 'a@b.co', name: 'Old' });
+  old.stale = ''; old.sent.reminder = new Date().toISOString();
+  require('../lib/sharjah-watch');                      /* the module is loaded; the mark is written by hand to prove the reader honours it */
+  fs2.writeFileSync(w.stateFile('SN-OLDX1'), JSON.stringify(Object.assign({}, old, { stale: new Date().toISOString(), sent: { congrats: '', paid: '', reminder: new Date().toISOString() } })));
+  const r2 = await w.tick();
+  assert.ok(!asked.includes('SN-OLDX1'), 'and the closed row is not asked about again, so yesterday does not eat today');
+  assert.equal(r2.checked, many, 'the queue is the same length as before, without the closed one');
+});
+
 test('the read through and the closed value still work from one variable', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));
   const ref = 'SN-OFFX01';
