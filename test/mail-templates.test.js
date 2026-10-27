@@ -178,14 +178,16 @@ test('the Sharjah Next mails say what the design file says, and only those three
     /* and it points at the site, never back at the form: a visitor who taps a link in their own congrats
        mail and then types their name again would write a second row for the same person at the stand */
     assert.ok(!/href="[^"]*sharjah-next/.test(m.html), 'so no link in the mail leads back to the form');
-    /* the plain text signs with whoever the html signs as, and the welcome letter is ours, not the park's */
-    const team = m === m2 ? 'BOASIS' : 'SPARK';
-    assert.ok(m.text.includes('The ' + team + ' Team'), 'and its text signs the same way, as The ' + team + ' Team');
+    assert.ok(m.text.includes('The BOASIS Team'), 'and its plain text signs the same name the html does');
   }
-  for (const m of [m1, m3]) assert.ok(m.html.includes('/assets/brand/spark.png'),
-    'and the two stand mails close with the park mark, absolute like the other one');
-  assert.ok(!m2.html.includes('/assets/brand/spark.png') && m2.html.includes('aria-label="BOASIS"'),
-    'and the welcome letter closes with ours instead, because it is a BOASIS letter and not the park\'s');
+  /* the boss's call, twice over: these letters come from us, so all three close with our own wordmark and
+     none of them borrows the park's mark for a signature. The park is named in the band above and in the
+     words below, which is where it belongs */
+  for (const m of [m1, m2, m3]) {
+    assert.ok(m.html.includes('aria-label="BOASIS"') && m.html.includes('/assets/logo/orb-160.png'),
+      'and the foot of the mail is the BOASIS wordmark, the orb as the O, at every one of the three');
+    assert.ok(!m.html.includes('/assets/brand/spark.png'), 'so the park logo is not signed under, in any of them');
+  }
   /* the AI Everything note is another event's words, so a Sharjah row must never be sent it */
   const spark = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
   assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\) \{\s*\n\s*r = await mail\.notifySpark\(/,

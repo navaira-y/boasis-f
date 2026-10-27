@@ -634,7 +634,8 @@ dry run hands the code back to the page instead, which is why a rehearsal can st
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a payment counter
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
-`lib/mail-templates.js`, in their palette and their box, signed The SPARK Team, with the two marks at
+`lib/mail-templates.js`, in their palette and their box, signed The BOASIS Team with our own wordmark
+under the line, with the event mark at
 `https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. The trigger is the submit
 itself: `POST /api/sharjah-lead` mints the reference, records the lead, and hands all three to the mailer,
 which sends each of them once per reference. `SPARK_SN_MAIL=each` repeats them on every submit for the two
