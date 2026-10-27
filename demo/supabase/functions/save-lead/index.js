@@ -20,6 +20,8 @@
  *
  * One way it reads: `action: 'watch'` answers what the Sharjah Next mail watch needs to know before it mails
  * anybody, which is whether the Brain wrote this visitor's row and whether the sheet says yes to the payment.
+ * It is given `want`, a list of `{ ref, pass }` pairs, and it reads the pass table by the pass, because that
+ * is the key and the Brain updates that one row rather than adding another.
  * No kind and no record are wanted on that path, nothing is inserted, and the answer is three words per
  * reference. The same shared key guards it, because a read of who has paid is not a thing to leave open.
  *
@@ -88,27 +90,57 @@ const refOf = row => {
   return cut(d.ref || obj(d.lead).ref || row.ref, 40).toUpperCase();
 };
 
-async function watchRows(sb, refs) {
-  const list = (Array.isArray(refs) ? refs : []).map(r => cut(r, 40).toUpperCase()).filter(Boolean).slice(0, WATCH_REFS);
-  const by = new Map();
-  for (const r of list) by.set(r, { ref: r, brain: false, paid: '', known: false });
+async function watchRows(sb, want) {
+  const list = (Array.isArray(want) ? want : []).slice(0, WATCH_REFS)
+    .map(w => ({ ref: cut(w && w.ref, 40).toUpperCase(), pass: cut(w && w.pass, 24) }))
+    .filter(w => w.ref);
+  const by = new Map(), byPass = new Map();
+  for (const w of list) {
+    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false };
+    by.set(w.ref, v);
+    if (w.pass) byPass.set(w.pass, v);
+  }
   if (!by.size) return { ok: true, rows: [] };
 
-  try {
-    const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
-    for (const row of (data || [])) {
-      const key = refOf(row);
-      if (key && by.has(key) && brainDone(row)) by.get(key).brain = true;
+  /* the pass is the key of that table, and the Brain only ever updates the row create-pass left there, so
+     one lookup by pass is the whole read of the visit. The stand knows the pass because it minted it. */
+  if (byPass.size) {
+    try {
+      const { data } = await sb.from(PASSES).select('*').in('pass', [...byPass.keys()]);
+      for (const row of (data || [])) {
+        const v = byPass.get(String(row.pass));
+        if (v && brainDone(row)) v.brain = true;
+      }
+    } catch (e) {
+      console.log('watch could not read the passes by pass: ' + cut(e && e.message, 60));
     }
-  } catch (e) {
-    console.log('watch could not read the passes: ' + cut(e && e.message, 60));
+  }
+
+  /* a lead with no pass, or a pass the table does not have, is still findable by the reference the site
+     wrote into that row when it asked for one. Recent rows, newest first, which is all a stand of two days
+     ever holds. */
+  const loose = [...by.values()].filter(v => !v.brain);
+  if (loose.length) {
+    const wanted = new Set(loose.map(v => v.ref));
+    try {
+      const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
+      for (const row of (data || [])) {
+        const key = refOf(row);
+        if (key && wanted.has(key)) {
+          const v = by.get(key);
+          if (v && brainDone(row)) v.brain = true;
+        }
+      }
+    } catch (e) {
+      console.log('watch could not read the passes by ref: ' + cut(e && e.message, 60));
+    }
   }
 
   /* the sheet either answers or it does not. When it answers, every reference asked about is settled: a row
      that is not in the sheet is not paid, and that is the truth rather than a gap. When it does not answer,
      `known` stays false and the watch asks again in five minutes rather than mailing a stranger about money
      on the strength of a read that failed */
-  const sheet = await askSheet({ action: 'status', refs: list });
+  const sheet = await askSheet({ action: 'status', refs: [...by.keys()] });
   if (sheet.ok) {
     for (const [, v] of by) v.known = true;
     const rows = Array.isArray(sheet.said.rows) ? sheet.said.rows : [];
@@ -220,7 +252,7 @@ Deno.serve(async (req) => {
     } catch {
       return json({ ok: false, error: "config" }, 500);
     }
-    return json(await watchRows(sb2, body?.refs));
+    return json(await watchRows(sb2, body?.want));
   }
 
   const kind = String(body?.kind || "");

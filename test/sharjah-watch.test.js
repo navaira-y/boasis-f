@@ -21,7 +21,7 @@ test('a submit alone sends nothing, and the congrats waits for the Brain to writ
   const w = watch.create({
     dir, log: () => {},
     mail: { notifySparkSharjah: async (r, kinds) => { sent.push(kinds[0]); return { sent: 1 }; } },
-    readFacts: async (refs) => { asked[refs[0]] = refs.length; return { ok: true, rows: facts }; },
+    readFacts: async (want) => { asked[ref] = want.length; assert.ok(want[0].ref && 'pass' in want[0], 'the pair is what goes out'); return { ok: true, rows: facts }; },
   });
   w.note({ ref, at: new Date().toISOString(), email: 'a@b.co', name: 'Ada Lin' });
 

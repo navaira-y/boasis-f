@@ -224,23 +224,48 @@ const refOf = row => {
   return cut(d.ref || obj(d.lead).ref || row.ref, 40).toUpperCase();
 };
 
-async function watchRows(sb, refs) {
-  const list = (Array.isArray(refs) ? refs : []).map(r => cut(r, 40).toUpperCase()).filter(Boolean).slice(0, WATCH_REFS);
-  const by = new Map();
-  for (const r of list) by.set(r, { ref: r, brain: false, paid: '', known: false });
+async function watchRows(sb, want) {
+  const list = (Array.isArray(want) ? want : []).slice(0, WATCH_REFS)
+    .map(w => ({ ref: cut(w && w.ref, 40).toUpperCase(), pass: cut(w && w.pass, 24) }))
+    .filter(w => w.ref);
+  const by = new Map(), byPass = new Map();
+  for (const w of list) {
+    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false };
+    by.set(w.ref, v);
+    if (w.pass) byPass.set(w.pass, v);
+  }
   if (!by.size) return { ok: true, rows: [] };
 
-  try {
-    const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
-    for (const row of (data || [])) {
-      const key = refOf(row);
-      if (key && by.has(key) && brainDone(row)) by.get(key).brain = true;
+  if (byPass.size) {
+    try {
+      const { data } = await sb.from(PASSES).select('*').in('pass', [...byPass.keys()]);
+      for (const row of (data || [])) {
+        const v = byPass.get(String(row.pass));
+        if (v && brainDone(row)) v.brain = true;
+      }
+    } catch (e) {
+      console.log('watch could not read the passes by pass: ' + cut(e && e.message, 60));
     }
-  } catch (e) {
-    console.log('watch could not read the passes: ' + cut(e && e.message, 60));
   }
 
-  const sheet = await askSheet({ action: 'status', refs: list });
+  const loose = [...by.values()].filter(v => !v.brain);
+  if (loose.length) {
+    const wanted = new Set(loose.map(v => v.ref));
+    try {
+      const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
+      for (const row of (data || [])) {
+        const key = refOf(row);
+        if (key && wanted.has(key)) {
+          const v = by.get(key);
+          if (v && brainDone(row)) v.brain = true;
+        }
+      }
+    } catch (e) {
+      console.log('watch could not read the passes by ref: ' + cut(e && e.message, 60));
+    }
+  }
+
+  const sheet = await askSheet({ action: 'status', refs: [...by.keys()] });
   if (sheet.ok) {
     for (const [, v] of by) v.known = true;
     const rows = Array.isArray(sheet.said.rows) ? sheet.said.rows : [];
@@ -343,7 +368,7 @@ Deno.serve(async (req) => {
     } catch {
       return json({ ok: false, error: "config" }, 500);
     }
-    return json(await watchRows(sb2, body?.refs));
+    return json(await watchRows(sb2, body?.want));
   }
 
   const kind = String(body?.kind || "");
