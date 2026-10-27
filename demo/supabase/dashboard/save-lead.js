@@ -286,7 +286,8 @@ async function pushRecordToSheet(record, o = {}) {
  * the site's own file and the table remains the history.
  *
  * One way it reads: `action: 'watch'` answers what the Sharjah Next mail watch needs to know before it mails
- * anybody, which is whether the Brain wrote this visitor's row and whether the sheet says yes to the payment.
+ * anybody, which is whether the Brain has finished with this visitor's row and whether the sheet says yes to
+ * the payment.
  * It is given `want`, a list of `{ ref, pass }` pairs, and it reads the pass table by the pass, because that
  * is the key and the Brain updates that one row rather than adding another.
  * No kind and no record are wanted on that path, nothing is inserted, and the answer is three words per
@@ -338,15 +339,17 @@ async function askSheet(body, timeoutMs) {
   }
 }
 
-/* the Brain has taken part the moment it has written anything at all about this visitor: one step saved, one
-   turn counted, one last step named. Whether the congrats should wait for the very last step rather than the
-   first is one line here if the event team ever wants it, and not a hunt through the mails */
+/* the last write, not the first one. The letter says the application is in, and that is only true when the
+   Brain has finished with this visitor, which in their own row is the record being frozen or the package or
+   the activities being confirmed. A step saved on the way through is progress and not a finished application,
+   so it must not mail. Should the event team ever name a final step, its name goes in FINAL_STEPS and counts
+   as finishing too, and that is the only change the rule needs. */
+const FINAL_STEPS = [];
+
 function brainDone(row) {
-  const d = obj(row.data), b = obj(d.brain);
-  if (Array.isArray(b.steps_reached) && b.steps_reached.length) return true;
-  if (Array.isArray(row.steps_reached) && row.steps_reached.length) return true;
-  if (String(b.last_step || row.last_step || '').trim()) return true;
-  return Number(b.turns || row.turns || 0) > 0;
+  const d = obj(row.data), b = obj(d.brain), p = obj(b.package), a = obj(b.activities);
+  if (b.frozen === true || p.confirmed === true || a.confirmed === true) return true;
+  return FINAL_STEPS.indexOf(String(b.last_step || row.last_step || '').trim().toLowerCase()) >= 0;
 }
 
 const refOf = row => {

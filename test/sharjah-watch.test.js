@@ -12,6 +12,20 @@ const watch = require('../lib/sharjah-watch');
 
 const refFor = (() => { let n = 0; return () => 'SN-T' + String(++n + 900000).slice(0, 6); })();
 
+test('the congrats waits for the last write of the Brain and not for a step on the way', () => {
+  const fn = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'functions', 'save-lead', 'index.js'), 'utf8');
+  const at = fn.slice(fn.indexOf('function brainDone'), fn.indexOf('const refOf'));
+  assert.ok(/frozen === true/.test(at) && /p\.confirmed === true/.test(at) && /a\.confirmed === true/.test(at),
+    'the rule is the record being frozen or the package or the activities confirmed, which is what finished means in their row');
+  assert.ok(!/steps_reached/.test(at) && !/turns/.test(at),
+    'and one step saved, or a turn counted, is progress rather than an application in, so neither mails anybody');
+  assert.match(fn, /const FINAL_STEPS = \[\];\n\nfunction brainDone/,
+    'and a named final step would be one word into the list sitting above that rule, which is the whole change');
+  const bare = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'paste', 'save-lead.js'), 'utf8');
+  assert.ok(/frozen === true \|\| p\.confirmed === true \|\| a\.confirmed === true/.test(bare) && !/steps_reached.*\)\s*return true/.test(bare),
+    'and the file you paste into the dashboard carries that rule, not the old one');
+});
+
 test('a submit alone sends nothing, and the congrats waits for the Brain to write the row', async () => {
   const ref = 'SN-BRAIN1';
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));

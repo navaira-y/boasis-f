@@ -211,12 +211,12 @@ async function askSheet(body, timeoutMs) {
   }
 }
 
+const FINAL_STEPS = [];
+
 function brainDone(row) {
-  const d = obj(row.data), b = obj(d.brain);
-  if (Array.isArray(b.steps_reached) && b.steps_reached.length) return true;
-  if (Array.isArray(row.steps_reached) && row.steps_reached.length) return true;
-  if (String(b.last_step || row.last_step || '').trim()) return true;
-  return Number(b.turns || row.turns || 0) > 0;
+  const d = obj(row.data), b = obj(d.brain), p = obj(b.package), a = obj(b.activities);
+  if (b.frozen === true || p.confirmed === true || a.confirmed === true) return true;
+  return FINAL_STEPS.indexOf(String(b.last_step || row.last_step || '').trim().toLowerCase()) >= 0;
 }
 
 const refOf = row => {
