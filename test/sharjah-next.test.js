@@ -123,8 +123,8 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
   const t = text(h) + ' ' + text(js.slice(js.indexOf('const T={'), js.indexOf('const root')));
   const need = [
     'Sharjah Next offer · 28 & 29 Oct', 'Your SPARK company, at the event price',
-    'year 1', 'from, year 1', '1 activity', '1 shareholder', 'Free lease',
-    'Beyond', 'AED 1,510', 'Beyond+', 'AED 3,010', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options',
+    'year 1', 'Starting from', '1 activity', '1 shareholder', 'Free lease',
+    'Beyond', 'AED 1,510', 'Beyond+', 'AED 3,010', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options up to 3',
     'For these 6 sectors', 'Sustainability', 'Advanced Manufacturing', 'Mobility & Logistics', 'Healthcare',
     'AI & Digital Transformation', 'Creative',
     "Hi. I'm Mira. A few details, and we start.",
