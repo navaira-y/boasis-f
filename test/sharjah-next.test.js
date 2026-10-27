@@ -66,7 +66,7 @@ test('the event page answers at its address, with its own headers', async () => 
     const csp = r.headers.get('content-security-policy') || '';
     assert.match(csp, /connect-src 'self';/, p + ' may reach nothing but this host, because its lead goes to our own door');
     assert.ok(!/supabase\.co/.test(csp), p + ' is not given leave to reach the database at all');
-    assert.match(csp, /frame-src[^;]*brain\.boasis\.ae/, p + ' frames Mira, and that is the one thing widened for it');
+    assert.match(csp, /frame-src 'self';/, p + ' frames nothing at all now, since the person is sent to the Brain rather than shown it in a box, and a page that cannot frame an origin cannot be leaned on to leak into one');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'and inline script stays forbidden on it');
   }
   const r2 = await get('/js/sharjah-next.js');
@@ -176,7 +176,7 @@ test('the form asks what the design asked, in the fields the record already has'
     'the two names are joined into the one field every door here reads, so the record does not change shape');
 });
 
-test('the button records the lead, checks it the way the site checks it, and opens Mira in the card', () => {
+test('the button records the lead, checks it the way the site checks it, and sends the person to Mira', () => {
   const h = HTML(), js = JS();
   assert.match(h, /data-endpoint="\/api\/sharjah-lead"/, 'the page posts to this site\'s own door, the same host, no key and no second origin');
   assert.ok(!/supabase\.co/.test(h + js), 'nothing in the page names a database, because the browser has no business in one');
@@ -185,10 +185,12 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'the two names the design drew arrive as the one name every form here writes');
   assert.ok(!/data\.page=/.test(js), 'no table is named by the visitor, because the backend is not decided yet');
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
-  assert.match(js, /openFrame\(url, ref, pass\)/, 'and Mira is put in the card where the form was, with that reference and the pass, if there is one');
-  assert.match(h, /<iframe[^>]*id="miraFrame"[^>]*data-src="https:\/\/brain\.boasis\.ae\/"[^>]*referrerpolicy="no-referrer"/,
-    'the frame carries no referrer and starts empty, so a person who only reads the offer asks the Brain for nothing');
-  assert.ok(!/location\.href\s*=/.test(js), 'the page no longer jumps: the record, the receipt and Mira stay on one screen');
+  assert.match(js, /const href=brainHref\(url, ref, pass\);/, 'the address the person is sent to is built once, from the reference and the pass the door answered with');
+  assert.ok(!/<iframe/.test(h), 'there is no frame in the page: the Brain is where they go, not a window inside this page');
+  assert.match(h, /<a class="cta" id="miraLink" href="#" data-src="https:\/\/brain\.boasis\.ae\/">/,
+    'the base address sits on the link with no pass and no reference on it, so a person who reads the offer and walks away never asks the Brain for anything');
+  assert.match(js, /setTimeout\(function\(\)\{ location\.href=href \},900\)/,
+    'and the jump is the last thing a submit does, a moment after the reference is drawn, so the screen can be read before it goes');
   const code = js.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');   // the header names what is not wired, on purpose
   assert.ok(!/localStorage|PASS_RE|get-lead|create-pass/.test(code), 'no pass, no resume, nothing kept in the browser, until the backend is settled');
   assert.match(js, /if\(F\['hp'\]\.value\) return/, 'the honeypot is honoured before anything is posted');
@@ -249,11 +251,11 @@ test('the page cannot be talked into showing, sending or opening anything it was
   assert.ok(/function say\(msg\)[\s\S]*n\.textContent=msg/.test(js), 'and so is the note about the door itself');
   assert.ok(!/\beval\(|new Function|document\.write/.test(js), 'and nothing is compiled or written into the document');
   assert.ok(/function cleanRef\(v\)/.test(js) && /\.slice\(0,40\)/.test(js) && /\[\^A-Za-z0-9_-\]/.test(js),
-    'a reference is clipped to one safe word before it is shown or framed');
+    'a reference is clipped to one safe word before it is shown or put in an address');
   assert.ok(/function safeBase/.test(js) && /\^https\?:/.test(js),
     'and the Brain address is checked to be an http(s) page before it becomes a link or a location');
-  assert.ok(!/location\.href\s*=|location\.assign|window\.open/.test(js),
-    'the page never navigates anywhere: the record, the three mails and Mira stay on one screen');
+  assert.ok(!/window\.open|target="_blank"|location\.assign|location\.replace/.test(js),
+    'one jump, in this tab: no new tab and no replace, so the back button still returns a person to the offer they were shown');
   assert.ok(!/fetch\([^)]*\?[^)]*full_name/.test(js), 'nothing is put in an address, where a shoulder and a history would read it');
   assert.match(h, /<meta name="robots" content="noindex, nofollow">/, 'hidden from the index, in the page');
   assert.ok(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8').includes('Disallow: /sharjah-next'), 'and in the robots file');
@@ -265,7 +267,7 @@ test('the page cannot be talked into showing, sending or opening anything it was
 let JSDOM = null;
 try { JSDOM = require('jsdom').JSDOM; } catch (e) { /* skip below */ }
 
-test('the page as shipped fills itself, validates, joins the names and opens Mira in the card', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
+test('the page as shipped fills itself, validates, joins the names and hands the person to Mira', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
   const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
   const w = dom.window, posts = [];
   w.__pwned = false;
@@ -350,8 +352,8 @@ test('the page as shipped fills itself, validates, joins the names and opens Mir
   assert.ok(!('hp' in body), 'the honeypot field is never posted');
   assert.ok(Number(body._t) >= 1, 'with how long the form was open, for the door to judge');
   assert.equal(d.getElementById('doneView').className.trim(), 'done on', 'the page changes to the ready view the design drew');
-  assert.equal(d.getElementById('miraFrame').getAttribute('src'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
-    'Mira opens in the card, carrying the reference the mails show');
+  assert.equal(d.getElementById('miraLink').getAttribute('href'), 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
+    'and Mira is opened at the address that carries the reference the mails show');
   assert.ok(!w.__pwned, 'and a name written as markup stays a name');
   assert.equal(w.localStorage.length, 0, 'and nothing at all is kept in the browser, because there is no session to resume yet');
 });
@@ -551,7 +553,13 @@ test('the page opens the box, takes six digits, and carries the proof to the doo
 
 test('a pass from the door opens Mira on that person row, and a bad one opens nothing of the sort', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
   const fill = async (answer) => {
-    const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true });
+    /* jsdom cannot leave the page, so a jump it is asked to make arrives as a "not implemented" error
+       on the virtual console. Reading that is the only honest way to see a redirect from here, and it
+       is also what keeps that complaint out of the run. */
+    const vc = new (require('jsdom').VirtualConsole)();
+    let navs = 0;
+    vc.on('jsdomError', e => { if (/navigation/i.test(e.message || '')) navs++ });
+    const dom = new JSDOM(HTML(), { url: 'https://boasis.ae/sharjah-next', runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc });
     const w = dom.window, posts = [];
     w.fetch = (u, o) => {
       posts.push({ url: String(u), body: (o && o.body) || '' });
@@ -569,10 +577,10 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
     d.querySelector('input[name=consent]').checked = true;
     F['emailv'].value = 'PROOF-OK';
     d.querySelector('.cta').click();
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 1100));      // past the pause the page gives the reference
     const out = {
-      src: d.getElementById('miraFrame').getAttribute('src') || '',
       href: d.getElementById('miraLink').getAttribute('href') || '',
+      navs,
       posts: posts.map(p => p.url),
     };
     dom.window.close();
@@ -580,18 +588,20 @@ test('a pass from the door opens Mira on that person row, and a bad one opens no
   };
 
   const withPass = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS4SBM6NN5', brain_url: 'https://brain.boasis.ae' });
-  assert.equal(withPass.src, 'https://brain.boasis.ae?src=sharjah-next&pass=PASS4SBM6NN5&embed=1&ref=SN-K7QF3M',
+  assert.equal(withPass.href, 'https://brain.boasis.ae?src=sharjah-next&pass=PASS4SBM6NN5&ref=SN-K7QF3M',
     'the pass goes to Mira in the address, which is the only credential she needs to write on that row');
-  assert.equal(withPass.href, withPass.src, 'and the link under the frame is the same address, so the two can never open two different visits');
+  assert.ok(!/embed=/.test(withPass.href), 'and nothing asks the Brain to hide its own header, because this is a whole page now rather than a box inside one');
+  assert.equal(withPass.navs, 1, 'the page jumps once and no more, in the tab it was already in');
   assert.deepEqual(withPass.posts, ['/api/sharjah-lead'], 'and the page still speaks to one door, our own: it never reaches the project directly');
 
   const junk = await fill({ ok: true, ref: 'SN-K7QF3M', pass: 'PASS123', brain_url: 'https://brain.boasis.ae' });
-  assert.ok(!/pass=/.test(junk.src), 'a string that is not a shaped pass is not sent anywhere, because it is a row key');
-  assert.equal(junk.src, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M', 'the visit opens on the reference alone, the way it did before passes');
+  assert.ok(!/pass=/.test(junk.href), 'a string that is not a shaped pass is not sent anywhere, because it is a row key');
+  assert.equal(junk.href, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M', 'the visit opens on the reference alone, the way it did before passes');
 
   const none = await fill({ ok: true, ref: 'SN-K7QF3M', brain_url: 'https://brain.boasis.ae' });
-  assert.equal(none.src, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
-    'and a door that could not mint a pass still hands over a working page: no pass is a smaller record, never a lost lead');
+  assert.equal(none.href, 'https://brain.boasis.ae?src=sharjah-next&ref=SN-K7QF3M',
+    'and a door that could not mint a pass still hands the person over to Mira: no pass is a smaller record, never a lost lead');
+  assert.equal(none.navs, 1, 'and it is a jump either way, so a sleeping project never leaves a person standing on a dead end');
 });
 
 test('nothing on the site links it, every crawler is told to leave it out, and no sitemap names it', async () => {

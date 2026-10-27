@@ -66,33 +66,49 @@ does not arrive in a Google file by itself.
 
 ## The columns, and whose they are
 
-Thirteen, in the order the boss's header row has them, found by the words in row 1 rather than by
-counting from the left, which is what lets a table with somebody else's columns in the middle be written
-into without writing over them:
+Sixteen, in the order the boss's header row has them, found by the words in row 1 rather than by counting
+from the left, which is what lets a table with somebody else's columns in the middle be written into
+without writing over them:
 
 | column | filled by |
 |---|---|
 | Unique Reference No | the `SN-XXXXXX` the stand quotes and the email carries |
 | Started | when the row was created, which for a form at the desk is the moment it was accepted |
 | Submitted at | the last write we made about that person, so a finished visit reads later than a half one |
-| Shareholder Name | the name they typed |
+| Name | the name they typed, in a column of its own, because the form asks for a name |
+| Shareholder Name | the same name, and only while that cell is empty: from the first write on it is hers to keep |
 | Email ID | their address, which is also how a row is found again |
 | Mobile Number | the number, dial code first |
 | Sector | what they said they do, in their words |
 | No of shareholders | from the package step |
-| Confirmed activities | the activities they picked |
+| Confirmed activity | the activities they picked |
 | Package | the package they were shown and agreed |
 | Visa Quota | from the package step |
 | Est. total | the estimate, held as a number so the column can be totalled |
-| Agreed | the tick on the form, and the only header we add: it goes after her last column, never inside them |
+| Agreed | the tick on the form |
+| Offer | which offer the page was reached from, so the two stands can be counted apart in one table |
+| Code | the dial code on its own, which is what a follow up call needs before the number is dialed |
 
-`Stage`, `Reminder sent`, `Payment complete` and `Receipt number` are the team's own columns and are never
-opened by us: a run of our cells is written, then broken at the first column that is not ours, so a value
-someone typed in the middle of the row survives every post we make, and a date or a formula there is never
-carried back out as text by us. Nothing is written as `no` for a payment we did not see, which is
-why a paid row and an unpaid row look the same to the script and different to whoever is working the list.
-The agreement tick, the dial code on its own and the In the UAE answer are not written either, because
-there is no column for them in her table, and a field nobody asked for is a field nobody reads.
+`Shareholder Name` is prefilled by the rule `{ from: 'full_name', first: 1 }` on its line in `CONFIG.COLS`:
+the value is borrowed from another field, and a cell that already holds something is never changed. That
+is the difference between a form saving somebody the time of typing it twice and a script overwriting what
+the Brain or a desk has since put there.
+
+`Stage`, `Reminder sent`, `Payment Completed` and `Receipt Number` are the team's own columns. They are
+part of the table, so a tab that arrives with no header row at all gets them laid down by this file, and
+they are never appended to a table that already has headers, because beside a header a person typed there
+would be a second one with a spelling close enough for a person and not for a matcher. Nothing is ever
+written into them: a run of our cells is written, then broken at the first column that is not ours, so a
+value someone typed in the middle of the row survives every post we make, and a date or a formula there is
+never carried back out as text by us. Nothing is written as `no` for a payment we did not see, which is why
+a paid row and an unpaid row look the same to the script and different to whoever is working the list.
+
+The one thing we do set there is the choice itself. `CONFIG.DROPDOWNS` names a header and its allowed
+answers, and the script puts that dropdown on the whole column from the first row of data down, five
+hundred rows deep, once per header layout rather than once per post. So the `yes` and `no` arrow is on the
+row the script made at two in the afternoon as surely as on the one a person typed that morning, which a
+dropdown painted onto the first two rows by hand is not. It is only ever the arrow: the cell stays as it
+was, because a payment nobody saw is nobody's `yes`.
 
 ## Changing what the boss reads
 
