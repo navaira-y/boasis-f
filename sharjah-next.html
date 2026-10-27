@@ -80,7 +80,9 @@ select{appearance:none; -webkit-appearance:none; background-image:url("data:imag
    can push the page sideways at any width. Nothing is asked of the person under it either: the frame
    either arrives or the visit is not started, and one more line to read and one more thing to press is
    how a busy desk loses somebody. */
-.brain{border:1px solid var(--night); border-radius:14px; overflow:hidden; background:var(--night)}
+/* half a pixel, because every pixel of this is a pixel the Brain does not get, and on a phone screen
+   it is still a line you can see */
+.brain{border:0.5px solid var(--night); border-radius:12px; overflow:hidden; background:var(--night)}
 .brain iframe{display:block; width:100%; height:min(78vh,780px); border:0; background:var(--bo-night)}
 
 /* L'offre : les deux packages côte à côte, même sur téléphone */
@@ -235,7 +237,10 @@ footer .brand img{filter:drop-shadow(0 0 10px rgba(95,211,232,.45))}
 }
 /* Tablette paysage et ordinateur : formulaire à gauche, offre à droite */
 @media (min-width:1000px){
-  .wrap{max-width:1120px}
+  /* ten more pixels on each side on a desktop: the green offer and the row under it are the two the
+     person actually works in, and they get them. The header and the footer ride along on the same rule
+     so the left edges of the page still fall in one line. */
+  .wrap{max-width:1140px}
   .main{grid-template-columns:1.05fr .95fr; align-items:start}
   .main>.card:first-child{grid-row:span 2; position:sticky; top:20px}
   .steps{grid-template-columns:1fr}

@@ -195,8 +195,10 @@ test('the button records the lead, checks it the way the site checks it, and ope
     'and there is no spare way out under the frame at all, because a second thing to press is how a desk loses a person');
   assert.ok(!/data-k="doneH"|data-k="doneP"|class="done"[^>]*>\s*<img/.test(h),
     'and the ready view is the frame alone: no headline, no ring, nothing a person has to read past');
-  assert.match(h, /\.brain\{border:1px solid var\(--night\); border-radius:14px; overflow:hidden; background:var\(--night\)\}/,
-    'the Mira black sits around the frame as a hairline and behind it while it fills, so the panel reads as one object and not as a card');
+  assert.match(h, /\.brain\{border:0\.5px solid var\(--night\); border-radius:12px; overflow:hidden; background:var\(--night\)\}/,
+    'the Mira black sits around the frame as half a pixel of hairline and behind it while it fills, because every pixel of border is a pixel the Brain does not get');
+  assert.match(h, /\.wrap\{max-width:1140px\}/,
+    'and at desktop width the row the offer and the card live in is ten pixels wider on each side, the two containers the person works in, with the header and the footer on the same rule so the edges still line up');
   assert.match(h, /class="card side"/, 'the four points are named for what they are, so the page can put them away');
   assert.match(h, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/,
     'and the moment Mira is open the card takes the whole width, which is what the other page does and the only way a framed app is workable on a tablet at a stand');
