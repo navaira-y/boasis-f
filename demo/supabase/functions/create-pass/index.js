@@ -82,9 +82,11 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "storage" }, 500);
   }
 
-  /* and the row of cells in the stand's sheet, after the row is safe and never before it, in a call
-     that cannot make this one fail: a sheet that is asleep costs the visitor nothing at all */
-  await pushLeadToSheet(lead, { table });
+  /* and the row of cells in the stand's sheet, after the row is safe and never before it. Handed to
+     the runtime rather than awaited: the sheet budgets 3500ms and the site abandons the mint at
+     4000ms, so waiting here is how a written row ends up with nobody holding its pass. */
+  const sheet = pushLeadToSheet(lead, { table }).catch(() => {});
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(sheet);
 
   return json({ ok: true, pass, brain_url: Deno.env.get("BRAIN_URL") || "" });
 });
