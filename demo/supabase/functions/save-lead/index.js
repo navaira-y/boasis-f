@@ -75,17 +75,17 @@ async function askSheet(body, timeoutMs) {
   }
 }
 
-/* the last write, not the first one. The letter says the application is in, and that is only true when the
-   Brain has finished with this visitor, which in their own row is the record being frozen or the package or
-   the activities being confirmed. A step saved on the way through is progress and not a finished application,
-   so it must not mail. Should the event team ever name a final step, its name goes in FINAL_STEPS and counts
-   as finishing too, and that is the only change the rule needs. */
-const FINAL_STEPS = [];
+/* the last write, and only that one. At this event the end of the conversation with Mira is the step their
+   side saves as `package`, the offer chosen and shown, with nothing after it, so the rule is that name and no
+   other. A step saved on the way through is progress and not an application in, and the letter this triggers
+   reads "your application is in", so it waits. If the Brain ever learns to save a step after `package`, the
+   name is added to the list below rather than the rule being moved, and that is a word and not a hunt. */
+const FINAL_STEPS = ['package'];
 
 function brainDone(row) {
-  const d = obj(row.data), b = obj(d.brain), p = obj(b.package), a = obj(b.activities);
-  if (b.frozen === true || p.confirmed === true || a.confirmed === true) return true;
-  return FINAL_STEPS.indexOf(String(b.last_step || row.last_step || '').trim().toLowerCase()) >= 0;
+  const d = obj(row.data), b = obj(d.brain);
+  const last = String(b.last_step || row.last_step || '').trim().toLowerCase();
+  return FINAL_STEPS.indexOf(last) >= 0;
 }
 
 const refOf = row => {

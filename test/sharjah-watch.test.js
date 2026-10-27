@@ -15,15 +15,13 @@ const refFor = (() => { let n = 0; return () => 'SN-T' + String(++n + 900000).sl
 test('the congrats waits for the last write of the Brain and not for a step on the way', () => {
   const fn = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'functions', 'save-lead', 'index.js'), 'utf8');
   const at = fn.slice(fn.indexOf('function brainDone'), fn.indexOf('const refOf'));
-  assert.ok(/frozen === true/.test(at) && /p\.confirmed === true/.test(at) && /a\.confirmed === true/.test(at),
-    'the rule is the record being frozen or the package or the activities confirmed, which is what finished means in their row');
-  assert.ok(!/steps_reached/.test(at) && !/turns/.test(at),
-    'and one step saved, or a turn counted, is progress rather than an application in, so neither mails anybody');
-  assert.match(fn, /const FINAL_STEPS = \[\];\n\nfunction brainDone/,
-    'and a named final step would be one word into the list sitting above that rule, which is the whole change');
+  assert.match(at, /FINAL_STEPS\.indexOf\(last\) >= 0/, 'the rule is the named final step of the visit, that step and no other');
+  assert.ok(!/steps_reached/.test(at) && !/turns/.test(at) && !/frozen/.test(at) && !/confirmed/.test(at),
+    'and a step saved on the way, a turn counted, or a flag set early is progress rather than an application in, so none of them mails anybody');
+  assert.match(fn, /const FINAL_STEPS = \['package'\];/,
+    'and the name is the one the Brain writes at the end of this event, package, in a list so a second name is one word');
   const bare = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'paste', 'save-lead.js'), 'utf8');
-  assert.ok(/frozen === true \|\| p\.confirmed === true \|\| a\.confirmed === true/.test(bare) && !/steps_reached.*\)\s*return true/.test(bare),
-    'and the file you paste into the dashboard carries that rule, not the old one');
+  assert.match(bare, /const FINAL_STEPS = \['package'\];/, 'and the file you paste into the dashboard carries the same rule, not the old one');
 });
 
 test('a submit alone sends nothing, and the congrats waits for the Brain to write the row', async () => {

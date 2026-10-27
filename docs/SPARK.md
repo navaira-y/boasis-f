@@ -640,9 +640,9 @@ relative: the Sharjah Next mark at the left of the band and the blue SPARK park 
 the printed date used to have. There is no button in these three, on purpose: the action is a walk to a counter
 with a reference in hand, and a pill into the site only invites a second form from a person already at the desk. The trigger is the thing
 the mail is about, not the submit, and the rules live in `lib/sharjah-watch.js`: the congrats goes once the
-Brain has *finished* with this visitor's row in `sharjah_next_passes`, which in their data is
-`data.brain.frozen`, `data.brain.package.confirmed` or `data.brain.activities.confirmed`, and not a step
-saved on the way through, because the letter says the application is in and that is only true at the end;
+Brain has saved its last step on this visitor's row in `sharjah_next_passes`, which is `last_step` reading
+`package` and nothing earlier, because the letter says the application is in and that is only true at the end
+of the conversation;
 the welcome letter goes when the sheet says `yes` in `Payment Completed`, which is
 read from the sheet through the same hook that writes into it (`action: 'status'`, two columns, the same
 secret, nothing written); and the nudge goes ninety minutes after the form, and only when the sheet actually
