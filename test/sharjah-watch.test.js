@@ -124,6 +124,44 @@ test('the watch runs on a five second beat, once at a time, over a queue that is
     'and with nothing waiting there is no call at all, so the short beat costs the site nothing on a quiet hour');
 });
 
+test('a letter goes once even when the box runs this app twice', async () => {
+  const path = require('path'), fs2 = require('fs'), os2 = require('os');
+  const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-two-'));
+  const made = [];
+  const watch = require('../lib/sharjah-watch');
+  const mk = (tag) => watch.create({
+    dir, log: () => {},
+    mail: { notifySparkSharjah: async (rec, kinds) => { made.push(tag + ':' + rec.ref + ':' + kinds[0]); return { sent: 1 }; } },
+    readFacts: async () => ({ ok: true, rows: { 'SN-TWICE1': { brain: true, paid: 'no', known: true } } }),
+  });
+  const a = mk('a'), b = mk('b');
+  a.note({ ref: 'SN-TWICE1', at: new Date().toISOString(), email: 't@e.co', name: 'Two' });
+  const r1 = await a.tick();
+  const r2 = await b.tick();
+  assert.equal(r1.sent, 1, 'the first one to look sent it');
+  assert.equal(r2.sent, 0, 'the second found the claim on the disk and kept quiet, which is the shape of a box with two copies of the app running');
+  assert.deepEqual(made, ['a:SN-TWICE1:congrats'], 'and exactly one letter was made between the two of them');
+  const claims = fs2.readdirSync(path.join(dir, 'sharjah-next')).filter(n => n.indexOf('claim-') === 0);
+  assert.deepEqual(claims, ['claim-SN-TWICE1-congrats'], 'and the claim is a file beside the queue, so a restart cannot forget it');
+
+  const dir2 = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-fail-'));
+  let tries = 0;
+  const c = watch.create({
+    dir: dir2, log: () => {},
+    mail: { notifySparkSharjah: async () => { tries++; return tries === 1 ? { sent: 0 } : { sent: 1 }; } },
+    readFacts: async () => ({ ok: true, rows: { 'SN-FAIL01': { brain: true, paid: 'no', known: true } } }),
+  });
+  c.note({ ref: 'SN-FAIL01', at: new Date().toISOString(), email: 'f@e.co', name: 'Fail' });
+  const claim = path.join(dir2, 'sharjah-next', 'claim-SN-FAIL01-congrats');
+  const f1 = await c.tick();
+  assert.equal(f1.sent, 0, 'the first pass could not send');
+  assert.ok(!fs2.existsSync(claim),
+    'and it handed the claim back rather than leaving that person without a letter for the rest of the event');
+  const f2 = await c.tick();
+  assert.equal(f2.sent, 1, 'so the next pass sent it, and a letter that never reached the postbag is not a letter marked as posted');
+  assert.ok(fs2.existsSync(claim), 'and a letter that did go keeps its claim, so a restart cannot post it a second time');
+});
+
 test('a long queue is read to the end in one pass, and an old row stops being asked about', async () => {
   const path = require('path'), fs2 = require('fs'), os2 = require('os');
   const src = fs2.readFileSync(path.join(__dirname, '..', 'lib', 'sharjah-watch.js'), 'utf8');

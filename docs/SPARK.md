@@ -651,8 +651,10 @@ answered and did not say yes. The stand's submit opens one small file per refere
 is never mailed. A timer inside the app walks it every five seconds, one pass at a time and only as far as
 the queue reaches, unref'd so it cannot hold a shutdown, and `node scripts/sharjah-watch.js` walks it once by
 hand. Nothing is marked as sent when a read fails, so
-an outage delays a mail rather than losing it, and the duplicate rule per reference and per mail is what
-stops a second pass sending a copy. `SPARK_SN_MAIL=submit` and `=each` are the read through, where all three
+an outage delays a mail rather than losing it. Each letter also takes a *claim file* beside the queue before
+it goes, so a second pass, a restart, or a box running two copies of the app cannot send a copy of the same
+mail: the claim is on the disk rather than in a process's memory, and a letter that never reached the postbag
+hands its claim back so the next pass tries again. `SPARK_SN_MAIL=submit` and `=each` are the read through, where all three
 go at the submit for somebody sitting at a desk, and `SPARK_SN_MAIL=off` closes the mails and the timer
 together. No second door sends them: the receipt call used to as well, and two doors were six mails for one
 visitor. When the real schedule is settled, the
