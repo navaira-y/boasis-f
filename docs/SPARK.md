@@ -634,9 +634,11 @@ dry run hands the code back to the page instead, which is why a rehearsal can st
 **The three mails, and when they go.** The event team drew them (`spark-email.html`): a congrats with
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a payment counter
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
-`lib/mail-templates.js`, in their palette and their box, signed The BOASIS Team with our own wordmark
-under the line, with the event mark at
-`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. The trigger is the thing
+`lib/mail-templates.js`, in their palette and their box, signed The BOASIS Team with our own wordmark under
+the line, and with both event marks at `https://boasis.ae/assets/brand/` because a mail client fetches nothing
+relative: the Sharjah Next mark at the left of the band and the blue SPARK park mark at its right, in the corner
+the printed date used to have. There is no button in these three, on purpose: the action is a walk to a counter
+with a reference in hand, and a pill into the site only invites a second form from a person already at the desk. The trigger is the thing
 the mail is about, not the submit, and the rules live in `lib/sharjah-watch.js`: the congrats goes once the
 Brain has written this visitor's row in `sharjah_next_passes`, which is the only proof we have that the
 conversation happened; the welcome letter goes when the sheet says `yes` in `Payment Completed`, which is
