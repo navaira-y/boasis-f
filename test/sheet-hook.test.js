@@ -230,9 +230,9 @@ test('the comment free copies are the same code, and only the same code', () => 
 function sheetApi(rows) {
   const grid = (rows || [[]]).map(r => r.slice());
   const str = v => v === undefined || v === null ? '' : String(v);
-  const formats = [], widths = [];
+  const formats = [], widths = [], validations = [];
   const api = {
-    grid, formats, widths,
+    grid, formats, widths, validations,
     getName: () => 'Sheet1',
     getSheetId: () => 7,
     getMaxRows: () => grid.length,
@@ -263,6 +263,7 @@ function sheetApi(rows) {
       },
       setValue: v => { grid[r - 1] = grid[r - 1] || []; grid[r - 1][c - 1] = str(v) },
       setNumberFormat: f => { formats.push({ from: c, to: c + nc - 1, f }) },
+      setDataValidation: v => { validations.push({ from: c, to: c + nc - 1, startRow: r, rows: nr, opt: v && v.opt }) },
     }),
   };
   return api;
@@ -279,13 +280,21 @@ function theScript(rows) {
     Utilities: { getUuid: () => 'uuid' },
     console: { log: () => { } },
   };
+  shims.SpreadsheetApp.newDataValidation = () => {
+    const b = {
+      requireValueInList: (opt) => { b.opt = opt; return b },
+      setAllowInvalid: () => b,
+      build: () => ({ opt: b.opt }),
+    };
+    return b;
+  };
   const made = new Function(...Object.keys(shims), src + '\nreturn { CONFIG, header, writeLeads, tab, findRow, clean, number };');
   return Object.assign(made(...Object.values(shims)), { shims, props });
 }
 
 /* her real header row, in her spellings, with the plurals and the caps the way a person types them */
 const HEADS = ['Unique Reference No', 'Started', 'Submitted at', 'Shareholder Name', 'Email ID', 'Mobile Number', 'Sector',
-  'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'];
+  'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota', 'Est. total', 'Stage', 'Reminder sent', 'Payment Completed', 'Receipt Number'];
 
 test('her table is written into, not over: her headers, her four cells, and the name in its own column', () => {
   const rows = [HEADS.slice(), ['', '', '', '', 'm@boasis.ae', '', '', '', '', '', '', '', 'Contacted', 'sent today', 'no', 'R-11']];
@@ -310,6 +319,12 @@ test('her table is written into, not over: her headers, her four cells, and the 
   assert.equal(got[11], '27189.75', 'and Est. total is a number, which is the column that threw before');
   assert.deepEqual([got[12], got[13], got[14], got[15]], ['Contacted', 'sent today', 'no', 'R-11'],
     'Stage, Reminder sent, Payment Complete and Receipt Number came through exactly as they were');
+  assert.equal(sh.grid[0].length, 20, 'nothing of hers is appended beside her own headers, not even a plural apart');
+  const dd = sh.validations.filter(v => v.opt && v.opt.join('/') === 'yes/no');
+  assert.equal(dd.length, 1, 'the yes and no box is laid on her Payment Completed column');
+  assert.equal(dd[0].from, 15, 'on that column alone, and from the first row of data down');
+  assert.equal(dd[0].startRow, 2, 'starting at the first row of data, her header row keeps its own shape');
+  assert.ok(dd[0].rows >= 500, 'and over rows that do not exist yet, so the arrow is there on the 400th lead too');
   assert.equal(got[16], 'Mehran Zare', 'the name the desk asked for gets a column of its own');
   assert.equal(got[17], 'yes', 'Agreed was appended after hers rather than dropped');
   assert.equal(got[18], 'Sharjah Next offer', 'and so was the offer they took at the desk');
@@ -343,7 +358,7 @@ test('a sender that knows one field rewrites one field, and a table with no head
   const built = t.header(blank, t.CONFIG.COLS, t.CONFIG.COLS_TEAM);
   assert.deepEqual(blank.grid[0], ['Unique Reference No', 'Started', 'Submitted at', 'Name', 'Shareholder Name',
     'Email ID', 'Mobile Number', 'Sector', 'No of shareholders', 'Confirmed activity', 'Package', 'Visa Quota',
-    'Est. total', 'Agreed', 'Offer', 'Code', 'Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
+    'Est. total', 'Agreed', 'Offer', 'Code', 'Stage', 'Reminder sent', 'Payment Completed', 'Receipt Number'],
     'the whole row, ours in the order the file lists them and then the four the team types into');
   assert.equal(built['price_aed'], 13, 'and the map points at the right one of them');
 });

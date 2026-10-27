@@ -27,7 +27,11 @@ var CONFIG = {
     { f: 'country_code',      h: 'Code',                w: 80 }
   ],
 
-  COLS_TEAM: ['Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
+  COLS_TEAM: ['Stage', 'Reminder sent', 'Payment Completed', 'Receipt Number'],
+
+  DROPDOWNS: [
+    { h: 'Payment Completed', options: ['yes', 'no'] }
+  ],
 
   ACOLS: [
     { f: 'ref', h: 'Reference', w: 110 },
@@ -187,6 +191,9 @@ function header(sh, cols) {
   var taken = 0, i, c;
   for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') taken = i + 1; }
 
+  var fresh = true;
+  for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') { fresh = false; break } }
+
   var at = {}, used = {}, want = [], added = 0;
   var norm = function (t) {
     return String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/ s$/, '');
@@ -207,7 +214,7 @@ function header(sh, cols) {
       if (found) { at[cols[i].f] = found; used[found] = 1; }
       else if (pass === 2) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
     }
-    if (pass === 2) {
+    if (pass === 2 && fresh) {
 
       var extra = arguments[2] || [];
       for (i = 0; i < extra.length; i++) {
@@ -230,6 +237,8 @@ function header(sh, cols) {
 
   var sig = [], k;
   for (i = 0; i < cols.length; i++) sig.push(cols[i].f + '@' + at[cols[i].f] + '=' + cols[i].h);
+  var dts = CONFIG.DROPDOWNS || [];
+  for (i = 0; i < dts.length; i++) sig.push('dd:' + dts[i].h + '=' + (dts[i].options || []).join('/'));
   var props = PropertiesService.getScriptProperties();
   var mark = 'boasis.header.' + sh.getSheetId();
   var join = sig.join('|');
@@ -239,6 +248,20 @@ function header(sh, cols) {
       sh.setColumnWidth(at[cols[i].f], cols[i].w || 120);
 
       if (!cols[i].n) sh.getRange(2, at[cols[i].f], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+    }
+
+    for (i = 0; i < dts.length; i++) {
+      var word2 = String(dts[i].h).trim().toLowerCase();
+      var dcol = 0;
+      for (c = 0; c < have.length; c++) {
+        if (String(have[c]).trim().toLowerCase() === word2 || norm(have[c]) === norm(word2)) { dcol = c + 1; break }
+      }
+      if (!dcol) continue;
+      var rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(dts[i].options || ['yes', 'no'], true)
+        .setAllowInvalid(false)
+        .build();
+      sh.getRange(2, dcol, Math.max(500, sh.getMaxRows()), 1).setDataValidation(rule);
     }
     props.setProperty(mark, join);
   }

@@ -70,7 +70,14 @@ var CONFIG = {
   /* the four columns that belong to whoever works the list. They are part of the table, they are made
      here if the table ever starts out without them, and no value of ours is ever written into them: a
      row is not paid, reminded, staged or receipted by a form at a desk */
-  COLS_TEAM: ['Stage', 'Reminder sent', 'Payment Complete', 'Receipt Number'],
+  COLS_TEAM: ['Stage', 'Reminder sent', 'Payment Completed', 'Receipt Number'],
+
+  /* the boxes a person clicks in her table. We never write the value, we make sure the choice is
+     sitting there on every row of that column, the rows that exist and the rows that do not yet, because
+     a dropdown typed onto the first two rows runs out by the second morning of the event */
+  DROPDOWNS: [
+    { h: 'Payment Completed', options: ['yes', 'no'] }
+  ],
 
   /* the answers tab, one row per question, oldest first */
   ACOLS: [
@@ -261,6 +268,9 @@ function header(sh, cols) {
   var taken = 0, i, c;
   for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') taken = i + 1; }
 
+  var fresh = true;
+  for (i = 0; i < have.length; i++) { if (String(have[i]).trim() !== '') { fresh = false; break } }
+
   var at = {}, used = {}, want = [], added = 0;
   var norm = function (t) {
     return String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/ s$/, '');
@@ -284,10 +294,12 @@ function header(sh, cols) {
       if (found) { at[cols[i].f] = found; used[found] = 1; }
       else if (pass === 2) { taken += 1; at[cols[i].f] = taken; used[taken] = 1; want.push({ col: taken, h: cols[i].h }); added++; }
     }
-    if (pass === 2) {
-      /* the team's own headers go in the table last of all, so one list is the whole shape of the row
-         and a fresh sheet at the next event is ready to be typed into rather than half built. They are
-         matched the same forgiving way as ours, because the aim is to find her column, not to add one */
+    if (pass === 2 && fresh) {
+      /* the team's own headers are laid out last of all, and only on a tab that has no headers at all:
+         that is the case where one list really is the whole shape of the row and a fresh sheet at the
+         next event is not left half built. On a table somebody already typed into we add nothing of
+         theirs, because `Payment Completed` and `Payment Complete` are the same column to a person and
+         two columns to a matcher, and a helper script has no business deciding that argument */
       var extra = arguments[2] || [];
       for (i = 0; i < extra.length; i++) {
         var h2 = String(extra[i]), hit = 0;
@@ -312,6 +324,8 @@ function header(sh, cols) {
      name that changes brings them back without any of us remembering to ask */
   var sig = [], k;
   for (i = 0; i < cols.length; i++) sig.push(cols[i].f + '@' + at[cols[i].f] + '=' + cols[i].h);
+  var dts = CONFIG.DROPDOWNS || [];
+  for (i = 0; i < dts.length; i++) sig.push('dd:' + dts[i].h + '=' + (dts[i].options || []).join('/'));
   var props = PropertiesService.getScriptProperties();
   var mark = 'boasis.header.' + sh.getSheetId();
   var join = sig.join('|');
@@ -323,6 +337,21 @@ function header(sh, cols) {
          arriving as a formula; the few columns meant for adding up are left numeric on purpose. Ours
          only: her columns keep whatever format she gave them */
       if (!cols[i].n) sh.getRange(2, at[cols[i].f], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+    }
+    /* the dropdowns are laid on the whole column, not on the rows of this post: a person at a desk
+     should find the arrow on the row the script just made as surely as on the one before it */
+    for (i = 0; i < dts.length; i++) {
+      var word2 = String(dts[i].h).trim().toLowerCase();
+      var dcol = 0;
+      for (c = 0; c < have.length; c++) {
+        if (String(have[c]).trim().toLowerCase() === word2 || norm(have[c]) === norm(word2)) { dcol = c + 1; break }
+      }
+      if (!dcol) continue;                       /* she renamed it, so it is not ours to re make */
+      var rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(dts[i].options || ['yes', 'no'], true)
+        .setAllowInvalid(false)
+        .build();
+      sh.getRange(2, dcol, Math.max(500, sh.getMaxRows()), 1).setDataValidation(rule);
     }
     props.setProperty(mark, join);
   }
