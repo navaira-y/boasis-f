@@ -570,7 +570,8 @@ the form was, and stays put: no redirect, nothing in `localStorage`. There is no
 on purpose: a stand is a shared tablet, so the way back to a row is the address, which `create-pass`
 already looks up, rather than a pass sitting in somebody else's browser. With no pass the page still
 opens Mira on the reference alone, which is why the mint is allowed to fail quietly and why the lead is
-written before it is ever tried. Nothing is mailed unless `SPARK_SN_MAIL` says otherwise. And because the
+written before it is ever tried. The three event mails go on that same submit, once per reference, and
+`SPARK_SN_MAIL=off` is what stills them. And because the
 page touches no database, since our server is the only thing that calls the project, its
 `Content-Security-Policy` stays narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
 all, and `frame-src https://brain.boasis.ae` as the single widening.
@@ -634,10 +635,12 @@ dry run hands the code back to the page instead, which is why a rehearsal can st
 the reference number, a paid receipt with Mira's photo and the two Instagram accounts, and a payment counter
 nudge for an unpaid hour and a half. They are `sharjahCongrats`, `sharjahPaid` and `sharjahReminder` in
 `lib/mail-templates.js`, in their palette and their box, signed The SPARK Team, with the two marks at
-`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. Nothing is mailed yet: the trigger was
-tried, read, and then withdrawn by the event team, so `SPARK_SN_MAIL` defaults to `off` and a submit
-only records the lead. The three are one value away when the schedule is settled (see `LEADS.md` and
-this file's next paragraph). When the real schedule is settled, the
+`https://boasis.ae/assets/brand/` because a mail client fetches nothing relative. The trigger is the submit
+itself: `POST /api/sharjah-lead` mints the reference, records the lead, and hands all three to the mailer,
+which sends each of them once per reference. `SPARK_SN_MAIL=each` repeats them on every submit for the two
+days somebody is reading them in an inbox, and `SPARK_SN_MAIL=off` stills them entirely, which is the value
+to set the day the paid receipt has to wait for an actual payment. No second door sends them: the receipt
+call used to as well, and two doors were six mails for one visitor. When the real schedule is settled, the
 second and third move to whatever answers it (a payment webhook, or a timer for the 90 minute nudge) and
 the subjects do not change. A Sharjah Next row is never sent the AI Everything note, because that one
 thanks a different event. `docs/mail/sharjah-1-congrats.html` and its two siblings are the three,

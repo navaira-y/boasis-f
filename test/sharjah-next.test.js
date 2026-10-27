@@ -693,10 +693,11 @@ test('the stand leads sit in their own table, and one door writes to both', () =
     'and the file you paste into the dashboard is exactly that, table map inside it');
 });
 
-test('the three mails have no trigger today, and one value away from having one', () => {
+test('the button on the page is the trigger for the three mails, and one value stills them', () => {
   const spark = read('lib/spark.js');
-  assert.match(spark, /process\.env\.SPARK_SN_MAIL \|\| 'off'/, 'off unless the event team says otherwise, so a submit records and stays quiet');
-  assert.ok(!/SPARK_SN_MAIL \|\| 'submit'/.test(spark), 'the testing default is gone, it was only ever for the read through');
+  assert.match(spark, /SPARK_SN_MAIL \|\| 'submit'/, 'a form in means the three go out, with nothing set on the server at all');
+  assert.match(spark, /if \(mode !== 'off'\)/, 'and the one value that stills them is off, which hPanel can set on its own');
+  assert.ok(!/const SN_TRIGGER/.test(spark), 'and exactly one door sends them, so nobody is mailed twice for one reference');
 });
 
 test('the two tables are the same shape, and each entrance writes to its own', () => {
