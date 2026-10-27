@@ -2,6 +2,9 @@
 /* One pass of the three Sharjah Next triggers, run by hand instead of waiting for the timer:
 
      BOASIS_NO_ENV_FILE=1 node scripts/sharjah-watch.js
+/* Running this while the app is up is safe on purpose: a letter is claimed on the disk before it is
+   posted, so the two of them cannot send the same mail twice. The app's own beat is five seconds, so
+   this exists to answer "did it go?" right now rather than waiting for the next pass. */
 
    It reads the stand's own queue in the data directory, asks the project what the visit and the sheet say
    about each reference, sends whichever mail is due, and prints what it did. Running it twice is safe for

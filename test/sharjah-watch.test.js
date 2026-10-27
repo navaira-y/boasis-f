@@ -124,6 +124,30 @@ test('the watch runs on a five second beat, once at a time, over a queue that is
     'and with nothing waiting there is no call at all, so the short beat costs the site nothing on a quiet hour');
 });
 
+test('a second submit of the same reference does not re-arm the letters', async () => {
+  const path = require('path'), fs2 = require('fs'), os2 = require('os');
+  const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-twice-'));
+  const made = [];
+  const at = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();   // three hours ago, past the nudge
+  const w = require('../lib/sharjah-watch').create({
+    dir, log: () => {},
+    mail: { notifySparkSharjah: async (rec, kinds) => { made.push(kinds[0]); return { sent: 1 }; } },
+    readFacts: async () => ({ ok: true, rows: { 'SN-AGAIN01': { brain: true, paid: 'yes', known: true } } }),
+  });
+  const first = w.note({ ref: 'SN-AGAIN01', at, email: 'a@b.co', name: 'Ada', pack: 'Beyond+' });
+  assert.ok(first && first.at === at, 'the clock is the first submit, which is what the hour and a half counts from');
+  await w.tick();
+  assert.deepEqual(made, ['congrats', 'paid'], 'both letters went once');
+
+  const again = w.note({ ref: 'SN-AGAIN01', at: new Date().toISOString(), email: 'a@b.co', name: 'Ada' });
+  assert.equal(again.at, at, 'and a second submit of the same reference keeps the old clock rather than restarting it');
+  assert.ok(again.sent.congrats && again.sent.paid, 'and it keeps the marks, so nothing that was posted is posted again');
+  assert.equal(again.pack, 'Beyond+', 'while what the person typed is refreshed, so the letter still reads their own package');
+  const r = await w.tick();
+  assert.equal(r.sent, 0, 'and the next pass has nothing to send');
+  assert.deepEqual(made, ['congrats', 'paid'], 'still exactly two letters for that visitor');
+});
+
 test('a letter goes once even when the box runs this app twice', async () => {
   const path = require('path'), fs2 = require('fs'), os2 = require('os');
   const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'sn-two-'));
