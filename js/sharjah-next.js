@@ -17,11 +17,9 @@
  * boss's Google sheet. With no pass Mira opens on the reference alone, which is the same page
  * as before, so a project that is asleep costs a write back and never a lead.
  *
- * The page hands them over: the moment the row is written the browser is sent to Mira, so the Brain is
- * a page they are standing on rather than a box inside this one, with its own header and its own
- * address bar. Nothing is kept in the browser and no session is resumed. At a stand the device is
- * often not the visitor's own, so a pass left in a browser is a pass the next stranger gets; the way
- * back to a row here is the address, which `create-pass` already looks up for a second scan.
+ * The page stays where it is: no jump, nothing in the browser, no session to resume. At a stand the
+ * device is often not the visitor's own, so a pass kept in a browser is a pass the next stranger gets;
+ * the way back to a row here is the address, which `create-pass` already looks up for a second scan.
  *
  * Two things were added to the design after the first read through, both of them borrowed rather
  * than invented: the email and the number are checked by the same rules the site's own forms use
@@ -32,9 +30,9 @@
  * full number in Sharjah and one short in India, and the field says so while they type. The door
  * keeps the loose seven to fifteen on purpose, so a lead is never refused over a length table.
  */
-/* Mira's real address: the Brain, the same one /try-mira opens. It is the page this form sends a
-   person to once their row is written, and only an http(s) address or a path on this host is accepted
-   for it, below, because the door's answer is what ends up in an address bar. */
+/* Mira's real address: the Brain, the same one /try-mira opens. It is framed by this page after the
+   form, and only an http(s) address or a path on this host is accepted for it, below, because the
+   door's answer is what ends up in a src attribute. */
 const MIRA_URL = 'https://brain.boasis.ae';
 /* the switch the shared preview needed, on: the form records the lead and Mira appears */
 const SEND = true;
@@ -47,7 +45,7 @@ const T={
   first:'First name', last:'Last name', email:'Email', mobile:'Mobile number',
   consent:'I agree that SPARK and Boasis may contact me about my project.',
   cta:'Start with Mira',
-  doneH:'Mira is ready for you', doneP:'Your place at the stand is booked. Mira is opening now.',
+  doneH:'Mira is ready for you', notShowing:'Not showing?', open:'Open Mira in a new tab',
   offEy:'Sharjah Next offer · 28 & 29 Oct', offH:'Your SPARK company, at the event price',
   y1:'year 1', y2:'from, year 1',
   b1:'1 activity', b2:'1 shareholder', b3:'Free lease',
@@ -299,13 +297,16 @@ form.addEventListener('submit',async e=>{
   }
   const url=safeBase(j&&j.brain_url)||safeBase(MIRA_URL);
   const pass=cleanPass(j&&j.pass);
-  const href=brainHref(url, ref, pass);
+  const src=brainHref(url, ref, pass);
+  const link=document.getElementById('miraLink'); if(link) link.href=src||'#';
+  const fr=document.getElementById('miraFrame'); if(fr&&src&&fr.getAttribute('src')!==src) fr.setAttribute('src',src);
   document.getElementById('formView').style.display='none';
   document.getElementById('doneView').classList.add('on');
-  /* a moment on their own page first, so the screen says the record is in before anything else happens,
-     then the browser is handed to Mira as a page of its own, with its own header and its own address.
-     Nothing is left behind to tap: a whole page navigation cannot be blocked the way a new tab can. */
-  if(href) setTimeout(function(){ location.href=href },900);
+  if(fr){ try { fr.contentWindow.focus() } catch (e) { /* framed, and not ours to focus */ } }
+  /* no window.location on purpose, the way /try-mira does it: the person stays on the page they were
+     handed, the reference and the conversation stay on one screen on the phone they are holding, and the
+     line under the frame is for the browsers that refuse framing rather than for anything here can fail
+     at. The frame is given the address only now, so a Brain is never loaded for a person who walked. */
 });
 
 /* ── what a submission leaves behind ────────────────────────────────────────────
@@ -325,18 +326,17 @@ function safeBase(v){
   if(!/^https?:\/\/[^\s"'<>]+$/.test(s)&&!/^\/[^\s"'<>]*$/.test(s)) return '';
   return s.length>1?s.replace(/\/+$/,''):s;
 }
-/* Nothing in the page points at the Brain until a lead has actually been recorded, so a person who
-   reads the offer and walks away never asks the Brain for anything at all. */
-/* the address Mira is opened at, in one place because the link and the jump must never disagree. With
-   a pass the visit is written on that person's row, which is the whole point of the pass; without one
-   the reference still goes along, so Mira can greet them by it and the stand can quote it, exactly as
-   this page did before passes existed here. embed is not asked for: this is the Brain as a page, so
-   the Brain keeps its own chrome. */
+/* Mira appears where the form was. The address is written only now, so a person who reads the offer
+   and walks away never asks the Brain for anything. */
+/* the address Mira is opened at, in one place because the frame and the link under it must never
+   disagree. With a pass the visit is written on that person's row, which is the whole point of the
+   pass; without one the reference still goes along, so Mira can greet them by it and the stand can
+   quote it, exactly as this page did before passes existed here. */
 function brainHref(url, ref, pass){
   const base=safeBase(url)||safeBase(MIRA_URL);
   if(!base) return '';
   const q='src=sharjah-next'
-    +(pass?'&pass='+encodeURIComponent(pass):'')
+    +(pass?'&pass='+encodeURIComponent(pass)+'&embed=1':'')
     +(/^[A-Za-z0-9-]{3,24}$/.test(String(ref||''))?'&ref='+encodeURIComponent(ref):'');
   return base+(base.indexOf('?')<0?'?':'&')+q;
 }

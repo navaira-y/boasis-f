@@ -432,9 +432,9 @@ test('the site hands Mira a pass only when it is told to, and only a real one', 
   const js = JS();
   assert.match(js, /function cleanPass\(v\)\{const s=String\(v\|\|''\);return \/\^PASS\[ABCDEFGHJKLMNPQRSTUVWXYZ23456789\]\{8\}\$\/\.test\(s\)\?s:''\}/,
     'the page accepts a pass only in the shape the doors accept it, because it is a key into somebody\'s row');
-  assert.match(js, /encodeURIComponent\(pass\):''/, 'the pass is the only credential put in the address, because the person is standing on the Brain itself now, and its chrome is not ours to switch off');
-  assert.match(js, /const href=brainHref\(url, ref, pass\);[\s\S]*?if\(href\) setTimeout\(function\(\)\{ location\.href=href \},900\);/,
-    'and the address the person is carried off to is the one line the page built a moment before, out of the same reference and the same pass, with nothing reassembled on the way out');
+  assert.match(js, /pass\?'&pass='\+encodeURIComponent\(pass\)\+'&embed=1'/, 'with the pass the frame asks for the embedded chrome, the way the other entrance does');
+  assert.match(js, /if\(link\) link\.href=src\|\|'#';[\s\S]{0,160}fr\.setAttribute\('src',src\);/,
+    'and the line under the frame is handed the very string the frame was given, one statement apart, so the two can never point at different visits');
 });
 
 const JS = () => read('js/sharjah-next.js');

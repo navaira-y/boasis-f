@@ -401,22 +401,21 @@ const DEMO_HOME = { '/try-mira/': '/try-mira', '/sharjah-next/': '/sharjah-next'
 app.use((req, res, next) => {
   if (!DEMO_PAGE.test(req.path)) return next();
   if (DEMO_HOME[req.path]) return res.redirect(301, DEMO_HOME[req.path]);   // a typed slash is the same page
-  /* /try-mira frames the Brain inside itself after the form, so the origin named in SPARK_BRAIN_URL
-     has to be allowed there. 'self' is in the list because the rehearsal stub answers /brain on the
-     same host, and an explicit frame-src replaces the default rather than adding to it. The Sharjah
-     Next page no longer frames anything, it sends the browser away, so it is not given the leave. */
-  const snPage = /^\/sharjah-next(?:\.html)?$/.test(req.path);
+  /* The Brain is shown inside this page after the form, so the origin named in SPARK_BRAIN_URL
+     is framed by it. 'self' is in the list because the rehearsal stub answers /brain on the same
+     host, and an explicit frame-src replaces the default rather than adding to it. */
   const frameSrc = (u => { try { return new URL(u).origin; } catch (e) { return ''; } })(config.spark.brainUrl);
   /* The Sharjah Next page does not talk to Supabase at all, so it is not given leave to: its lead goes
      to /api/sharjah-lead on this same host, which is what 'self' already covers. connect-src is the one
      part of a policy a page can use to reach somewhere it should not, so each page gets only what it
      does, and the trial stays wider because that page really does post for a pass. */
+  const snPage = /^\/sharjah-next(?:\.html)?$/.test(req.path);
   const connect = snPage ? "'self'" : "'self' " + String(config.spark.projectUrl || '').replace(/\/+$/, '');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
     + " font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self';"
     + " connect-src " + connect + ";"
-    + " frame-src 'self'" + (snPage || !frameSrc ? '' : ' ' + frameSrc) + ';'
+    + " frame-src 'self'" + (frameSrc ? ' ' + frameSrc : '') + ';'
     + " frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');   // said twice: in the header, and in the page's own meta tag
   next();
