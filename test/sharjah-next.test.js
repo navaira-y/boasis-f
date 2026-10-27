@@ -693,11 +693,19 @@ test('the stand leads sit in their own table, and one door writes to both', () =
     'and the file you paste into the dashboard is exactly that, table map inside it');
 });
 
-test('the button on the page is the trigger for the three mails, and one value stills them', () => {
+test('the page\'s submit opens a queue rather than sending a mail, and the watch sends what is due', () => {
   const spark = read('lib/spark.js');
-  assert.match(spark, /SPARK_SN_MAIL \|\| 'submit'/, 'a form in means the three go out, with nothing set on the server at all');
-  assert.match(spark, /if \(mode !== 'off'\)/, 'and the one value that stills them is off, which hPanel can set on its own');
-  assert.ok(!/const SN_TRIGGER/.test(spark), 'and exactly one door sends them, so nobody is mailed twice for one reference');
+  const watch = read('lib/sharjah-watch.js');
+  assert.match(spark, /if \(mode === 'submit' \|\| mode === 'each'\)/,
+    'the door sends on its own only in the two read through values, so a live submit records the lead and marks the queue instead of mailing a receipt nobody has earned');
+  assert.match(spark, /\} else \{\n      try \{ snWatch\.note\(\{ ref, pass,/,
+    'and the live path opens one file for that reference, carrying the pass and the moment of the form, which is the whole queue');
+  assert.match(spark, /snWatch\.start\(\)/, 'the timer is mounted with the doors, in the process that already knows where its data directory is');
+  assert.match(watch, /t\.unref\(\)/, 'and it is unref\'d, so a test run or a shutdown is never left waiting on it');
+  assert.match(read('lib/mailer.js'), /\['congrats', 'sharjahCongrats'\], \['paid', 'sharjahPaid'\], \['reminder', 'sharjahReminder'\]/,
+    'the three are one named list in the mailer, which is what lets one moment send exactly one of them');
+  assert.match(read('lib/mailer.js'), /SN_MAIL_KINDS\.filter\(pair => kinds\.indexOf\(pair\[0\]\) >= 0\)/,
+    'and one mail can be sent on its own, which is what the three separate moments need');
 });
 
 test('the two tables are the same shape, and each entrance writes to its own', () => {

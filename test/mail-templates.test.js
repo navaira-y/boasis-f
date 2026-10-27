@@ -198,12 +198,19 @@ test('the three mails have one switch, and testing it does not need a code chang
   const fs = require('fs'), path = require('path');
   const spark = fs.readFileSync(path.join(__dirname, '..', 'lib', 'spark.js'), 'utf8');
   const mailer = fs.readFileSync(path.join(__dirname, '..', 'lib', 'mailer.js'), 'utf8');
-  assert.match(spark, /const mode = String\(process\.env\.SPARK_SN_MAIL \|\| 'submit'\)/,
-    'the button on the page is the trigger, so a form that is in has sent its three mails without anybody setting a value');
+  const watch = fs.readFileSync(path.join(__dirname, '..', 'lib', 'sharjah-watch.js'), 'utf8');
+  assert.match(watch, /String\(process\.env\.SPARK_SN_MAIL \|\| 'live'\)/,
+    'the habit is one value with a default, and the default is the three rules rather than a flood at the submit');
+  assert.match(spark, /const mode = sharjahWatch\.snMode\(\)/,
+    'and the door reads that same one value, so the door and the watch can never disagree about the mode');
   assert.ok(!/const SN_TRIGGER/.test(spark),
     'and only that door sends them: the receipt door used to as well, which was six mails for one visitor');
   assert.match(spark, /if \(snRow !== 'sharjah-next-2026'\) \{[\s\S]*notifySpark\(/, 'the AI Everything note is gated on the source only, so that stand is untouched');
   assert.match(spark, /each: mode === 'each'/, 'and "each" is passed down rather than guessed at again, which is what a reader at a desk needs to see the same reference answer twice');
+  assert.match(spark, /if \(mode === 'submit' \|\| mode === 'each'\)/, 'and only the two read through values send at the submit, which is what keeps a real visitor from being mailed a receipt they have not earned');
+  assert.match(spark, /snWatch\.note\(\{ ref, pass,/, 'while the live mode opens a line in the queue instead, carrying the reference, the pass and the moment of the form');
+  assert.match(watch, /REMIND_AFTER = 90 \* MIN/, 'the nudge waits the event team\'s own hour and a half, named once');
+  assert.match(watch, /f\.known === true/, 'and it goes only when the sheet actually answered, never on a read that failed');
   assert.match(spark, /SPARK_SN_MAIL.*off|!== 'off'|=== 'off'/s, 'and "off" is honoured, so the three can be closed from hPanel alone, with no code change');
   assert.match(mailer, /dedupeKey: record\.each \? null :/, 'the six hour duplicate rule steps aside in that mode, and only there');
 });

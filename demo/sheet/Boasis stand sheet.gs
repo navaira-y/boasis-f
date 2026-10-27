@@ -107,6 +107,18 @@ function doPost(e) {
   var body = readBody(e);
   if (!body) return out({ ok: false, why: 'body' });
   if (String(body.secret) !== String(CONFIG.SECRET)) return out({ ok: false, why: 'key' });
+  /* the read the mail watch asks for: which of these references have a yes in the payment column. It is
+     answered by this same door with this same secret, because a second URL to guard is a second thing that
+     can leak, and it reads two columns rather than the row, so it cannot tell a stranger anything the
+     sheet does not already show on a screen. */
+  if (String(body.action || '') === 'status') {
+    try {
+      return out(readStatus(SpreadsheetApp.getActiveSpreadsheet(), body.refs));
+    } catch (err) {
+      console.log('sheet status read: ' + err);
+      return out({ ok: false, why: 'sheet' });
+    }
+  }
   var key = String(body.key || (body.fields && body.fields.email) || '').trim().toLowerCase();
   if (!key || key.indexOf('@') < 1) return out({ ok: false, why: 'who' });
 
@@ -142,7 +154,12 @@ function readBody(e) {
   var o = null;
   try { o = JSON.parse(raw); } catch (bad) { return null; }
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
-  if (!o.fields || typeof o.fields !== 'object') return null;
+  if (!o.fields || typeof o.fields !== 'object') {
+    /* the one body that is not a write: a list of references to look up, and nothing else about them */
+    if (String(o.action || '') !== 'status') return null;
+    if (!Array.isArray(o.refs) || !o.refs.length || o.refs.length > 40) return null;
+    return o;
+  }
   var n = 0, k;
   for (k in o.fields) { if (Object.prototype.hasOwnProperty.call(o.fields, k)) n++; }
   return n > CONFIG.MAX_FIELDS ? null : o;
@@ -359,6 +376,46 @@ function header(sh, cols) {
 }
 
 function indexOf_(at, field) { return at[field] || 0; }
+
+/* a column by the words in row 1, which is the only way to find a column of somebody else's: she can
+   insert one anywhere she likes and a number counted from the left is a wrong answer by Thursday */
+function colByWord_(sh, word) {
+  var want = String(word).trim().toLowerCase();
+  var last = Math.max(sh.getLastColumn(), 1);
+  var have = sh.getRange(1, 1, 1, last).getDisplayValues()[0];
+  for (var c = 0; c < have.length; c++) {
+    if (String(have[c]).trim().toLowerCase() === want) return c + 1;
+  }
+  return 0;
+}
+
+/* the payment column, for the references asked about. A reference with no row is not in the answer rather
+   than in it with a blank, because the caller has to be able to tell the two apart. Nothing here lays the
+   header out, adds a column or touches a cell: a read that can build is a read that can break. */
+function readStatus(ss, refs) {
+  var name = String(CONFIG.TAB_LEADS || '');
+  var sh = name ? ss.getSheetByName(name) : ss.getSheets()[0];
+  if (!sh) return { ok: false, why: 'tab' };
+  var refCol = colByWord_(sh, 'Unique Reference No');
+  var payCol = colByWord_(sh, 'Payment Completed') || colByWord_(sh, 'Payment Complete');
+  if (!refCol || !payCol) return { ok: false, why: 'columns' };
+  var last = sh.getLastRow();
+  if (last < 2) return { ok: true, rows: [] };
+  var want = {}, list = Array.isArray(refs) ? refs : [], i;
+  for (i = 0; i < list.length; i++) {
+    var w = String(list[i] || '').trim().toUpperCase();
+    if (w) want[w] = 1;
+  }
+  if (!Object.keys(want).length) return { ok: true, rows: [] };
+  var a = sh.getRange(2, refCol, last - 1, 1).getDisplayValues();
+  var b = sh.getRange(2, payCol, last - 1, 1).getDisplayValues();
+  var rows = [];
+  for (i = 0; i < a.length; i++) {
+    var r = String(a[i][0] || '').trim().toUpperCase();
+    if (r && want[r]) rows.push({ ref: r, paid: String(b[i][0] || '').trim().toLowerCase() });
+  }
+  return { ok: true, rows: rows };
+}
 
 function findRow(sh, col, key) {
   var last = sh.getLastRow();

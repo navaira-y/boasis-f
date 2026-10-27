@@ -95,6 +95,10 @@ is the difference between a form saving somebody the time of typing it twice and
 the Brain or a desk has since put there.
 
 `Stage`, `Reminder sent`, `Payment Completed` and `Receipt Number` are the team's own columns. They are
+read as well as made: the mail watch posts `{ action: 'status', refs: [...] }` to the same `/exec` address
+with the same secret and gets back `[{ ref, paid }]` for the references it asked about, two columns and
+nothing else. That read is what the paid receipt waits for, so a `yes` she types at the counter is the whole
+trigger, and no value of ours is ever written into these four columns either way. And
 part of the table, so a tab that arrives with no header row at all gets them laid down by this file, and
 they are never appended to a table that already has headers, because beside a header a person typed there
 would be a second one with a spelling close enough for a person and not for a matcher. Nothing is ever

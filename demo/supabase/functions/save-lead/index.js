@@ -18,6 +18,11 @@
  * Append only, on purpose: this door inserts, never updates, so the last word on a person stays
  * the site's own file and the table remains the history.
  *
+ * One way it reads: `action: 'watch'` answers what the Sharjah Next mail watch needs to know before it mails
+ * anybody, which is whether the Brain wrote this visitor's row and whether the sheet says yes to the payment.
+ * No kind and no record are wanted on that path, nothing is inserted, and the answer is three words per
+ * reference. The same shared key guards it, because a read of who has paid is not a thing to leave open.
+ *
  * Secrets: SPARK_SUPABASE_URL, SPARK_SERVICE_ROLE_KEY, LEADS_PUSH_KEY, SHEET_HOOK_URL, SHEET_HOOK_KEY.
  * No salt, no Brain address, no
  * origin list, since a browser is never supposed to reach this door at all.
@@ -25,6 +30,97 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pushRecordToSheet } from "../_shared/sheet.js";
+
+/* ── the read the mail watch asks for ──────────────────────────────────────────
+   boasis.ae is the only thing that calls this way, with the same key it pushes with, and it asks one
+   question per reference: has the conversation been written down, and has the money been ticked off. The
+   first answer is in this project, the second is read out of the sheet through the same door that writes
+   into it, because a yes typed at the counter exists nowhere else in the world. Nothing is written on this
+   path, so the door that reads can never be the door that writes by accident. */
+const PASSES = "sharjah_next_passes";
+const WATCH_REFS = 40;          // references per question, which is a minute of a stand at the event's pace
+const SCAN = 300;               // pass rows looked through, newest first
+const cut = (v, n) => String(v === null || v === undefined ? '' : v).slice(0, n);
+const obj = v => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
+async function askSheet(body, timeoutMs) {
+  const url = String(Deno.env.get('SHEET_HOOK_URL') || '').replace(/\/+$/, '');
+  const key = String(Deno.env.get('SHEET_HOOK_KEY') || '');
+  if (!url || !key) return { ok: false, why: 'off' };
+  /* longer than a write's timeout on purpose: a spreadsheet is slow by definition, and a read that gives up
+     early tells the watch to wait, which is the right answer only by luck */
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs || 9000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ secret: key, ...body }),
+      signal: ctl.signal,
+    });
+    const text = await res.text().catch(() => '');
+    if (!res.ok) return { ok: false, why: 'http ' + res.status };
+    let said = null;
+    try { said = JSON.parse(text); } catch { said = null }
+    if (!said) return { ok: false, why: 'not json' };
+    if (!said.ok) return { ok: false, why: 'refused: ' + cut(said.why || 'no reason', 40) };
+    return { ok: true, said };
+  } catch (e) {
+    return { ok: false, why: (e && e.name) === 'AbortError' ? 'timeout' : cut(e && e.message, 60) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* the Brain has taken part the moment it has written anything at all about this visitor: one step saved, one
+   turn counted, one last step named. Whether the congrats should wait for the very last step rather than the
+   first is one line here if the event team ever wants it, and not a hunt through the mails */
+function brainDone(row) {
+  const d = obj(row.data), b = obj(d.brain);
+  if (Array.isArray(b.steps_reached) && b.steps_reached.length) return true;
+  if (Array.isArray(row.steps_reached) && row.steps_reached.length) return true;
+  if (String(b.last_step || row.last_step || '').trim()) return true;
+  return Number(b.turns || row.turns || 0) > 0;
+}
+
+const refOf = row => {
+  const d = obj(row.data);
+  return cut(d.ref || obj(d.lead).ref || row.ref, 40).toUpperCase();
+};
+
+async function watchRows(sb, refs) {
+  const list = (Array.isArray(refs) ? refs : []).map(r => cut(r, 40).toUpperCase()).filter(Boolean).slice(0, WATCH_REFS);
+  const by = new Map();
+  for (const r of list) by.set(r, { ref: r, brain: false, paid: '', known: false });
+  if (!by.size) return { ok: true, rows: [] };
+
+  try {
+    const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
+    for (const row of (data || [])) {
+      const key = refOf(row);
+      if (key && by.has(key) && brainDone(row)) by.get(key).brain = true;
+    }
+  } catch (e) {
+    console.log('watch could not read the passes: ' + cut(e && e.message, 60));
+  }
+
+  /* the sheet either answers or it does not. When it answers, every reference asked about is settled: a row
+     that is not in the sheet is not paid, and that is the truth rather than a gap. When it does not answer,
+     `known` stays false and the watch asks again in five minutes rather than mailing a stranger about money
+     on the strength of a read that failed */
+  const sheet = await askSheet({ action: 'status', refs: list });
+  if (sheet.ok) {
+    for (const [, v] of by) v.known = true;
+    const rows = Array.isArray(sheet.said.rows) ? sheet.said.rows : [];
+    for (const r of rows) {
+      const key = cut(obj(r).ref, 40).toUpperCase();
+      if (by.has(key)) by.get(key).paid = cut(obj(r).paid, 12).trim().toLowerCase() === 'yes' ? 'yes' : 'no';
+    }
+  } else {
+    console.log('watch could not read the sheet: ' + sheet.why);
+  }
+  return { ok: true, rows: [...by.values()], sheet: sheet.ok ? 'read' : sheet.why };
+}
 
 const TABLE = "site_leads";
 const STAND = "sharjah_next_leads";        // the Sharjah Next stand keeps its own list, see below
@@ -114,6 +210,17 @@ Deno.serve(async (req) => {
 
   if (!matches(req.headers.get("x-boasis-key") || body?.key, want)) {
     return json({ ok: false, error: "auth" }, 401);
+  }
+
+  /* the watch's question, answered before any of the write path is looked at: no kind, no record, no row */
+  if (String(body?.action || "") === "watch") {
+    let sb2;
+    try {
+      sb2 = client();
+    } catch {
+      return json({ ok: false, error: "config" }, 500);
+    }
+    return json(await watchRows(sb2, body?.refs));
   }
 
   const kind = String(body?.kind || "");

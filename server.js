@@ -358,6 +358,8 @@ require('./lib/spark')(app, {
   /* the Sharjah Next lead goes into the same Supabase copy the other four forms make, and that
      mirror lives here rather than in lib/spark.js, because this is where its key is configured */
   pushLead: (kind, record) => leads.push(kind, record),
+  /* and the other way, for the watch: what the visit looks like from the database and from her sheet */
+  watch: (refs) => leads.watch(refs),
   log: (m) => console.log('[spark] ' + m),
 });
 
