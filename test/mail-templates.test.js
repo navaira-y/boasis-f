@@ -135,7 +135,9 @@ test('the Sharjah Next mails say what the design file says, and only those three
   const m1 = T.sharjahCongrats({ name: 'Mihail-Gabriel Marginean', ref: 'SN-0147', pack: 'Beyond' });
   assert.equal(m1.subject, 'Congratulations, you’re one step away from your license! Reference SN-0147');
   assert.ok(m1.html.includes('Your application is in.'), 'the first line is the design\'s, word for word');
-  assert.ok(m1.html.includes('take this number to the payment desk'), 'and so is the way to the payment desk, which is where the money actually changes hands');
+  assert.ok(m1.html.includes('head to the counter with this reference number and finish the payment'),
+    'and so is the way to the counter, which is where the money actually changes hands');
+  assert.ok(!/ZONE/.test(m1.html) && !/Zone 2/.test(m1.html), 'and no zone is named anywhere in it, because there is no zone to find');
   assert.ok(m1.html.includes('SN-0147'), 'their reference number is in it, in the dashed gold box the design drew');
 
   const m2 = T.sharjahPaid({ name: 'Mihail Two', ref: 'SN-0148' });
@@ -144,7 +146,8 @@ test('the Sharjah Next mails say what the design file says, and only those three
   assert.ok(m2.html.includes('@shjrtipark and @boasisae'), 'and the two accounts to tag');
 
   const m3 = T.sharjahReminder({ name: 'Mihail Three', ref: 'SN-0149' });
-  assert.equal(m3.subject, 'Your Sharjah Next offer is waiting for you at the payment desk');
+  assert.equal(m3.subject, 'Your Sharjah Next offer is waiting for you at the payment counter');
+  assert.ok(m3.html.includes('Visit the payment counter with your reference number'), 'and the reminder says where to go in the same words');
   assert.ok(m3.html.includes('first 100 applicants') && m3.html.includes('Already paid? Please ignore this email.'),
     'the nudge keeps the reason and the apology, as drawn');
 
@@ -153,6 +156,8 @@ test('the Sharjah Next mails say what the design file says, and only those three
     assert.ok(m.html.includes('/assets/brand/sharjah-next.png') && m.html.includes('/assets/brand/spark.png'),
       'the two event marks are absolute addresses, which is all a mail client will fetch');
     assert.ok(m.html.includes('Powered by'), 'and the navy strip says who powers it');
+    assert.ok(/Powered by <a[^>]*>B<img src="https:\/\/boasis\.ae\/assets\/logo\/orb-160\.png"[^>]*alt="O"/.test(m.html),
+      'and it is the wordmark there, the orb as the O, the way the site draws it, not the name typed out in caps');
     assert.ok(!/style="[^"]*expression|<script/.test(m.html), 'no script, nothing a client has to be talked into');
     assert.ok(m.text.includes('The SPARK Team'), 'every one signs the same way, in text too');
   }

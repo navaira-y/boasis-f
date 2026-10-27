@@ -136,14 +136,14 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
     'How it works', 'Tell Mira what you do', 'In your own words, typed or spoken.',
     'Choose your activities', 'Mira suggests them. Your package shows on top.',
     'Get your reference number', 'On screen, and by email.',
-    'Finish at the payment desk', 'Show your reference, apply and pay. Follow the green signs.',
-    'Open on 28 and 29 October only.', 'Complete your payment in Zone 2 before you leave.', 'Powered by',
+    'Finish at the payment counter', 'Show your reference, apply and pay. Follow the green signs.',
+    'Open on 28 and 29 October only.', 'Head to the counter with your reference number and finish the payment before you leave.', 'Powered by',
   ];
   for (const s of need) assert.ok(t.includes(s), 'the design says "' + s + '" and so does the page');
   assert.ok(!/lorem|TODO|FIXME|REPLACE/i.test(t), 'and nothing is left to be filled in');
   /* the fourth heading is the boss's, not the design's: the stand is a desk with a card machine at it,
      and a visitor who is told to find a block number in a free zone will ask somebody anyway */
-  const order = ['Tell Mira what you do', 'Choose your activities', 'Get your reference number', 'Finish at the payment desk'];
+  const order = ['Tell Mira what you do', 'Choose your activities', 'Get your reference number', 'Finish at the payment counter'];
   assert.deepEqual(order.slice().sort((a, b) => t.indexOf(a) - t.indexOf(b)), order, 'the four points stay in the order the design gave them');
   const want = [...new Set([...h.matchAll(/data-k="([A-Za-z0-9_]+)"/g)].map(m => m[1]))];
   assert.ok(want.length >= 30, 'the page asks for ' + want.length + ' strings by name, saw fewer, so the markup changed shape');
