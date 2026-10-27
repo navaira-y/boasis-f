@@ -186,8 +186,8 @@ test('the Sharjah Next mails say what the design file says, and only those three
      none of them borrows the park's mark for a signature. The park is named in the band above and in the
      words below, which is where it belongs */
   for (const m of [m1, m2, m3]) {
-    assert.ok(m.html.includes('aria-label="BOASIS"') && m.html.includes('/assets/logo/orb-160.png'),
-      'and the foot of the mail is the BOASIS wordmark, the orb as the O, at every one of the three');
+    assert.ok(/<strong>The BOASIS Team<\/strong><\/td>/.test(m.html),
+      'and under that name there is nothing at all, no logo signing below the team, in any of the three');
     assert.equal((m.html.match(/assets\/brand\/spark\.png/g) || []).length, 1,
       'and that mark appears once in the mail, at the top, never again as a signature');
   }

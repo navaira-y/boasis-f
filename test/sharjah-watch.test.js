@@ -115,6 +115,15 @@ test('a paid person is never nudged, and an unpaid one is not chased for ever', 
   assert.equal(state.sent.reminder, 'not needed: paid', 'and the reason is written down, so a person reading the file later knows it was decided and not missed');
 });
 
+test('the watch runs on a five second beat, once at a time, over a queue that is empty most of the hour', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'sharjah-watch.js'), 'utf8');
+  assert.match(src, /const TICK_EVERY = 5 \* 1000;/, 'five seconds, which is what the boss asked for');
+  assert.match(src, /if \(running\) return \{ checked: 0, sent: 0, why: 'busy' \}/,
+    'and a pass that is still reading when the next beat comes is skipped rather than run twice, because two at once could mail the same letter before either wrote its mark');
+  assert.match(src, /if \(!list\.length\) return \{ checked: 0, sent: 0 \};/,
+    'and with nothing waiting there is no call at all, so the short beat costs the site nothing on a quiet hour');
+});
+
 test('the read through and the closed value still work from one variable', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));
   const ref = 'SN-OFFX01';

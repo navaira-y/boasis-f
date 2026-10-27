@@ -571,7 +571,7 @@ on purpose: a stand is a shared tablet, so the way back to a row is the address,
 already looks up, rather than a pass sitting in somebody else's browser. With no pass the page still
 opens Mira on the reference alone, which is why the mint is allowed to fail quietly and why the lead is
 written before it is ever tried. The three event mails are not sent on that submit: it opens a queue that a
-watch reads every five minutes, and `SPARK_SN_MAIL=off` closes it. And because the
+watch reads every five seconds, and `SPARK_SN_MAIL=off` closes it. And because the
 page touches no database, since our server is the only thing that calls the project, its
 `Content-Security-Policy` stays narrower than `/try-mira`'s: `connect-src 'self'`, no Supabase origin at
 all, and `frame-src https://brain.boasis.ae` as the single widening.
@@ -648,8 +648,9 @@ read from the sheet through the same hook that writes into it (`action: 'status'
 secret, nothing written); and the nudge goes ninety minutes after the form, and only when the sheet actually
 answered and did not say yes. The stand's submit opens one small file per reference in
 `$DATA_DIR/sharjah-next/sn-state-*.json`, which is the whole queue, so a lead that was never recorded here
-is never mailed. A timer inside the app walks it every five minutes, unref'd so it cannot hold a shutdown,
-and `node scripts/sharjah-watch.js` walks it once by hand. Nothing is marked as sent when a read fails, so
+is never mailed. A timer inside the app walks it every five seconds, one pass at a time and only as far as
+the queue reaches, unref'd so it cannot hold a shutdown, and `node scripts/sharjah-watch.js` walks it once by
+hand. Nothing is marked as sent when a read fails, so
 an outage delays a mail rather than losing it, and the duplicate rule per reference and per mail is what
 stops a second pass sending a copy. `SPARK_SN_MAIL=submit` and `=each` are the read through, where all three
 go at the submit for somebody sitting at a desk, and `SPARK_SN_MAIL=off` closes the mails and the timer
