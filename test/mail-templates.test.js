@@ -170,6 +170,14 @@ test('the Sharjah Next mails say what the design file says, and only those three
     assert.ok(/Powered by <a[^>]*>B<img src="https:\/\/boasis\.ae\/assets\/logo\/orb-160\.png"[^>]*alt="O"/.test(m.html),
       'and it is the wordmark there, the orb as the O, the way the site draws it, not the name typed out in caps');
     assert.ok(!/style="[^"]*expression|<script/.test(m.html), 'no script, nothing a client has to be talked into');
+    /* the button is the site's own, the navy pill the early access letter carries, so the mail has one
+       thing to press and it presses through to boasis.ae rather than back into the form */
+    assert.ok(m.html.includes('>Explore BOASIS<') && m.html.includes('href="https://boasis.ae"'),
+      'and the mail carries the site\'s own button, the same navy pill the early access letter has, to the same address');
+    assert.ok(m.text.includes('Explore BOASIS: https://boasis.ae'), 'and its plain text gives the same door as a line');
+    /* and it points at the site, never back at the form: a visitor who taps a link in their own congrats
+       mail and then types their name again would write a second row for the same person at the stand */
+    assert.ok(!/href="[^"]*sharjah-next/.test(m.html), 'so no link in the mail leads back to the form');
     /* the plain text signs with whoever the html signs as, and the welcome letter is ours, not the park's */
     const team = m === m2 ? 'BOASIS' : 'SPARK';
     assert.ok(m.text.includes('The ' + team + ' Team'), 'and its text signs the same way, as The ' + team + ' Team');
