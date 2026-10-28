@@ -195,7 +195,7 @@ test('the button records the lead, checks it the way the site checks it, and ope
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
   assert.match(js, /const src=brainHref\(url, ref, pass\);\s*\n\s*const fr=document\.getElementById\('miraFrame'\); if\(fr&&src&&fr\.getAttribute\('src'\)!==src\) fr\.setAttribute\('src',src\);/,
     'and Mira is put in the card where the form was, out of one built address, with that reference and the pass if there is one, and that is the only line in the page that writes anywhere');
-  assert.match(h, /<iframe id="miraFrame" title="Mira" src="about:blank">/,
+  assert.match(h, /<iframe id="miraFrame" title="Mira" src="about:blank" allow="microphone">/,
     'the frame starts on about:blank, the way the other entrance does, so a person who only reads the offer asks the Brain for nothing');
   assert.ok(!/brain\.boasis\.ae/.test(h), 'and the Brain is named in no line of this page\'s markup, only in its script');
   assert.ok(!/class="fine"|miraLink|notShowing/.test(h),
