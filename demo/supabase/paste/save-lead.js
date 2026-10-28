@@ -177,7 +177,9 @@ async function pushRecordToSheet(record, o = {}) {
   return r;
 }
 
-const PASSES = "sharjah_next_passes";
+const APPS = "sharjah_next_applications";
+const APPS_KEYS = ["reference", "ref", "lead_ref", "sharjah_ref", "application_ref"];
+const APPS_DONE_STATUS = ["submitted", "paid"];
 const WATCH_REFS = 40;
 const SCAN = 300;
 const cut = (v, n) => String(v === null || v === undefined ? '' : v).slice(0, n);
@@ -211,18 +213,43 @@ async function askSheet(body, timeoutMs) {
   }
 }
 
-const FINAL_STEPS = ['package'];
-
-function brainDone(row) {
-  const d = obj(row.data), b = obj(d.brain);
-  const last = String(b.last_step || row.last_step || '').trim().toLowerCase();
-  return FINAL_STEPS.indexOf(last) >= 0;
+function submitted(row) {
+  const at = row && row.submitted_at;
+  if (at !== null && at !== undefined && String(at).trim() !== "") return true;
+  return APPS_DONE_STATUS.indexOf(String((row && row.status) || "").trim().toLowerCase()) >= 0;
 }
 
-const refOf = row => {
-  const d = obj(row.data);
-  return cut(d.ref || obj(d.lead).ref || row.ref, 40).toUpperCase();
-};
+async function applicationsDone(sb, refs) {
+  const done = new Set();
+  if (!refs.size) return done;
+  for (const col of APPS_KEYS) {
+    let data = null, error = null;
+    try {
+      const said = await sb.from(APPS).select("*").in(col, [...refs]);
+      data = said.data; error = said.error;
+    } catch (e) { error = e; }
+    if (error || !Array.isArray(data)) continue;
+    for (const row of data) {
+      const key = String(row[col] || "").trim().toUpperCase();
+      if (key && refs.has(key) && submitted(row)) done.add(key);
+    }
+    return done;
+  }
+
+  try {
+    const { data } = await sb.from(APPS).select("*").limit(SCAN);
+    for (const row of (data || [])) {
+      if (!submitted(row)) continue;
+      for (const col of Object.keys(row)) {
+        const key = String(row[col] || "").trim().toUpperCase();
+        if (key && refs.has(key)) { done.add(key); break; }
+      }
+    }
+  } catch (e) {
+    console.log("watch could not read the applications table: " + cut(e && e.message, 60));
+  }
+  return done;
+}
 
 async function watchRows(sb, want) {
   const list = (Array.isArray(want) ? want : []).slice(0, WATCH_REFS)
@@ -236,34 +263,13 @@ async function watchRows(sb, want) {
   }
   if (!by.size) return { ok: true, rows: [] };
 
-  if (byPass.size) {
-    try {
-      const { data } = await sb.from(PASSES).select('*').in('pass', [...byPass.keys()]);
-      for (const row of (data || [])) {
-        const v = byPass.get(String(row.pass));
-        if (v && brainDone(row)) v.brain = true;
-      }
-    } catch (e) {
-      console.log('watch could not read the passes by pass: ' + cut(e && e.message, 60));
-    }
+  let done = new Set();
+  try {
+    done = await applicationsDone(sb, new Set(by.keys()));
+  } catch (e) {
+    console.log('watch could not read the applications: ' + cut(e && e.message, 60));
   }
-
-  const loose = [...by.values()].filter(v => !v.brain);
-  if (loose.length) {
-    const wanted = new Set(loose.map(v => v.ref));
-    try {
-      const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
-      for (const row of (data || [])) {
-        const key = refOf(row);
-        if (key && wanted.has(key)) {
-          const v = by.get(key);
-          if (v && brainDone(row)) v.brain = true;
-        }
-      }
-    } catch (e) {
-      console.log('watch could not read the passes by ref: ' + cut(e && e.message, 60));
-    }
-  }
+  for (const [ref] of by) { if (done.has(ref)) by.get(ref).brain = true; }
 
   const sheet = await askSheet({ action: 'status', refs: [...by.keys()] });
   if (sheet.ok) {
@@ -276,7 +282,7 @@ async function watchRows(sb, want) {
   } else {
     console.log('watch could not read the sheet: ' + sheet.why);
   }
-  return { ok: true, rows: [...by.values()], sheet: sheet.ok ? 'read' : sheet.why };
+  return { ok: true, rows: [...by.values()], sheet: sheet.ok ? 'read' : sheet.why, visit: 'read' };
 }
 
 const TABLE = "site_leads";

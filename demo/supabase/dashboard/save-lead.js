@@ -304,9 +304,15 @@ async function pushRecordToSheet(record, o = {}) {
    first answer is in this project, the second is read out of the sheet through the same door that writes
    into it, because a yes typed at the counter exists nowhere else in the world. Nothing is written on this
    path, so the door that reads can never be the door that writes by accident. */
-const PASSES = "sharjah_next_passes";
+/* the visit is answered by their own applications table, `sharjah_next_applications`: one row per
+   application, keyed by the same reference the stand holds, where `submitted_at` is written exactly once when
+   the final submit goes through and `status` moves to `submitted` at that same moment. Nothing earlier in the
+   conversation touches either column. That table is theirs and this function only ever reads it. */
+const APPS = "sharjah_next_applications";
+const APPS_KEYS = ["reference", "ref", "lead_ref", "sharjah_ref", "application_ref"];
+const APPS_DONE_STATUS = ["submitted", "paid"];
 const WATCH_REFS = 40;          // references per question, which is a minute of a stand at the event's pace
-const SCAN = 300;               // pass rows looked through, newest first
+const SCAN = 300;               // rows looked through when the column we guessed is not the column they made
 const cut = (v, n) => String(v === null || v === undefined ? '' : v).slice(0, n);
 const obj = v => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : {});
 
@@ -339,23 +345,53 @@ async function askSheet(body, timeoutMs) {
   }
 }
 
-/* the last write, and only that one. At this event the end of the conversation with Mira is the step their
-   side saves as `package`, the offer chosen and shown, with nothing after it, so the rule is that name and no
-   other. A step saved on the way through is progress and not an application in, and the letter this triggers
-   reads "your application is in", so it waits. If the Brain ever learns to save a step after `package`, the
-   name is added to the list below rather than the rule being moved, and that is a word and not a hunt. */
-const FINAL_STEPS = ['package'];
-
-function brainDone(row) {
-  const d = obj(row.data), b = obj(d.brain);
-  const last = String(b.last_step || row.last_step || '').trim().toLowerCase();
-  return FINAL_STEPS.indexOf(last) >= 0;
+/* A finished application is not a step and not a flag on a pass. A person can reach the package step, see
+   their offer, and walk away, and the pass row would still read as though the conversation ended well, which
+   is why this used to be a step name and is now this row: `submitted_at` written once, or `status` at
+   `submitted` or `paid`, both of which happen only at the final submit. The letter this triggers reads "your
+   application is in", so it waits for the row that says exactly that and for nothing else. */
+function submitted(row) {
+  const at = row && row.submitted_at;
+  if (at !== null && at !== undefined && String(at).trim() !== "") return true;
+  return APPS_DONE_STATUS.indexOf(String((row && row.status) || "").trim().toLowerCase()) >= 0;
 }
 
-const refOf = row => {
-  const d = obj(row.data);
-  return cut(d.ref || obj(d.lead).ref || row.ref, 40).toUpperCase();
-};
+/* One read per pass of the watch, by reference, because that is the key they promised. The column name is
+   guessed from the list above rather than assumed, and the answer is returned as soon as one of them exists,
+   so an empty answer is an empty answer and not a failure to look. */
+async function applicationsDone(sb, refs) {
+  const done = new Set();
+  if (!refs.size) return done;
+  for (const col of APPS_KEYS) {
+    let data = null, error = null;
+    try {
+      const said = await sb.from(APPS).select("*").in(col, [...refs]);
+      data = said.data; error = said.error;
+    } catch (e) { error = e; }
+    if (error || !Array.isArray(data)) continue;
+    for (const row of data) {
+      const key = String(row[col] || "").trim().toUpperCase();
+      if (key && refs.has(key) && submitted(row)) done.add(key);
+    }
+    return done;
+  }
+  /* none of those names answered, so the last honest look is at the recent rows, with the reference found
+     inside them whatever the column is called. A key named unexpectedly should cost a deploy, not every
+     visitor's letter. */
+  try {
+    const { data } = await sb.from(APPS).select("*").limit(SCAN);
+    for (const row of (data || [])) {
+      if (!submitted(row)) continue;
+      for (const col of Object.keys(row)) {
+        const key = String(row[col] || "").trim().toUpperCase();
+        if (key && refs.has(key)) { done.add(key); break; }
+      }
+    }
+  } catch (e) {
+    console.log("watch could not read the applications table: " + cut(e && e.message, 60));
+  }
+  return done;
+}
 
 async function watchRows(sb, want) {
   const list = (Array.isArray(want) ? want : []).slice(0, WATCH_REFS)
@@ -369,39 +405,14 @@ async function watchRows(sb, want) {
   }
   if (!by.size) return { ok: true, rows: [] };
 
-  /* the pass is the key of that table, and the Brain only ever updates the row create-pass left there, so
-     one lookup by pass is the whole read of the visit. The stand knows the pass because it minted it. */
-  if (byPass.size) {
-    try {
-      const { data } = await sb.from(PASSES).select('*').in('pass', [...byPass.keys()]);
-      for (const row of (data || [])) {
-        const v = byPass.get(String(row.pass));
-        if (v && brainDone(row)) v.brain = true;
-      }
-    } catch (e) {
-      console.log('watch could not read the passes by pass: ' + cut(e && e.message, 60));
-    }
+  /* the visit, in one read of their applications table */
+  let done = new Set();
+  try {
+    done = await applicationsDone(sb, new Set(by.keys()));
+  } catch (e) {
+    console.log('watch could not read the applications: ' + cut(e && e.message, 60));
   }
-
-  /* a lead with no pass, or a pass the table does not have, is still findable by the reference the site
-     wrote into that row when it asked for one. Recent rows, newest first, which is all a stand of two days
-     ever holds. */
-  const loose = [...by.values()].filter(v => !v.brain);
-  if (loose.length) {
-    const wanted = new Set(loose.map(v => v.ref));
-    try {
-      const { data } = await sb.from(PASSES).select('*').order('updated_at', { ascending: false }).limit(SCAN);
-      for (const row of (data || [])) {
-        const key = refOf(row);
-        if (key && wanted.has(key)) {
-          const v = by.get(key);
-          if (v && brainDone(row)) v.brain = true;
-        }
-      }
-    } catch (e) {
-      console.log('watch could not read the passes by ref: ' + cut(e && e.message, 60));
-    }
-  }
+  for (const [ref] of by) { if (done.has(ref)) by.get(ref).brain = true; }
 
   /* the sheet either answers or it does not. When it answers, every reference asked about is settled: a row
      that is not in the sheet is not paid, and that is the truth rather than a gap. When it does not answer,
@@ -418,7 +429,7 @@ async function watchRows(sb, want) {
   } else {
     console.log('watch could not read the sheet: ' + sheet.why);
   }
-  return { ok: true, rows: [...by.values()], sheet: sheet.ok ? 'read' : sheet.why };
+  return { ok: true, rows: [...by.values()], sheet: sheet.ok ? 'read' : sheet.why, visit: 'read' };
 }
 
 const TABLE = "site_leads";

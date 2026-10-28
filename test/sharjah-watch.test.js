@@ -12,16 +12,29 @@ const watch = require('../lib/sharjah-watch');
 
 const refFor = (() => { let n = 0; return () => 'SN-T' + String(++n + 900000).slice(0, 6); })();
 
-test('the congrats waits for the last write of the Brain and not for a step on the way', () => {
-  const fn = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'functions', 'save-lead', 'index.js'), 'utf8');
-  const at = fn.slice(fn.indexOf('function brainDone'), fn.indexOf('const refOf'));
-  assert.match(at, /FINAL_STEPS\.indexOf\(last\) >= 0/, 'the rule is the named final step of the visit, that step and no other');
-  assert.ok(!/steps_reached/.test(at) && !/turns/.test(at) && !/frozen/.test(at) && !/confirmed/.test(at),
-    'and a step saved on the way, a turn counted, or a flag set early is progress rather than an application in, so none of them mails anybody');
-  assert.match(fn, /const FINAL_STEPS = \['package'\];/,
-    'and the name is the one the Brain writes at the end of this event, package, in a list so a second name is one word');
-  const bare = require('fs').readFileSync(require('path').join(__dirname, '..', 'demo', 'supabase', 'paste', 'save-lead.js'), 'utf8');
-  assert.match(bare, /const FINAL_STEPS = \['package'\];/, 'and the file you paste into the dashboard carries the same rule, not the old one');
+/* a helper for the tests that read a source file, which is how a rule that lives in code we cannot run here,
+   an Edge Function on their project, is still pinned down: the shape of it is checked rather than a mock */
+const src = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+
+test('the congrats waits for their applications row, and a step on the way means nothing', () => {
+  const fn = src('demo/supabase/functions/save-lead/index.js');
+  assert.match(fn, /const APPS = "sharjah_next_applications";/,
+    'the end of the visit is read from the table they made for applications, not from a pass row');
+  const at = fn.slice(fn.indexOf('function submitted(row)'), fn.indexOf('async function applicationsDone'));
+  assert.match(at, /row && row\.submitted_at/, 'and the fact is that submitted_at was written, which happens once, at the final submit');
+  assert.match(at, /APPS_DONE_STATUS\.indexOf\(/, 'or the status reached submitted or paid, which move at that same moment');
+  assert.ok(!/last_step/.test(fn) && !/steps_reached/.test(fn) && !/FINAL_STEPS/.test(fn),
+    'and no step name counts any more, because a person who reached the package step and walked away has that step saved and no application');
+  const body = fn.slice(fn.indexOf('async function applicationsDone'), fn.indexOf('async function watchRows'));
+  assert.ok(!/\.insert\(|\.update\(|\.upsert\(|\.delete\(/.test(body),
+    'and their table is only ever read from this side, nothing is written to it');
+  assert.match(fn, /in\(col, \[\.\.\.refs\]\)/, 'asked by the reference, one read for the whole batch rather than one per person');
+  const bare = src('demo/supabase/paste/save-lead.js');
+  assert.match(bare, /sharjah_next_applications/, 'and the file you paste into the dashboard carries the same rule');
+  // `last_step` itself still appears once in that file, and it belongs to the sheet column we write rather
+  // than to any trigger, so the two names that were the rule are the two that must be gone
+  assert.ok(!/FINAL_STEPS|brainDone/.test(bare),
+    'and not the old rule either, so a stale paste shows up as a failing test rather than as a mystery');
 });
 
 test('a submit alone sends nothing, and the congrats waits for the Brain to write the row', async () => {
