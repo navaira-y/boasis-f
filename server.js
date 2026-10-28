@@ -419,6 +419,11 @@ app.use((req, res, next) => {
     + " connect-src " + connect + ";"
     + " frame-src 'self'" + (frameSrc ? ' ' + frameSrc : '') + ';'
     + " frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
+  /* Mira's mic (speech to text) runs inside the frame, and the site-wide policy turns the
+     microphone off for every page and every frame in it. On these two pages only, the framed Brain
+     may ask for it; the browser still asks the visitor. Camera, location and payment stay off. */
+  // 'self' too: a browser hands a feature to a frame only when the page itself holds it.
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(self' + (frameSrc ? ' "' + frameSrc + '"' : '') + '), geolocation=(), payment=()');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');   // said twice: in the header, and in the page's own meta tag
   next();
 });
