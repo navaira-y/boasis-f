@@ -84,20 +84,34 @@ test('the welcome letter follows the yes in the sheet, not the payment in the fo
   assert.equal(sent.length, 2, 'once, in either direction');
 });
 
-test('the nudge needs an hour and a half, a no, and a sheet that answered', async () => {
+test('the nudge needs an hour and a half, a finished application, and a sheet that answered', async () => {
   const ref = 'SN-NAID01';
+  const ago = mins => new Date(Date.now() - mins * 60000).toISOString();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));
   const sent = [];
-  let paid = { brain: false, paid: 'no', known: true };
   const w = watch.create({
     dir, log: () => {},
     mail: { notifySparkSharjah: async (r, kinds) => { sent.push(kinds[0]); return { sent: 1 }; } },
-    readFacts: async () => ({ ok: true, rows: { [ref]: paid } }),
+    readFacts: async () => ({ ok: true, rows: { [ref]: { brain: true, subAt: ago(91), paid: 'no', known: true } } }),
   });
-  w.note({ ref, at: new Date(Date.now() - 91 * 60 * 1000).toISOString(), email: 'a@b.co', name: 'Ada Lin' });
+  w.note({ ref, at: ago(91), email: 'a@b.co', name: 'Ada Lin' });
 
   await w.tick();
-  assert.deepEqual(sent, ['reminder'], 'ninety one minutes with no answer from the Brain and a no in the sheet is the nudge');
+  assert.deepEqual(sent, ['congrats', 'reminder'],
+    'ninety one minutes with an application submitted and a no in the sheet is the congrats and then the nudge');
+
+  /* the same lead three hours old, and no application: this is the change the event asked for, a person who
+     filled the form and put the conversation down is not chased about money at all */
+  const alone = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));
+  const sent3 = [];
+  const w3 = watch.create({
+    dir: alone, log: () => {},
+    mail: { notifySparkSharjah: async (r, kinds) => { sent3.push(kinds[0]); return { sent: 1 }; } },
+    readFacts: async () => ({ ok: true, rows: { [ref]: { brain: false, subAt: '', paid: 'no', known: true } } }),
+  });
+  w3.note({ ref, at: ago(180), email: 'a@b.co', name: 'Ada Lin' });
+  await w3.tick();
+  assert.deepEqual(sent3, [], 'and a lead that never finished is left in peace, three hours after its form or nine');
 
   paid = { brain: false, paid: '', known: false };
   const quiet = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-watch-'));
@@ -170,6 +184,34 @@ test('a second submit of the same reference does not re-arm the letters', async 
   const r = await w.tick();
   assert.equal(r.sent, 0, 'and the next pass has nothing to send');
   assert.deepEqual(made, ['congrats', 'paid'], 'still exactly two letters for that visitor');
+});
+
+test('a lead left half way through is never mailed about money, and the wait counts from the finish', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sn-gate-'));
+  const iso = mins => new Date(Date.now() - mins * 60000).toISOString();
+  const facts = {
+    'SN-NOAPP01': { brain: false, paid: 'no', known: true, subAt: '' },        // the form, and nothing after it
+    'SN-LATEAPP1': { brain: true, paid: 'no', known: true, subAt: iso(10) },   // form three hours ago, finished ten minutes ago
+    'SN-DUEAPP1': { brain: true, paid: 'no', known: true, subAt: iso(120) },   // finished two hours ago
+  };
+  const made = [];
+  const w = watch.create({
+    dir, log: () => {},
+    mail: { notifySparkSharjah: async (rec, kinds) => { made.push(rec.ref + ':' + kinds[0]); return { sent: 1 }; } },
+    readFacts: async () => ({ ok: true, rows: facts }),
+  });
+  for (const ref of Object.keys(facts)) w.note({ ref, at: iso(180), email: 'a@b.co', name: 'Waiter' });
+  await w.tick();
+  assert.deepEqual(made.slice().sort(), ['SN-DUEAPP1:congrats', 'SN-DUEAPP1:reminder', 'SN-LATEAPP1:congrats'],
+    'the person who never finished gets nothing at all, the one who just finished gets the congrats and no chase about money yet, and the one who finished two hours ago gets both');
+
+  const srcFn = src('demo/supabase/functions/save-lead/index.js');
+  assert.match(srcFn, /subAt: ''/, 'the door answers with the moment as well as the fact, so the wait can be measured properly');
+  const srcWatch = src('lib/sharjah-watch.js');
+  assert.match(srcWatch, /if \(!s\.sent\.reminder && f\.brain === true && f\.known === true/,
+    'and the nudge answers to the applications row and not merely to an old form');
+  assert.match(srcWatch, /Math\.min\(sinceForm, sinceApp\)/,
+    'and the hour and a half runs from whichever came later, the form or the final submit');
 });
 
 test('a letter goes once even when the box runs this app twice', async () => {

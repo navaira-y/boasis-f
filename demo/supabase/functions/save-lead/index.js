@@ -92,11 +92,18 @@ function submitted(row) {
   return APPS_DONE_STATUS.indexOf(String((row && row.status) || "").trim().toLowerCase()) >= 0;
 }
 
+/* the moment, carried back alongside the fact, because the wait a nudge measures has to be measured from the
+   end of the application and not from the start of a form that was put down half way through */
+const appAt = row => {
+  const at = row && row.submitted_at;
+  return at === null || at === undefined ? "" : String(at).trim().slice(0, 40);
+};
+
 /* One read per pass of the watch, by reference, because that is the key they promised. The column name is
    guessed from the list above rather than assumed, and the answer is returned as soon as one of them exists,
    so an empty answer is an empty answer and not a failure to look. */
 async function applicationsDone(sb, refs) {
-  const done = new Set();
+  const done = new Map();                     // reference => the moment it was submitted
   if (!refs.size) return done;
   for (const col of APPS_KEYS) {
     let data = null, error = null;
@@ -107,7 +114,7 @@ async function applicationsDone(sb, refs) {
     if (error || !Array.isArray(data)) continue;
     for (const row of data) {
       const key = String(row[col] || "").trim().toUpperCase();
-      if (key && refs.has(key) && submitted(row)) done.add(key);
+      if (key && refs.has(key) && submitted(row)) done.set(key, appAt(row));
     }
     return done;
   }
@@ -120,7 +127,7 @@ async function applicationsDone(sb, refs) {
       if (!submitted(row)) continue;
       for (const col of Object.keys(row)) {
         const key = String(row[col] || "").trim().toUpperCase();
-        if (key && refs.has(key)) { done.add(key); break; }
+        if (key && refs.has(key)) { done.set(key, appAt(row)); break; }
       }
     }
   } catch (e) {
@@ -135,7 +142,7 @@ async function watchRows(sb, want) {
     .filter(w => w.ref);
   const by = new Map(), byPass = new Map();
   for (const w of list) {
-    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false };
+    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false, subAt: '' };
     by.set(w.ref, v);
     if (w.pass) byPass.set(w.pass, v);
   }
@@ -148,7 +155,7 @@ async function watchRows(sb, want) {
   } catch (e) {
     console.log('watch could not read the applications: ' + cut(e && e.message, 60));
   }
-  for (const [ref] of by) { if (done.has(ref)) by.get(ref).brain = true; }
+  for (const [ref, at] of done) { const v = by.get(ref); if (v) { v.brain = true; v.subAt = at; } }
 
   /* the sheet either answers or it does not. When it answers, every reference asked about is settled: a row
      that is not in the sheet is not paid, and that is the truth rather than a gap. When it does not answer,

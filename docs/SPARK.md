@@ -645,8 +645,9 @@ the mail is about, not the submit, and the rules live in `lib/sharjah-watch.js`:
 final submit touches, because the letter says the application is in and a saved step does not;
 the welcome letter goes when the sheet says `yes` in `Payment Completed`, which is
 read from the sheet through the same hook that writes into it (`action: 'status'`, two columns, the same
-secret, nothing written); and the nudge goes ninety minutes after the form, and only when the sheet actually
-answered and did not say yes. The stand's submit opens one small file per reference in
+secret, nothing written); and the nudge goes ninety minutes after the later of
+the form and that final submit, to a person whose application row exists, and only when the sheet actually
+answered and did not say yes: a lead left half way through the conversation is never mailed about money. The stand's submit opens one small file per reference in
 `$DATA_DIR/sharjah-next/sn-state-*.json`, which is the whole queue, so a lead that was never recorded here
 is never mailed. A timer inside the app walks it every five seconds, one pass at a time and only as far as
 the queue reaches, unref'd so it cannot hold a shutdown, and `node scripts/sharjah-watch.js` walks it once by

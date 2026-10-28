@@ -219,8 +219,13 @@ function submitted(row) {
   return APPS_DONE_STATUS.indexOf(String((row && row.status) || "").trim().toLowerCase()) >= 0;
 }
 
+const appAt = row => {
+  const at = row && row.submitted_at;
+  return at === null || at === undefined ? "" : String(at).trim().slice(0, 40);
+};
+
 async function applicationsDone(sb, refs) {
-  const done = new Set();
+  const done = new Map();
   if (!refs.size) return done;
   for (const col of APPS_KEYS) {
     let data = null, error = null;
@@ -231,7 +236,7 @@ async function applicationsDone(sb, refs) {
     if (error || !Array.isArray(data)) continue;
     for (const row of data) {
       const key = String(row[col] || "").trim().toUpperCase();
-      if (key && refs.has(key) && submitted(row)) done.add(key);
+      if (key && refs.has(key) && submitted(row)) done.set(key, appAt(row));
     }
     return done;
   }
@@ -242,7 +247,7 @@ async function applicationsDone(sb, refs) {
       if (!submitted(row)) continue;
       for (const col of Object.keys(row)) {
         const key = String(row[col] || "").trim().toUpperCase();
-        if (key && refs.has(key)) { done.add(key); break; }
+        if (key && refs.has(key)) { done.set(key, appAt(row)); break; }
       }
     }
   } catch (e) {
@@ -257,7 +262,7 @@ async function watchRows(sb, want) {
     .filter(w => w.ref);
   const by = new Map(), byPass = new Map();
   for (const w of list) {
-    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false };
+    const v = { ref: w.ref, pass: w.pass, brain: false, paid: '', known: false, subAt: '' };
     by.set(w.ref, v);
     if (w.pass) byPass.set(w.pass, v);
   }
@@ -269,7 +274,7 @@ async function watchRows(sb, want) {
   } catch (e) {
     console.log('watch could not read the applications: ' + cut(e && e.message, 60));
   }
-  for (const [ref] of by) { if (done.has(ref)) by.get(ref).brain = true; }
+  for (const [ref, at] of done) { const v = by.get(ref); if (v) { v.brain = true; v.subAt = at; } }
 
   const sheet = await askSheet({ action: 'status', refs: [...by.keys()] });
   if (sheet.ok) {
