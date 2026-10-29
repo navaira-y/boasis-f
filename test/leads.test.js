@@ -115,7 +115,11 @@ test('the table has the columns the door writes, and the lock the comment promis
   }
     assert.match(door, /from\(table\)\.insert\(row\)/, 'the door writes with one insert, into the table the kind picked');
   assert.match(door, /const STAND = "sharjah_next_leads"/, 'and the stand has a table of its own to pick');
-  assert.ok(!/\.update\(|\.delete\(/.test(door), 'and never rewrites or removes a row that is already kept');
+  assert.ok(!/\.delete\(|\.upsert\(/.test(door), 'and no row is ever removed, and nothing upserts a whole key by accident');
+  assert.match(door, /if \(table === STAND && row\.ref\)/,
+    'the stand\'s own table is the one place a row is rewritten, by reference, because a visitor is one row there');
+  assert.match(door, /const fresh = await sb\.from\(table\)\.insert\(row\)\.select\("id"\)\.single\(\);\n      data = fresh\.data; error = fresh\.error;/,
+    'and an update that the grant refuses falls back to the append this door always did, so deploying before the grant is a duplicate row and not a lost lead');
   assert.match(sql, /enable row level security/, 'RLS on');
   assert.ok(!/create policy/.test(sql), 'and no policy: the browser roles get nothing, the service role does not need one');
   assert.match(sql, /grant select, insert on table public.site_leads to service_role/, 'insert and read, never update');

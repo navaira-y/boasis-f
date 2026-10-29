@@ -556,12 +556,32 @@ Deno.serve(async (req) => {
   } catch {
     return json({ ok: false, error: "config" }, 500);
   }
-  const { data, error } = await sb.from(table).insert(row).select("id").single();
+  let data = null, error = null;
+  if (table === STAND && row.ref) {
+    /* one row per visitor, which is what the reference is for. A person who fills this form twice is the same
+       person, and their second attempt used to land as a second row beside the first, so the sheet had one
+       line for them and the table had two. The row that carries that reference is updated instead, and a row
+       is only made when there is none. Every other form on this site still appends, because there a second
+       enquiry really is a second enquiry; this table is a list of who is standing at the counter. */
+    const said = await sb.from(table).update(row).eq("ref", row.ref).select("id");
+    data = said.data; error = said.error;
+    if (error || !(data || []).length) {
+      /* the update is refused on a table that has not been granted it, and a mirror that cannot write is a
+         worse fault than a duplicate row, so an old deployment or a missing grant falls straight through
+         to the append this door has always done */
+      const fresh = await sb.from(table).insert(row).select("id").single();
+      data = fresh.data; error = fresh.error;
+    }
+    if (data && Array.isArray(data)) data = data[0] || null;
+  } else {
+    const fresh = await sb.from(table).insert(row).select("id").single();
+    data = fresh.data; error = fresh.error;
+  }
   if (error) return json({ ok: false, error: "db" }, 500);
 
   /* the form half of the sheet row, so a name is on the stand's screen before anybody has spoken to
      Mira, and so a page with no pass still gets a row; the steps fill the rest in when they happen */
   await pushRecordToSheet(record, { table });
 
-  return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
+  return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at, ref: row.ref || null });
 });

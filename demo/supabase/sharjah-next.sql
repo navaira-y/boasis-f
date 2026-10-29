@@ -36,10 +36,11 @@ create index if not exists sharjah_next_leads_email_idx on public.sharjah_next_l
 -- the function writes with the service role, which walks past it. This door also wants a key.
 alter table public.sharjah_next_leads enable row level security;
 
--- insert and read only, never update and never delete: the mirror appends, and a row here is a
--- record of something a person chose to tell us at a given minute.
+-- read, add and update the row for a reference, never delete and never touch another table: a row
+-- here is one visitor, so a second submit by the same person updates their row instead of doubling it.
 revoke all on table public.sharjah_next_leads from anon, authenticated;
 grant select, insert on table public.sharjah_next_leads to service_role;
+grant update on table public.sharjah_next_leads to service_role;
 
 /* whenever you want the list, or the CSV: SQL Editor → paste → Run → Download results. */
 -- select to_char(at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') as at_dubai,

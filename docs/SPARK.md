@@ -641,9 +641,10 @@ the printed date used to have. There is no button in these three, on purpose: th
 with a reference in hand, and a pill into the site only invites a second form from a person already at the desk. A reference is a person and not an attempt. The stand's form mints it the first time an address appears and
 reuses that one for the address afterwards, so a visitor who corrects their name or sends the form twice is one
 row in the file, one line in her sheet and one number in their mail, and the name updates in place rather than
-opening a second record for the counter to choose between. The mirror in `sharjah_next_leads` still appends, as
-it always has, because that door is granted `select, insert` and no more: two rows for one visitor there are two
-moments in a log, both carrying the same reference, which is the only thing the stand reads out.
+opening a second record for the counter to choose between. The mirror in `sharjah_next_leads` does the same:
+that table is granted `update` on purpose, by reference and nothing else, so a visitor is one row. Every other
+form on the site stays append only, because there a second enquiry really is a second enquiry, and no row of
+any kind is ever deleted.
 
 The trigger is the thing
 the mail is about, not the submit, and the rules live in `lib/sharjah-watch.js`: the congrats goes once

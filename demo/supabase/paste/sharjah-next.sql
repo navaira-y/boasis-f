@@ -21,3 +21,4 @@ alter table public.sharjah_next_leads enable row level security;
 
 revoke all on table public.sharjah_next_leads from anon, authenticated;
 grant select, insert on table public.sharjah_next_leads to service_role;
+grant update on table public.sharjah_next_leads to service_role;

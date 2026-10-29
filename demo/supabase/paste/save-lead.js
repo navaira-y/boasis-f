@@ -398,10 +398,24 @@ Deno.serve(async (req) => {
   } catch {
     return json({ ok: false, error: "config" }, 500);
   }
-  const { data, error } = await sb.from(table).insert(row).select("id").single();
+  let data = null, error = null;
+  if (table === STAND && row.ref) {
+
+    const said = await sb.from(table).update(row).eq("ref", row.ref).select("id");
+    data = said.data; error = said.error;
+    if (error || !(data || []).length) {
+
+      const fresh = await sb.from(table).insert(row).select("id").single();
+      data = fresh.data; error = fresh.error;
+    }
+    if (data && Array.isArray(data)) data = data[0] || null;
+  } else {
+    const fresh = await sb.from(table).insert(row).select("id").single();
+    data = fresh.data; error = fresh.error;
+  }
   if (error) return json({ ok: false, error: "db" }, 500);
 
   await pushRecordToSheet(record, { table });
 
-  return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at });
+  return json({ ok: true, id: data?.id ?? null, kind, table, at: row.at, ref: row.ref || null });
 });

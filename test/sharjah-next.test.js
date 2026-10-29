@@ -530,7 +530,11 @@ test('the same mailbox at the stand keeps the reference it was given, and stays 
     'and the search reads only the lead records, because the watch keeps its own files in the same folder');
   const sql = read('demo/supabase/sharjah-next.sql');
   assert.match(sql, /grant select, insert on table public\.sharjah_next_leads to service_role/,
-    'and the stand table is an append log by permission as well as by choice: the door may add and read and nothing else, which is why the reference rather than the row count is what makes a second submit one person');
+    'the door may read and add rows in the stand\'s table');
+  assert.match(sql, /grant update on table public\.sharjah_next_leads to service_role/,
+    'and update one row by reference, so a person who submits twice is one row rather than two, which is the grant the door needs to do that');
+  assert.ok(!/grant update on table public\.site_leads/.test(sql),
+    'and every other form\'s table stays append only, because there a second enquiry is a second enquiry');
 });
 
 test('the page opens the box, takes six digits, and carries the proof to the door', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
