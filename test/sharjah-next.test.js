@@ -425,7 +425,7 @@ test('the door wants a code the mailbox answered, spends it once, and can be tol
   const sp = read('lib/spark.js');
   assert.match(sp, /o\.verify\.peek\(form\.contact\.email, proof\)/, 'it looks at the proof without spending it, so any other refusal leaves the code usable');
   assert.match(sp, /error: 'emailv'/, 'and the reason it says is the name of the field the page can act on');
-  assert.ok(sp.indexOf('verify.peek') < sp.indexOf('const ref = newRef()'), 'a lead with no proof is turned away before a reference is made or a file is written');
+  assert.ok(sp.indexOf('verify.peek') < sp.indexOf('const ref = refForEmail('), 'a lead with no proof is turned away before a reference is looked for, made, or written anywhere');
   assert.ok(sp.indexOf('saveJson(snFile(ref)') < sp.indexOf('o.verify.consume'), 'the proof is spent only after the record is on disk');
   assert.match(sp, /const need = !!o\.verify && o\.verifyRequire !== false/, 'the whole thing hangs on one switch, not on an edit to this file');
   assert.match(read('server.js'), /verify: emailVerify,\s*\n\s*verifyRequire: config\.verify\.require,/,
@@ -476,6 +476,61 @@ test('a live box takes the code, then the lead, and never the same code twice', 
   const raw = fs.readFileSync(path.join(snDir, snFiles()[0]), 'utf8');
   assert.ok(!/eyJ|emailv/.test(raw), 'the proof is nowhere in the record, because only the address was ever worth keeping');
   assert.match(raw, /"email": "sn-check-/, 'the address itself is there, checked and all');
+});
+
+test('the same mailbox at the stand keeps the reference it was given, and stays one row', async () => {
+  /* its own server, with the mailbox proof switched off, because a second send to the same address is a
+     minute away from a rate limit here and the thing under test is the reference rather than the code */
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-sn-ref-'));
+  const proc2 = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
+    cwd: ROOT,
+    env: { ...process.env, BOASIS_NO_ENV_FILE: '1', PORT: '0', DATA_DIR: dir, MAIL_DRY_RUN: '1',
+           VISITOR_SALT: 'test-salt', VERIFY_REQUIRE_FOR_MANAGE: 'off' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let out = '', base2 = '';
+  try {
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('server did not start: ' + out)), 15000);
+      proc2.stdout.on('data', d => { out += d; if (/port \d{2,6}/.test(out)) { clearTimeout(t); res(); } });
+      proc2.on('exit', c => rej(new Error('exited ' + c + ': ' + out)));
+    });
+    base2 = 'http://127.0.0.1:' + /port (\d+)/.exec(out)[1];
+    const post = (body) => proc2 && fetch(base2 + '/api/sharjah-lead', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(async x => ({ status: x.status, j: await x.json().catch(() => null) }));
+    const email = 'again-' + Date.now().toString(36) + '@example.com';
+    const lead = (name, extra) => post({ full_name: name, email, phone: '501234567', country_code: '+971',
+      consent: 'on', source: 'sharjah-next-2026', _t: 5000, ...extra });
+
+    const a = await lead('Ada Lin');
+    assert.equal(a.status, 200, 'the first submit answers');
+    const b = await lead('Ada Rahman');
+    assert.equal(b.j.ref, a.j.ref,
+      'a second submit from the same mailbox carries the same reference, because that number is what the counter reads out and what the sheet is keyed by');
+
+    const files = fs.readdirSync(path.join(dir, 'sharjah-next')).filter(n => /^SN-[A-Z0-9]{6,10}\.json$/.test(n));
+    assert.equal(files.length, 1, 'and the stand folder holds one record for that person, not one per attempt');
+    const rec = JSON.parse(fs.readFileSync(path.join(dir, 'sharjah-next', a.j.ref + '.json'), 'utf8'));
+    assert.equal(rec.full_name, 'Ada Rahman',
+      'while what they typed does update in place, so the corrected name is what she sees at the desk');
+
+    const other = await lead('Bo Lin', { email: 'other-' + Date.now().toString(36) + '@example.com' });
+    assert.notEqual(other.j.ref, a.j.ref, 'and a different mailbox is a different person, with a reference of their own');
+  } finally {
+    proc2.kill('SIGTERM');
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+  }
+  if (proc2.exitCode === null) { await new Promise(res => proc2.once('exit', res)); }
+
+  const sp = read('lib/spark.js');
+  assert.match(sp, /const ref = refForEmail\(form\.contact\.email\) \|\| newRef\(\)/,
+    'the reference is looked for before it is made, which is the whole change and the reason a repeat submit is not a new visitor');
+  assert.match(sp, /if \(!SN_LEAD_FILE\.test\(n\)\) continue;/,
+    'and the search reads only the lead records, because the watch keeps its own files in the same folder');
+  const sql = read('demo/supabase/sharjah-next.sql');
+  assert.match(sql, /grant select, insert on table public\.sharjah_next_leads to service_role/,
+    'and the stand table is an append log by permission as well as by choice: the door may add and read and nothing else, which is why the reference rather than the row count is what makes a second submit one person');
 });
 
 test('the page opens the box, takes six digits, and carries the proof to the door', { skip: JSDOM ? false : 'jsdom not installed' }, async () => {
