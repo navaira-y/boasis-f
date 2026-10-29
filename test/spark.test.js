@@ -642,7 +642,7 @@ test('a phone that was closed comes back to Mira, not to the form', () => {
 test('the page keeps the person on it, with the Brain inside', () => {
   const html = HTML();
   const js = JS();
-  assert.match(html, /<iframe id="brainFrame" title="Mira" src="about:blank"><\/iframe>/, 'the frame is in the page, and empty until a pass is handed over');
+  assert.match(html, /<iframe id="brainFrame" title="Mira" src="about:blank" allow="microphone"><\/iframe>/, 'the frame is in the page, and empty until a pass is handed over');
   assert.match(html, /id="miraLink"[^>]*target="_blank"/, 'and there is a way out for a browser that will not frame it');
   assert.match(html, /\.main\.opened\{grid-template-columns:minmax\(0,1fr\)\}/, 'once the form is in, the frame takes the whole width');
   assert.match(html, /\.main\.opened \.side\{display:none\}/, 'and the four points step aside rather than sit next to a window the person is inside');
@@ -675,6 +675,20 @@ test('the entrance may frame the Brain and nothing else', async () => {
   assert.match(csp, /frame-src 'self' https:\/\/brain\.boasis\.ae;/, 'the Brain is framed here, and only the Brain');
   assert.ok(!/frame-src[^;]*\*/.test(csp), 'no wildcard in a frame list: the pass is in that address bar');
   assert.match(csp, /frame-ancestors 'none'/, 'and nobody frames this page, so the form cannot be borrowed by another site');
+});
+
+test('the framed Mira may ask for the microphone on the two entrances, and nowhere else', async () => {
+  for (const page of ['/try-mira', '/sharjah-next']) {
+    const policy = (await get(page)).headers.get('permissions-policy') || '';
+    assert.match(policy, /microphone=\(self "https:\/\/brain\.boasis\.ae"\)/, page + ': the Brain, and only the Brain, may ask for the mic');
+    assert.match(policy, /camera=\(\)/, page + ': the camera stays off');
+  }
+  const home = (await get('/')).headers.get('permissions-policy') || '';
+  assert.match(home, /microphone=\(\)/, 'every other page keeps the microphone off');
+  const fs = require('fs'), path = require('path');
+  for (const file of ['sharjah-next.html', 'try-mira.html']) {
+    assert.match(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), /<iframe id="\w+Frame" title="Mira" src="about:blank" allow="microphone">/, file + ': the frame asks for the mic');
+  }
 });
 
 test('one file per person is also a list you can read the morning after', (t) => {
@@ -760,4 +774,19 @@ test('the handover says what to click, and the contract is in it', () => {
   }
   assert.ok(!/service_role[^]{0,120}browser|page[^]{0,40}service_role/.test(doc), 'the doc must never put the service key in the page');
   assert.ok(!/spark\.boasis\.ae/.test(doc), 'and it no longer sends anyone to a host that was never bought');
+});
+
+test('after Submit in Mira, the next person gets the form and a pass of their own', () => {
+  const js = JS();
+  const next = /\(function nextPerson\(\) \{([\s\S]*?)\n  \}\)\(\);/.exec(js);
+  assert.ok(next, 'the entrance listens for the end of a visit');
+  const body = next[1];
+  assert.match(body, /ev\.origin !== brainOrigin/, 'only the Brain may end a visit');
+  assert.match(body, /ev\.source !== frame\.contentWindow/, 'and only from the frame on this page');
+  assert.match(body, /ev\.data\.type !== 'boasis-spark-done'/);
+  assert.match(body, /forget\(\);\s*window\.location\.reload\(\)/, 'the same as "Not you? Start a new one"');
+  assert.match(body, /\[\?&\]next=1/, 'a Brain opened on its own comes back with ?next=1');
+  assert.ok(!/ev\.data\.pass/.test(body), 'nothing is read from the message but its type');
+  assert.ok(js.indexOf('function nextPerson') < js.indexOf('function returning'),
+    '?next=1 forgets the pass before the page would open the last visit again');
 });

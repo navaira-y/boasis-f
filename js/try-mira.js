@@ -151,6 +151,26 @@
     } catch (e) { /* no mail is better than a stuck button */ }
   }
 
+  /* the visit is over: Mira's summary was submitted and the person tapped "Start over for the
+     next person". Framed, the Brain says so with a message (it carries no pass); opened on its
+     own, it comes back here with ?next=1. Either way this is the same as "Not you? Start a new
+     one": the pass is forgotten and the form is what the next person sees. */
+  (function nextPerson() {
+    if (/[?&]next=1(&|$)/.test(window.location.search)) {
+      forget();
+      try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* the form shows either way */ }
+    }
+    var brainOrigin = '';
+    try { brainOrigin = new URL(CFG.brainUrl).origin; } catch (e) { return; }
+    window.addEventListener('message', function (ev) {
+      var frame = document.getElementById('brainFrame');
+      if (ev.origin !== brainOrigin || !frame || ev.source !== frame.contentWindow) return;
+      if (!ev.data || ev.data.type !== 'boasis-spark-done') return;
+      forget();
+      window.location.reload();
+    });
+  })();
+
   /* came back by accident, or re-scanned the QR, or closed the phone: their pass is still theirs,
      so open the box they were in and never show them the form again. */
   (function returning() {

@@ -123,8 +123,8 @@ test('the copy is the design\'s own words, in the order it gave them', () => {
   const t = text(h) + ' ' + text(js.slice(js.indexOf('const T={'), js.indexOf('const root')));
   const need = [
     'Sharjah Next offer · 28 & 29 Oct', 'Your SPARK company, at the event price',
-    'year 1', 'from, year 1', '1 activity', '1 shareholder', 'Free lease',
-    'Beyond', 'AED 1,510', 'Beyond+', 'AED 3,010', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options',
+    'year 1', 'Starting from', '1 activity', '1 shareholder', 'Free lease',
+    'Beyond', 'AED 1,510', 'Beyond+', 'AED 3,010', 'Up to 3 activities', 'Up to 3 shareholders', 'Visa options up to 3',
     'For these 6 sectors', 'Sustainability', 'Advanced Manufacturing', 'Mobility & Logistics', 'Healthcare',
     'AI & Digital Transformation', 'Creative',
     "Hi. I'm Mira. A few details, and we start.",
@@ -195,7 +195,7 @@ test('the button records the lead, checks it the way the site checks it, and ope
   assert.match(js, /cleanRef\(j\.ref\)/, 'the reference the mails show comes back from the door, trimmed');
   assert.match(js, /const src=brainHref\(url, ref, pass\);\s*\n\s*const fr=document\.getElementById\('miraFrame'\); if\(fr&&src&&fr\.getAttribute\('src'\)!==src\) fr\.setAttribute\('src',src\);/,
     'and Mira is put in the card where the form was, out of one built address, with that reference and the pass if there is one, and that is the only line in the page that writes anywhere');
-  assert.match(h, /<iframe id="miraFrame" title="Mira" src="about:blank">/,
+  assert.match(h, /<iframe id="miraFrame" title="Mira" src="about:blank" allow="microphone">/,
     'the frame starts on about:blank, the way the other entrance does, so a person who only reads the offer asks the Brain for nothing');
   assert.ok(!/brain\.boasis\.ae/.test(h), 'and the Brain is named in no line of this page\'s markup, only in its script');
   assert.ok(!/class="fine"|miraLink|notShowing/.test(h),
@@ -880,3 +880,72 @@ test('no file is handed to import() as a bare path, because Windows reads C:\\ a
   }
 });
 
+
+test('the pass is answered before the sheet, so a slow sheet cannot cost a visitor their pass', () => {
+  /* What went wrong on the live stand: create-pass wrote the row, then waited on the sheet, which
+     budgets 3500ms of its own. The site abandons the mint at 4000ms, so a cold start plus a slow
+     sheet meant the row existed and the browser was handed pass:"". Both rows in the live table
+     were orphaned that way, and neither visitor's journey could ever be written to. */
+  const src = read('demo/supabase/functions/create-pass/index.js');
+  assert.ok(!/await\s+pushLeadToSheet/.test(src),
+    'create-pass must not wait on the sheet before it answers: the sheet is a view, the pass is the point');
+  assert.match(src, /waitUntil/,
+    'the sheet write still happens, handed to the runtime rather than to the visitor');
+});
+
+test('the number handed to the pass door is digits, so the dial code is applied once', async () => {
+  /* The lead already carries '+971 501234567' by the time the mint runs, and that door composes the
+     code again from the country_code beside it, so the row and the desk's sheet held
+     '+971 971501234567'. Both rows in the live table had it. */
+  const http = require('http');
+  const seen = [];
+  const door = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', d => { body += d; });
+    req.on('end', () => {
+      try { seen.push(JSON.parse(body)); } catch (e) { seen.push(null); }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, pass: 'PASSAAAABBBB' }));
+    });
+  });
+  await new Promise(r => door.listen(0, '127.0.0.1', r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'boasis-mint-'));
+  const mint = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
+    cwd: ROOT,
+    env: {
+      ...process.env, BOASIS_NO_ENV_FILE: '1', PORT: '0', DATA_DIR: dir, MAIL_DRY_RUN: '1',
+      VISITOR_SALT: 'test-salt', SPARK_SN_PASS: 'on',
+      SPARK_PROJECT_URL: 'http://127.0.0.1:' + door.address().port,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let log = '';
+  await new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('mint server did not start: ' + log)), 15000);
+    mint.stdout.on('data', d => { log += d; if (/port \d{2,6}/.test(log)) { clearTimeout(t); res(); } });
+    mint.on('exit', c => rej(new Error('exited ' + c + ': ' + log)));
+  });
+  const at = 'http://127.0.0.1:' + /port (\d+)/.exec(log)[1];
+  const post = async (p, b) => {
+    const r = await fetch(at + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+    return { status: r.status, j: await r.json().catch(() => null) };
+  };
+  try {
+    const email = 'sn-phone-' + Date.now().toString(36) + '@example.com';
+    const sent = await post('/api/verify-email/send', { email, _t: Date.now() - 4000 });
+    const got = await post('/api/verify-email/verify', { email, code: sent.j.devCode });
+    const lead = await post('/api/sharjah-lead', {
+      full_name: 'Dial Code', email, phone: '501234567', country_code: '+971',
+      consent: 'on', source: 'sharjah-next-2026', _t: 5000, emailv: got.j.token,
+    });
+    assert.equal(lead.status, 200, 'the lead is accepted');
+    assert.equal(seen.length, 1, 'and the mint was called exactly once');
+    assert.equal(seen[0].country_code, '+971', 'the door is told the code separately, as it always was');
+    assert.equal(seen[0].phone, '501234567',
+      'and the number alone, because the door composes it: anything else applies the code twice');
+  } finally {
+    mint.kill('SIGTERM');
+    door.close();
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+  }
+});

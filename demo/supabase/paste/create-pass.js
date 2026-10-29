@@ -496,7 +496,8 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "storage" }, 500);
   }
 
-  await pushLeadToSheet(lead, { table });
+  const sheet = pushLeadToSheet(lead, { table }).catch(() => {});
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(sheet);
 
   return json({ ok: true, pass, brain_url: Deno.env.get("BRAIN_URL") || "" });
 });
